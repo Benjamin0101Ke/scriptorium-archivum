@@ -1,0 +1,61 @@
+<div class="form-grid metadata-form">
+  @for (field of fields; track field.name) {
+    @let invalid = invalidFields().includes(field.name);
+    @let id = 'meta-' + field.name;
+    <label
+      [for]="id"
+      [class.full-width]="
+        field.name === 'titulo' || field.name === 'autores' || field.name === 'resumen'
+      "
+    >
+      {{ field.label }}
+      @switch (field.name) {
+        @case ('anio') {
+          <input
+            [id]="id"
+            name="anio"
+            type="number"
+            min="1000"
+            max="9999"
+            [(ngModel)]="draft().anio"
+            required
+            [attr.aria-invalid]="invalid"
+            [attr.aria-describedby]="invalid ? id + '-error' : null"
+          />
+        }
+        @case ('resumen') {
+          <textarea
+            [id]="id"
+            name="resumen"
+            rows="5"
+            [(ngModel)]="draft().resumen"
+            required
+            [attr.aria-invalid]="invalid"
+            [attr.aria-describedby]="invalid ? id + '-error' : null"
+          ></textarea>
+        }
+        @default {
+          <input
+            [id]="id"
+            [attr.name]="field.name"
+            [(ngModel)]="draft()[field.name]"
+            required
+            [attr.list]="field.name === 'tipo' ? 'tipos-trabajo' : null"
+            [attr.aria-invalid]="invalid"
+            [attr.aria-describedby]="invalid ? id + '-error' : null"
+          />
+        }
+      }
+      @if (invalid) {
+        <span class="field-error" [id]="id + '-error'">
+          {{ field.name === 'anio' ? 'Ingresá un año de cuatro dígitos.' : 'Completá este campo.' }}
+        </span>
+      }
+    </label>
+  }
+</div>
+<datalist id="tipos-trabajo">
+  <option value="Trabajo de grado"></option>
+  <option value="Tesis"></option>
+  <option value="Proyecto"></option>
+</datalist>

@@ -1,0 +1,3 @@
+
+<section class="section"><span class="eyebrow">TU COLECCIÓN PERSONAL</span><h1>Favoritos</h1><p>Las fichas retiradas dejan de mostrarse en tu lista.</p>@if(error()){<p class="notice error" role="alert">{{error()}}</p>}
+@if(loading()){<p>Cargando favoritos…</p>}@else{<div class="cards">@for(t of items();track t.id){<article class="card"><span class="badge">{{t.tipo}} · {{t.anio}}</span><h2><a [routerLink]="['/trabajos',t.id]">{{t.titulo}}</a></h2><p>{{t.autores.join(' · ')}}</p><button class="secondary" (click)="remove(t.id)">Quitar de favoritos</button></article>}</div>@if(!items().length&&!error()){<div class="empty"><h2>Tu lista está lista para empezar</h2><a routerLink="/">Explorar catálogo ↗</a></div>}}</section>

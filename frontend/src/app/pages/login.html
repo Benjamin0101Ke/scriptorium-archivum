@@ -1,0 +1,68 @@
+<section class="section login-layout">
+  <div>
+    <h1>{{ registering() ? 'Creá tu cuenta lectora' : 'Ingresá al repositorio' }}</h1>
+    @if (forSubmissions()) {
+      <p>Ingresá con tu cuenta lectora o creá una para enviar tu trabajo a Biblioteca.</p>
+    } @else {
+      <p>
+        Consultá el catálogo sin cuenta. Iniciá sesión para guardar tus favoritos o usar el panel de
+        Biblioteca.
+      </p>
+    }
+  </div>
+  <form class="panel" (ngSubmit)="submit()" [attr.aria-busy]="busy()">
+    <h2>{{ registering() ? 'Crear cuenta local' : 'Iniciar sesión' }}</h2>
+    @if (registering()) {
+      <p class="notice">
+        Tu cuenta lectora se guarda en este navegador. Usá una contraseña de prueba.
+      </p>
+      <label
+        >Nombre<input
+          name="nombre"
+          autocomplete="name"
+          maxlength="120"
+          required
+          [(ngModel)]="nombre"
+      /></label>
+    } @else if (api.demo) {
+      <div class="notice">
+        <strong>Cuentas de demostración</strong>
+        <p>
+          Biblioteca · biblioteca@demo.local<br />Lector · lector@demo.local<br />Contraseña de
+          ambas · demo1234
+        </p>
+      </div>
+    }
+    <label
+      >Correo<input
+        name="correo"
+        type="email"
+        autocomplete="username"
+        maxlength="254"
+        required
+        [(ngModel)]="correo"
+    /></label>
+    <label
+      >Contraseña
+      <input
+        name="password"
+        type="password"
+        [attr.autocomplete]="registering() ? 'new-password' : 'current-password'"
+        [attr.minlength]="registering() ? 8 : null"
+        required
+        [(ngModel)]="password"
+      />
+    </label>
+    @if (error()) {
+      <p class="notice error" role="alert">{{ error() }}</p>
+    }
+    <button [disabled]="busy()">
+      {{ busy() ? 'Procesando…' : registering() ? 'Crear cuenta' : 'Ingresar' }}
+    </button>
+    @if (api.demo) {
+      <button type="button" class="text-button" [disabled]="busy()" (click)="toggleRegistration()">
+        {{ registering() ? 'Volver a iniciar sesión' : 'Crear cuenta lectora' }}
+      </button>
+    }
+  </form>
+</section>

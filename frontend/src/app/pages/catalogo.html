@@ -1,0 +1,127 @@
+<section class="hero" aria-labelledby="catalog-title">
+  <div class="hero-content">
+    <p class="hero-institution">Universidad de El Salvador · FMO</p>
+    <h1 id="catalog-title">Proyectos y <span>trabajos de grado</span></h1>
+    <p class="hero-description">
+      Buscá trabajos de la facultad, consultá sus fichas y accedé a los recursos autorizados.
+    </p>
+    <div class="hero-actions">
+      <a class="button hero-button" href="#catalogo">Explorar el catálogo <span aria-hidden="true">↓</span></a>
+      @if (api.demo || api.user()?.rol === 'Biblioteca') {
+        <a class="button hero-submit" [routerLink]="api.user()?.rol === 'Biblioteca' ? '/biblioteca' : '/mis-envios'">
+          Agregar tesis o proyecto
+        </a>
+      }
+    </div>
+  </div>
+  <div class="hero-art" aria-hidden="true">
+    <div class="hero-logo">
+      <img src="/logo.jpeg" alt="" width="1254" height="1254" fetchpriority="high" />
+    </div>
+  </div>
+</section>
+<section id="catalogo" class="section catalog-section">
+  <div class="section-heading">
+    <h2>Catálogo académico</h2>
+    <span class="badge">{{ all().length }} fichas públicas</span>
+  </div>
+  <form class="search-box" (ngSubmit)="load()">
+    <label for="busqueda">Buscar por título, tema o resumen</label>
+    <div class="search-row">
+      <input
+        id="busqueda"
+        name="q"
+        [(ngModel)]="q"
+        placeholder="¿Qué te gustaría investigar?"
+      /><button type="submit">Buscar trabajos</button>
+    </div>
+    <div class="filters">
+      <label
+        >Autor<select name="autor" [(ngModel)]="autor">
+          <option value="">Todos</option>
+          @for (v of options('autores'); track v) {
+            <option>{{ v }}</option>
+          }
+        </select></label
+      >
+      <label
+        >Año<select name="anio" [(ngModel)]="anio">
+          <option value="">Todos</option>
+          @for (v of options('anio'); track v) {
+            <option>{{ v }}</option>
+          }
+        </select></label
+      >
+      <label
+        >Carrera<select name="carrera" [(ngModel)]="carrera">
+          <option value="">Todas</option>
+          @for (v of options('carrera'); track v) {
+            <option>{{ v }}</option>
+          }
+        </select></label
+      >
+      <label
+        >Área<select name="area" [(ngModel)]="area">
+          <option value="">Todas</option>
+          @for (v of options('area'); track v) {
+            <option>{{ v }}</option>
+          }
+        </select></label
+      >
+      <label
+        >Tipo<select name="tipo" [(ngModel)]="tipo">
+          <option value="">Todos</option>
+          @for (v of options('tipo'); track v) {
+            <option>{{ v }}</option>
+          }
+        </select></label
+      >
+      <label
+        >Orden<select name="orden" [(ngModel)]="orden">
+          <option value="coincidencia">Coincidencia</option>
+          <option value="anio">Más recientes</option>
+          <option value="titulo">Título A–Z</option>
+        </select></label
+      >
+    </div>
+    <button class="text-button" type="button" (click)="reset()">Limpiar búsqueda y filtros</button>
+  </form>
+  @if (error()) {
+    <div class="notice error" role="alert">
+      {{ error() }} <button (click)="load(true)">Reintentar</button>
+    </div>
+  }
+  @if (loading()) {
+    <p class="empty" role="status">Consultando el catálogo…</p>
+  } @else if (!error()) {
+    <p class="muted" aria-live="polite">{{ items().length }} resultados</p>
+    <div class="cards">
+      @for (t of items(); track t.id) {
+        <article class="card">
+          <div class="card-top">
+            <span class="badge">{{ t.tipo }}</span
+            ><span>{{ t.anio }}</span>
+          </div>
+          <h3>
+            <a [routerLink]="['/trabajos', t.id]">{{ t.titulo }}</a>
+          </h3>
+          <p class="authors">{{ t.autores.join(' · ') }}</p>
+          <p class="summary">{{ t.resumen }}</p>
+          <div class="card-bottom">
+            <span>{{ t.area }}</span
+            ><a [routerLink]="['/trabajos', t.id]">Ver ficha ↗</a>
+          </div>
+        </article>
+      }
+    </div>
+    @if (!items().length) {
+      <div class="empty">
+        <h3>No hay fichas para mostrar</h3>
+        <p>
+          Probá otra búsqueda. Las nuevas fichas aparecen después de la verificación y publicación
+          de Biblioteca.
+        </p>
+      </div>
+    }
+  }
+</section>

@@ -1,0 +1,48 @@
+<section class="section narrow">
+  <h1>Mis envíos</h1>
+  <p>
+    Enviá tu tesis, trabajo de grado o proyecto con el PDF. Biblioteca lo revisa antes de decidir su
+    publicación.
+  </p>
+  <form class="panel" (ngSubmit)="submit(pdfInput)" [attr.aria-busy]="busy()">
+    <h2>Agregar tesis o proyecto</h2>
+    <app-metadata-fields [draft]="draft" [invalidFields]="invalid()" />
+    <label
+      >PDF del trabajo · máximo 25 MB
+      <input #pdfInput type="file" accept=".pdf,application/pdf" required [disabled]="busy()" />
+    </label>
+    @if (error()) {
+      <p class="notice error" role="alert">{{ error() }}</p>
+    }
+    @if (message()) {
+      <p class="notice" role="status">{{ message() }}</p>
+    }
+    <button [disabled]="busy()">{{ busy() ? 'Enviando…' : 'Enviar a Biblioteca' }}</button>
+  </form>
+  <section class="panel" aria-labelledby="envios-heading">
+    <h2 id="envios-heading">Trabajos enviados</h2>
+    @if (loading()) {
+      <p role="status">Cargando envíos…</p>
+    } @else if (listError()) {
+      <p class="notice error" role="alert">{{ listError() }}</p>
+      <button class="secondary" (click)="load()">Reintentar</button>
+    } @else if (!items().length) {
+      <p class="muted">Todavía no has enviado trabajos.</p>
+    }
+    @if (items().length) {
+      <ul class="submission-list">
+        @for (item of items(); track item.id) {
+          <li>
+            <div>
+              <strong>{{ item.titulo }}</strong>
+              <p>{{ item.tipo }} · {{ item.fecha | date: 'dd/MM/yyyy' }}</p>
+            </div>
+            <span class="badge">{{
+              item.estado === 'En revision' ? 'En revisión' : item.estado
+            }}</span>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+</section>

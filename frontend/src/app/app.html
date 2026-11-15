@@ -1,0 +1,49 @@
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+<header class="site-header">
+  <a class="brand" routerLink="/" aria-label="Scriptorium Archivum, inicio">
+    <img src="/logo.jpeg" alt="" width="48" height="48" />
+    <span>Scriptorium <small>Archivum</small></span>
+  </a>
+  <nav aria-label="Navegación principal">
+    <a
+      routerLink="/"
+      routerLinkActive="active"
+      ariaCurrentWhenActive="page"
+      [routerLinkActiveOptions]="{ exact: true }"
+      >Catálogo</a
+    >
+    @if (api.user()) {
+      <a routerLink="/favoritos" routerLinkActive="active" ariaCurrentWhenActive="page"
+        >Favoritos</a
+      >
+      @if (api.user()?.rol === 'Biblioteca') {
+        <a routerLink="/biblioteca" routerLinkActive="active" ariaCurrentWhenActive="page"
+          >Biblioteca</a
+        >
+      } @else if (api.demo) {
+        <a routerLink="/mis-envios" routerLinkActive="active" ariaCurrentWhenActive="page">Mis envíos</a>
+      }
+      <button class="secondary" (click)="logout()">Salir</button>
+    } @else {
+      <a class="button small" routerLink="/ingresar">Iniciar sesión</a>
+    }
+  </nav>
+</header>
+@if (error()) {
+  <p class="notice error">{{ error() }}</p>
+}
+@if (api.demo) {
+  <p class="demo-banner" role="status">
+    <strong>Demostración local</strong> · Los datos y PDF de prueba se guardan en este navegador.
+  </p>
+}
+<main id="contenido"><router-outlet /></main>
+<footer class="site-footer">
+  <div class="footer-content">
+    <div class="brand-text">
+      Scriptorium Archivum<span>Repositorio digital de proyectos y trabajos de grado</span>
+    </div>
+    <p>Universidad de El Salvador<br />Facultad Multidisciplinaria Oriental</p>
+    <a routerLink="/">Volver al catálogo ↑</a>
+  </div>
+</footer>

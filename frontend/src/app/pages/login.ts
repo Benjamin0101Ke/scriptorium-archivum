@@ -15,7 +15,10 @@ export class Login {
   registering = signal(false);
   error = signal('');
   busy = signal(false);
-
+  showPassword = signal(false);
+togglePassword() {
+  this.showPassword.update(value => !value);
+}
   forSubmissions() {
     return this.api.demo && this.route.snapshot.queryParamMap.get('destino') === 'envios';
   }

@@ -87,8 +87,10 @@ export async function handleLibrary(
   const [, , , id, action] = p.split('/');
   const t = works.find((item) => item.id === id);
   if (!t) error('Ficha no disponible.');
-  if (!action && method === 'GET') return { ...copy(t), controles: checks(t) };
-  if (!action && method === 'PUT') {
+if (!action && method === 'GET') {
+  console.log('ESTADO DE FICHA:', JSON.stringify(t.estado));
+  return { ...copy(t), controles: checks(t) };
+}  if (!action && method === 'PUT') {
     const fields = validateMetadata(body);
     if (fields.length) error('Revisá estos campos: ' + fields.join(', '), { fields });
     const { confirmarDuplicado, ...metadata } = body;
@@ -164,6 +166,15 @@ export async function handleLibrary(
   }
   if (action === 'enlaces') {
     if (method === 'GET') return copy(t.enlaces);
+      if (method === 'DELETE') {
+    const linkId = p.split('/').pop();
+const index = (t.enlaces || []).findIndex((l: any) => l.id === linkId);
+    if (index === -1) error('Enlace no encontrado.');
+
+    t.enlaces.splice(index, 1);
+    save();
+    return { ok: true };
+  }
     let url: URL;
     try {
       url = new URL(body.url);

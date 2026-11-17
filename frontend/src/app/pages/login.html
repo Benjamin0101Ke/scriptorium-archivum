@@ -42,17 +42,51 @@
         required
         [(ngModel)]="correo"
     /></label>
-    <label
-      >Contraseña
-      <input
-        name="password"
-        type="password"
-        [attr.autocomplete]="registering() ? 'new-password' : 'current-password'"
-        [attr.minlength]="registering() ? 8 : null"
-        required
-        [(ngModel)]="password"
-      />
-    </label>
+
+<label class="password-label">
+  Contraseña
+
+  <div class="password-container">
+    <input
+      name="password"
+      [type]="showPassword() ? 'text' : 'password'"
+      [attr.autocomplete]="registering() ? 'new-password' : 'current-password'"
+      [attr.minlength]="registering() ? 8 : null"
+      required
+      [(ngModel)]="password"
+    />
+
+    <button
+      type="button"
+      class="password-toggle"
+      (click)="togglePassword()"
+      [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        @if (showPassword()) {
+          <path d="M3 3l18 18" />
+          <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+          <path d="M9.9 5.2A11 11 0 0 1 12 5c5 0 9 5 10 7a13 13 0 0 1-3 3.7" />
+          <path d="M6.2 6.2C3.8 7.7 2 10 2 12c1 2 5 7 10 7a10 10 0 0 0 4-.8" />
+        } @else {
+          <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" />
+          <circle cx="12" cy="12" r="3" />
+        }
+      </svg>
+    </button>
+  </div>
+</label>
+
     @if (error()) {
       <p class="notice error" role="alert">{{ error() }}</p>
     }

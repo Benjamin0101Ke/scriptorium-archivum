@@ -824,3 +824,46 @@ dialog::backdrop {
     flex-wrap: wrap;
   }
 }
+
+
+/* Botón para mostrar u ocultar contraseña */
+.login-layout form .password-container {
+  position: relative;
+  width: 100%;
+}
+
+.login-layout form .password-container input {
+  width: 100%;
+  padding-right: 48px;
+}
+
+.login-layout form .password-container button.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  left: auto;
+  transform: translateY(-50%);
+
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: transparent;
+  border: none;
+  color: #64748b;
+  border-radius: 50%;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.login-layout form .password-container button.password-toggle:hover {
+  background: transparent;
+  color: #4b2db3;
+}
+

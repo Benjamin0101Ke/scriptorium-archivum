@@ -1,66 +1,424 @@
-<section class="section"><div class="section-heading"><div><span class="eyebrow">GESTIÓN DEL REPOSITORIO</span><h1>Biblioteca</h1></div><button (click)="newWork()" [disabled]="busy()">+ Agregar tesis o proyecto</button></div>
-<p class="notice">El depósito y la aprobación académica se realizan por los canales institucionales. Aquí se registra su evidencia y la decisión de difusión.</p>
-@if(error()){<p class="notice error" role="alert">{{error()}}</p>}@if(message()){<p class="notice" role="status">{{message()}}</p>}
-@if(guideInfo();as guia){
-  <section class="panel" aria-labelledby="titulo-guia">
-    <h2 id="titulo-guia">{{guia.titulo || 'Guía institucional de depósito'}}</h2>
-    @if(guia.disponible){
-      @if(guia.referencia){<p>{{guia.referencia}}</p>}
-      @if(guia.url){<p><a [href]="guia.url" target="_blank" rel="noopener noreferrer">Abrir la guía vigente ↗</a></p>}
-    } @else {<p>{{guia.mensaje || 'La unidad responsable todavía no ha proporcionado una edición vigente.'}}</p>}
-    <button type="button" class="secondary" (click)="guideInfo.set(null)">Cerrar guía</button>
-  </section>
-}
-<div class="admin-layout"><aside class="panel"><h2>Fichas registradas</h2>@for(t of items();track t.id){<button class="work-choice" [class.selected]="current()?.id===t.id" (click)="open(t.id)" [disabled]="busy()"><strong>{{t.titulo}}</strong><span>{{t.estado}} · {{t.anio}}</span></button>}@if(!items().length){<p class="muted">Todavía no hay fichas registradas.</p>}<div class="actions"><button class="secondary" (click)="activity()" [disabled]="busy()">Actividad y reporte</button><button class="secondary" (click)="guide()">Consultar guía</button></div></aside><div>
-<form class="panel" (ngSubmit)="save()" [attr.aria-busy]="busy()"><span class="eyebrow">PASO 01</span><h2>{{current()?'Corregir metadatos':'Registrar ficha'}}</h2>
-  @if(!current()){<p class="muted">Guardá los datos del trabajo para habilitar la carga del PDF.</p>}
-  @if(current()?.envio;as envio){<p class="notice">Enviado por {{envio.nombre}} desde su cuenta lectora.</p>}
-  <app-metadata-fields [draft]="meta" [invalidFields]="fields()" />
-  <button [disabled]="busy()">Guardar metadatos</button>
-@if(duplicate()){<div class="notice"><p>Se encontró un posible duplicado. Revisá las fichas existentes antes de continuar.</p><button type="button" class="secondary" (click)="save(true)" [disabled]="busy()">Confirmar alta de todas formas</button></div>}</form>
-@if(current();as t){<div class="panel"><span class="eyebrow">PASO 02</span><h2>Ejemplar final</h2>
-  <p class="muted">Reemplazar el ejemplar suspende su publicación. El nuevo ejemplar requiere verificación, autorización y decisión.</p>
-  @if(t.ejemplar){
-    <p><strong>Ejemplar actual</strong> {{t.ejemplar.nombre_original || t.ejemplar.referencia_institucional}}</p>
-    <small class="break">{{t.ejemplar.id}}</small>
-    @if(t.ejemplar.verificador){
-      <p class="muted">Verificado por {{t.ejemplar.verificador}} @if(t.ejemplar.fecha_verificacion){· {{t.ejemplar.fecha_verificacion}}}</p>
-    }
-    @if(api.demo && t.ejemplar.nombre_original){
-      <app-local-pdf-preview [path]="'/admin/trabajos/' + t.id + '/pdf?ejemplar=' + t.ejemplar.id" />
-    }
+<section class="section">
+
+  <div class="section-heading">
+    <div>
+      <span class="eyebrow">GESTIÓN DEL REPOSITORIO</span>
+      <h1>Biblioteca</h1>
+    </div>
+    <button type="button" (click)="newWork(discardDialog)" [disabled]="busy()">
+      + Agregar tesis o proyecto
+    </button>
+  </div>
+
+  <p class="notice">
+    El depósito y la aprobación académica se realizan por los canales institucionales.
+    Aquí se registra su evidencia y la decisión de difusión.
+  </p>
+
+
+  <!-- Modal para descartar cambios -->
+<dialog #discardDialog class="confirm-dialog">
+  <div class="confirm-content">
+    <span class="eyebrow">CAMBIOS SIN GUARDAR</span>
+    <h2>¿Descartar los cambios?</h2>
+    <p>
+      Tienes modificaciones que todavía no has guardado.
+      Si continúas, perderás los cambios realizados en esta ficha.
+    </p>
+    <div class="actions">
+      <button type="button" class="secondary"
+        (click)="resolverConfirmacion(false, discardDialog)">
+        Seguir editando
+      </button>
+      <button type="button" class="danger"
+        (click)="resolverConfirmacion(true, discardDialog)">
+        Descartar cambios
+      </button>
+    </div>
+  </div>
+</dialog>
+
+<dialog #deleteLinkDialog class="confirm-dialog">
+  <div class="confirm-content">
+    <span class="eyebrow">ENLACES COMPLEMENTARIOS</span>
+    <h2>¿Eliminar este enlace?</h2>
+    <p>Esta acción eliminará permanentemente el enlace seleccionado.</p>
+    <div class="actions">
+      <button type="button" class="secondary"
+        (click)="deleteLinkDialog.close()">
+        Cancelar
+      </button>
+      <button type="button" class="danger"
+        (click)="confirmDeleteLink(deleteLinkDialog)">
+        Eliminar enlace
+      </button>
+    </div>
+  </div>
+</dialog>
+
+
+  @if(error()){
+    <p class="notice error" role="alert">{{error()}}</p>
   }
-  <label>Archivo PDF · máximo 25 MB<input id="pdf-file" type="file" accept=".pdf,application/pdf" (change)="choose($event)" [disabled]="busy()"></label>
-  <button (click)="upload()" [disabled]="busy()||!file">Asociar PDF</button>
-  <form class="reference-form" (ngSubmit)="saveReference()">
-    <label>Referencia institucional del ejemplar<input name="referenciaEjemplar" [(ngModel)]="reference" required></label>
-    <button class="secondary" [disabled]="busy()||!reference.trim()">Asociar referencia</button>
-  </form>
-</div>
-@if(t.ejemplar){<form class="panel" (ngSubmit)="saveControls()"><span class="eyebrow">PASO 03</span><h2>Evidencias y permisos</h2>
-<fieldset><legend>Depósito institucional</legend><label>Correlativo o comprobante UES<input name="deposito" [(ngModel)]="control.deposito_referencia"></label><label>Fecha de depósito, si está disponible<input name="fechaDeposito" type="date" [(ngModel)]="control.deposito_fecha"></label><label class="check"><input name="depositoVerificado" type="checkbox" [(ngModel)]="control.deposito_verificado">Biblioteca verificó el comprobante</label></fieldset>
-<fieldset><legend>Conformidad del ejemplar final</legend><label>Referencia de conformidad académica<input name="conformidad" [(ngModel)]="control.conformidad_referencia"></label><label class="check"><input name="verificar" type="checkbox" [(ngModel)]="control.verificar">Registrar mi verificación del ejemplar actual</label><p class="muted">La API registra responsable y fecha con la cuenta que inició sesión.</p></fieldset>
-<fieldset><legend>Constancia de autorización</legend><label>Referencia identificable de la constancia<input name="referencia" [(ngModel)]="control.autorizacion.referencia"></label><label>Otorgantes<input name="otorgantes" [(ngModel)]="control.autorizacion.otorgantes"></label><div class="form-grid"><label>Fecha<input name="fechaAut" type="date" [(ngModel)]="control.autorizacion.fecha"></label><label>Vencimiento, si aplica<input name="vence" type="date" [(ngModel)]="control.autorizacion.vence"></label></div><label>Estado<select name="estadoAut" [(ngModel)]="control.autorizacion.estado"><option>Vigente</option><option>Revocada</option></select></label><p>Operaciones concedidas por la constancia</p><label class="check"><input name="autFicha" type="checkbox" [(ngModel)]="control.autorizacion.ficha">Difundir ficha pública</label><label class="check"><input name="autLectura" type="checkbox" [(ngModel)]="control.autorizacion.lectura">Lectura</label><label class="check"><input name="autDescarga" type="checkbox" [(ngModel)]="control.autorizacion.descarga">Descarga</label></fieldset>
-<fieldset><legend>Permisos que se habilitarán en el catálogo</legend><label class="check"><input name="ficha" type="checkbox" [(ngModel)]="control.ficha_publica">Ficha pública</label><label class="check"><input name="lectura" type="checkbox" [(ngModel)]="control.lectura">Lectura</label><label class="check"><input name="descarga" type="checkbox" [(ngModel)]="control.descarga">Descarga</label></fieldset>
-<fieldset><legend>Decisión de Biblioteca para este ejemplar</legend><label>Resultado<select name="resultado" [(ngModel)]="control.decision.resultado"><option>Favorable</option><option>Desfavorable</option></select></label><label>Motivo<textarea name="motivo" [(ngModel)]="control.decision.motivo" rows="3"></textarea></label></fieldset><button [disabled]="busy()">Guardar controles</button></form>}
-<div class="panel"><span class="eyebrow">PASO 04</span><h2>Revisar y publicar</h2><ul class="checklist">@for(c of checks();track c.label){<li [class.ok]="c.ok">{{c.ok?'✓':'○'}} {{c.label}}</li>}</ul><button (click)="publish()" [disabled]="busy()||t.estado==='Publicado'">Comprobar y publicar</button></div>
-<div class="panel"><h2>Material complementario</h2><form (ngSubmit)="addLink()"><label>Enlace HTTPS<input name="url" type="url" [(ngModel)]="link.url" required></label><label>Tipo<input name="tipoEnlace" [(ngModel)]="link.tipo" required placeholder="Código fuente, video, anexo…"></label><label>Descripción<input name="descEnlace" [(ngModel)]="link.descripcion" required></label><button class="secondary" [disabled]="busy()">Agregar deshabilitado</button></form>@for(l of links();track l.id){<div class="link-row"><span>{{l.descripcion}} · {{l.habilitado?'Habilitado':'Deshabilitado'}}</span><button class="secondary" (click)="toggleLink(l)" [disabled]="busy()">{{l.habilitado?'Deshabilitar':'Autorizar difusión'}}</button></div>}</div>
-@if(t.estado==='Publicado'){
-  <section class="panel">
-    <h2>Retirar publicación</h2>
-    <button class="danger" (click)="retireDialog.showModal()" [disabled]="busy()">Retirar del catálogo</button>
-    <dialog #retireDialog aria-labelledby="retire-title">
-      <form (ngSubmit)="retire(retireDialog)">
-        <h2 id="retire-title">Confirmar retiro</h2>
-        <label>Motivo obligatorio<textarea name="retiro" [(ngModel)]="retireReason" required></textarea></label>
-        @if(error()){<p class="notice error" role="alert">{{error()}}</p>}
-        <div class="actions">
-          <button type="button" class="secondary" [disabled]="busy()" (click)="retireDialog.close()">Cancelar</button>
-          <button class="danger" [disabled]="busy()||!retireReason.trim()">Confirmar retiro</button>
-        </div>
+
+  @if(message()){
+    <p class="notice" role="status">{{message()}}</p>
+  }
+
+  @if(guideInfo(); as guia){
+    <section class="panel" aria-labelledby="titulo-guia">
+      <h2 id="titulo-guia">{{guia.titulo || 'Guía institucional de depósito'}}</h2>
+      @if(guia.disponible){
+        @if(guia.referencia){<p>{{guia.referencia}}</p>}
+        @if(guia.url){
+          <p>
+            <a [href]="guia.url" target="_blank" rel="noopener noreferrer">
+              Abrir la guía vigente ↗
+            </a>
+          </p>
+        }
+      } @else {
+        <p>{{guia.mensaje || 'La unidad responsable todavía no ha proporcionado una edición vigente.'}}</p>
+      }
+      <button type="button" class="secondary" (click)="guideInfo.set(null)">
+        Cerrar guía
+      </button>
+    </section>
+  }
+
+  <div class="admin-layout">
+
+    <aside class="panel">
+      <h2>Fichas registradas</h2>
+
+      @for(t of items(); track t.id){
+        <button
+          class="work-choice"
+          [class.selected]="current()?.id===t.id"
+          (click)="open(t.id, discardDialog)"
+          [disabled]="busy()">
+          <strong>{{t.titulo}}</strong>
+          <span>{{t.estado}} · {{t.anio}}</span>
+        </button>
+      }
+
+      @if(!items().length){
+        <p class="muted">Todavía no hay fichas registradas.</p>
+      }
+
+      <div class="actions">
+        <button class="secondary" (click)="activity()" [disabled]="busy()">
+          Actividad y reporte
+        </button>
+        <button class="secondary" (click)="guide()">
+          Consultar guía
+        </button>
+      </div>
+    </aside>
+
+    <div>
+      <form class="panel" (ngSubmit)="save()" [attr.aria-busy]="busy()">
+        <span class="eyebrow">PASO 01</span>
+        <h2>{{current()?'Corregir metadatos':'Registrar ficha'}}</h2>
+
+        @if(!current()){
+          <p class="muted">Guardá los datos del trabajo para habilitar la carga del PDF.</p>
+        }
+
+        @if(current()?.envio; as envio){
+          <p class="notice">Enviado por {{envio.nombre}} desde su cuenta lectora.</p>
+        }
+
+        <app-metadata-fields [draft]="meta" [invalidFields]="fields()" />
+
+        <button [disabled]="busy()">Guardar metadatos</button>
+
+        @if(duplicate()){
+          <div class="notice">
+            <p>Se encontró un posible duplicado. Revisá las fichas existentes antes de continuar.</p>
+            <button type="button" class="secondary" (click)="save(true)" [disabled]="busy()">
+              Confirmar alta de todas formas
+            </button>
+          </div>
+        }
       </form>
-    </dialog>
-  </section>
-}}</div></div>
-@if(report().length){<section class="panel"><h2>Conteo por año de depósito</h2><div class="table-scroll"><table><thead><tr><th>Año de depósito</th><th>Registradas</th><th>Estado Publicado</th></tr></thead><tbody>@for(r of report();track r.anio){<tr><td>{{r.anio||'Sin fecha'}}</td><td>{{r.registradas}}</td><td>{{r.publicadas}}</td></tr>}</tbody></table></div><p class="muted">El estado administrativo no sustituye la comprobación de elegibilidad pública vigente.</p></section>}
-@if(logs().length){<section class="panel"><h2>Últimas 200 actuaciones</h2><div class="table-scroll"><table><thead><tr><th>Fecha</th><th>Responsable</th><th>Actuación</th></tr></thead><tbody>@for(l of logs();track l.id){<tr><td>{{l.fecha}}</td><td>{{l.nombre}}</td><td>{{l.evento}}</td></tr>}</tbody></table></div></section>}</section>
+
+      @if(current(); as t){
+
+        <div class="panel">
+          <span class="eyebrow">PASO 02</span>
+          <h2>Ejemplar final</h2>
+          <p class="muted">
+            Reemplazar el ejemplar suspende su publicación. El nuevo ejemplar requiere verificación,
+            autorización y decisión.
+          </p>
+
+          @if(t.ejemplar){
+            <p>
+  <strong>Archivo PDF:</strong>
+  {{t.ejemplar.nombre_original || 'Sin archivo'}}
+</p>
+
+@if(t.ejemplar.referencia_institucional){
+  <p>
+    <strong>Referencia institucional:</strong>
+    {{t.ejemplar.referencia_institucional}}
+  </p>
+}
+            <small class="break">{{t.ejemplar.id}}</small>
+
+            @if(t.ejemplar.verificador){
+              <p class="muted">
+                Verificado por {{t.ejemplar.verificador}}
+                @if(t.ejemplar.fecha_verificacion){· {{t.ejemplar.fecha_verificacion}}}
+              </p>
+            }
+
+            @if(api.demo && t.ejemplar.nombre_original){
+              <app-local-pdf-preview [path]="'/admin/trabajos/' + t.id + '/pdf?ejemplar=' + t.ejemplar.id" />
+            }
+          }
+
+          <label>
+            Archivo PDF · máximo 25 MB
+            <input id="pdf-file" type="file" accept=".pdf,application/pdf"
+              (change)="choose($event)" [disabled]="busy()">
+          </label>
+          <button type="button" (click)="upload()" [disabled]="busy()||!file">
+            Asociar PDF
+          </button>
+
+          <form class="reference-form" (ngSubmit)="saveReference()">
+            <label>
+              Referencia institucional del ejemplar
+              <input name="referenciaEjemplar" [(ngModel)]="reference" required>
+            </label>
+            <button class="secondary" [disabled]="busy()||!reference.trim()">
+              Asociar referencia
+            </button>
+          </form>
+        </div>
+
+        @if(t.ejemplar){
+          <form class="panel" (ngSubmit)="saveControls()">
+            <span class="eyebrow">PASO 03</span>
+            <h2>Evidencias y permisos</h2>
+
+            <fieldset>
+              <legend>Depósito institucional</legend>
+              <label>Correlativo o comprobante UES
+                <input name="deposito" [(ngModel)]="control.deposito_referencia">
+              </label>
+              <label>Fecha de depósito, si está disponible
+                <input name="fechaDeposito" type="date" [(ngModel)]="control.deposito_fecha">
+              </label>
+              <label class="check">
+                <input name="depositoVerificado" type="checkbox" [(ngModel)]="control.deposito_verificado">
+                Biblioteca verificó el comprobante
+              </label>
+            </fieldset>
+
+            <fieldset>
+              <legend>Conformidad del ejemplar final</legend>
+              <label>Referencia de conformidad académica
+                <input name="conformidad" [(ngModel)]="control.conformidad_referencia">
+              </label>
+              <label class="check">
+                <input name="verificar" type="checkbox" [(ngModel)]="control.verificar">
+                Registrar mi verificación del ejemplar actual
+              </label>
+              <p class="muted">La API registra responsable y fecha con la cuenta que inició sesión.</p>
+            </fieldset>
+
+            <fieldset>
+              <legend>Constancia de autorización</legend>
+              <label>Referencia identificable de la constancia
+                <input name="referencia" [(ngModel)]="control.autorizacion.referencia">
+              </label>
+              <label>Otorgantes
+                <input name="otorgantes" [(ngModel)]="control.autorizacion.otorgantes">
+              </label>
+              <div class="form-grid">
+                <label>Fecha
+                  <input name="fechaAut" type="date" [(ngModel)]="control.autorizacion.fecha">
+                </label>
+                <label>Vencimiento, si aplica
+                  <input name="vence" type="date" [(ngModel)]="control.autorizacion.vence">
+                </label>
+              </div>
+              <label>Estado
+                <select name="estadoAut" [(ngModel)]="control.autorizacion.estado">
+                  <option>Vigente</option>
+                  <option>Revocada</option>
+                </select>
+              </label>
+              <p>Operaciones concedidas por la constancia</p>
+              <label class="check">
+                <input name="autFicha" type="checkbox" [(ngModel)]="control.autorizacion.ficha">
+                Difundir ficha pública
+              </label>
+              <label class="check">
+                <input name="autLectura" type="checkbox" [(ngModel)]="control.autorizacion.lectura">
+                Lectura
+              </label>
+              <label class="check">
+                <input name="autDescarga" type="checkbox" [(ngModel)]="control.autorizacion.descarga">
+                Descarga
+              </label>
+            </fieldset>
+
+            <fieldset>
+              <legend>Permisos que se habilitarán en el catálogo</legend>
+              <label class="check">
+                <input name="ficha" type="checkbox" [(ngModel)]="control.ficha_publica">
+                Ficha pública
+              </label>
+              <label class="check">
+                <input name="lectura" type="checkbox" [(ngModel)]="control.lectura">
+                Lectura
+              </label>
+              <label class="check">
+                <input name="descarga" type="checkbox" [(ngModel)]="control.descarga">
+                Descarga
+              </label>
+            </fieldset>
+
+            <fieldset>
+              <legend>Decisión de Biblioteca para este ejemplar</legend>
+              <label>Resultado
+                <select name="resultado" [(ngModel)]="control.decision.resultado">
+                  <option>Favorable</option>
+                  <option>Desfavorable</option>
+                </select>
+              </label>
+              <label>Motivo
+                <textarea name="motivo" [(ngModel)]="control.decision.motivo" rows="3"></textarea>
+              </label>
+            </fieldset>
+
+            <button [disabled]="busy()">Guardar controles</button>
+          </form>
+        }
+
+        <div class="panel">
+          <span class="eyebrow">PASO 04</span>
+          <h2>Revisar y publicar</h2>
+          <ul class="checklist">
+            @for(c of checks(); track c.label){
+              <li [class.ok]="c.ok">{{c.ok?'✓':'○'}} {{c.label}}</li>
+            }
+          </ul>
+          <button type="button" (click)="publish()" [disabled]="busy()||t.estado==='Publicado'">
+            Comprobar y publicar
+          </button>
+        </div>
+
+        <div class="panel">
+          <h2>Material complementario</h2>
+          <form (ngSubmit)="addLink()">
+            <label>Enlace HTTPS
+              <input name="url" type="url" [(ngModel)]="link.url" required>
+            </label>
+            <label>Tipo
+              <input name="tipoEnlace" [(ngModel)]="link.tipo" required placeholder="Código fuente, video, anexo…">
+            </label>
+            <label>Descripción
+              <input name="descEnlace" [(ngModel)]="link.descripcion" required>
+            </label>
+            <button class="secondary" [disabled]="busy()">Agregar deshabilitado</button>
+          </form>
+
+          @for(l of links(); track l.id){
+            <div class="link-row">
+              <span>{{l.descripcion}} · {{l.habilitado?'Habilitado':'Deshabilitado'}}</span>
+              <button type="button" class="secondary" (click)="toggleLink(l)" [disabled]="busy()">
+                {{l.habilitado?'Deshabilitar':'Autorizar difusión'}}
+              </button>
+              <button
+                 type="button"
+                 class="secondary"
+                 (click)="deleteLink(l, deleteLinkDialog)"               [disabled]="busy()">
+               Eliminar
+              </button>
+            </div>
+          }
+        </div>
+
+        @if(t.estado==='Publicado'){
+          <section class="panel">
+            <h2>Retirar publicación</h2>
+            <button type="button" class="danger" (click)="retireDialog.showModal()" [disabled]="busy()">
+              Retirar del catálogo
+            </button>
+            <dialog #retireDialog aria-labelledby="retire-title">
+              <form (ngSubmit)="retire(retireDialog)">
+                <h2 id="retire-title">Confirmar retiro</h2>
+                <label>Motivo obligatorio
+                  <textarea name="retiro" [(ngModel)]="retireReason" required></textarea>
+                </label>
+                @if(error()){
+                  <p class="notice error" role="alert">{{error()}}</p>
+                }
+                <div class="actions">
+                  <button type="button" class="secondary" [disabled]="busy()" (click)="retireDialog.close()">
+                    Cancelar
+                  </button>
+                  <button class="danger" [disabled]="busy()||!retireReason.trim()">
+                    Confirmar retiro
+                  </button>
+                </div>
+              </form>
+            </dialog>
+          </section>
+        }
+
+      }
+    </div>
+  </div>
+
+  @if(report().length){
+    <section class="panel">
+      <h2>Conteo por año de depósito</h2>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Año de depósito</th><th>Registradas</th><th>Estado Publicado</th></tr>
+          </thead>
+          <tbody>
+            @for(r of report(); track r.anio){
+              <tr>
+                <td>{{r.anio||'Sin fecha'}}</td>
+                <td>{{r.registradas}}</td>
+                <td>{{r.publicadas}}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="muted">El estado administrativo no sustituye la comprobación de elegibilidad pública vigente.</p>
+    </section>
+  }
+
+  @if(logs().length){
+    <section class="panel">
+      <h2>Últimas 200 actuaciones</h2>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Fecha</th><th>Responsable</th><th>Actuación</th></tr>
+          </thead>
+          <tbody>
+            @for(l of logs(); track l.id){
+              <tr>
+                <td>{{l.fecha}}</td>
+                <td>{{l.nombre}}</td>
+                <td>{{l.evento}}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+</section>

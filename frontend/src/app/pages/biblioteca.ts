@@ -3,8 +3,12 @@ import {createMetadataDraft,metadataFromDraft,validateMetadata} from '../core/me
 import {MetadataFields} from '../shared/metadata-fields';
 import {LocalPdfPreview} from '../shared/local-pdf-preview';
 const emptyControls=()=>({ejemplar_id:'',deposito_referencia:'',deposito_fecha:'',deposito_verificado:false,verificar:false,conformidad_referencia:'',ficha_publica:false,lectura:false,descarga:false,autorizacion:{referencia:'',otorgantes:'',fecha:new Date().toISOString().slice(0,10),vence:'',estado:'Vigente',ficha:false,lectura:false,descarga:false},decision:{resultado:'Favorable',motivo:''}});
-@Component({selector:'app-biblioteca',imports:[FormsModule,MetadataFields,LocalPdfPreview],templateUrl:'./biblioteca.html'})
-export class Biblioteca {
+@Component({
+  selector: 'app-biblioteca',
+  imports: [FormsModule, MetadataFields, LocalPdfPreview],
+  templateUrl: './biblioteca.html',
+  styleUrl: './biblioteca.css'
+})export class Biblioteca {
  api=inject(Api);items=signal<any[]>([]);current=signal<any>(null);checks=signal<any[]>([]);logs=signal<any[]>([]);report=signal<any[]>([]);links=signal<any[]>([]);
  private element=inject<ElementRef<HTMLElement>>(ElementRef);
  private metadataFields=viewChild.required(MetadataFields);
@@ -12,15 +16,72 @@ export class Biblioteca {
  guideInfo=signal<{disponible:boolean;mensaje?:string;titulo?:string;referencia?:string;url?:string}|null>(null);
  message=signal('');error=signal('');busy=signal(false);duplicate=signal(false);
  meta=createMetadataDraft();control=emptyControls();file:File|null=null;reference='';retireReason='';link={url:'',tipo:'',descripcion:''};
+ private metaGuardada = JSON.stringify(this.meta);
  constructor(){this.load();}
+ private hayCambios(): boolean {
+  return JSON.stringify(this.meta) !== this.metaGuardada;
+}
+private pendingAction: (() => void) | null = null;
+
+solicitarConfirmacion(
+  action: () => void,
+  dialog: HTMLDialogElement
+) {
+  if (!this.hayCambios()) {
+    action();
+    return;
+  }
+
+  this.pendingAction = action;
+  dialog.showModal();
+}
+
+resolverConfirmacion(
+  descartar: boolean,
+  dialog: HTMLDialogElement
+) {
+  dialog.close();
+
+  const action = this.pendingAction;
+  this.pendingAction = null;
+
+  if (descartar) {
+    action?.();
+  }
+}
+
  async run(fn:()=>Promise<void>){if(this.busy())return;this.busy.set(true);this.error.set('');this.message.set('');try{await fn();}catch(e:any){this.error.set(e.message);if(e.details?.controles)this.checks.set(e.details.controles);if(e.details?.duplicate)this.duplicate.set(true);}finally{this.busy.set(false);}}
  async load(){try{this.items.set(await this.api.request('/admin/trabajos'));}catch(e:any){this.error.set(e.message);}}
- newWork(){this.current.set(null);this.meta=createMetadataDraft();this.control=emptyControls();this.checks.set([]);this.links.set([]);this.duplicate.set(false);this.fields.set([]);this.resetExampleInput();this.message.set('Nueva ficha. Guardá los datos para agregar el PDF.');this.error.set('');this.metadataFields().focusFirst();}
+newWork(dialog: HTMLDialogElement) {
+  this.solicitarConfirmacion(() => {
+    this.current.set(null);
+    this.meta = createMetadataDraft();
+    this.metaGuardada = JSON.stringify(this.meta);
+    this.control = emptyControls();
+    this.checks.set([]);
+    this.links.set([]);
+    this.duplicate.set(false);
+    this.fields.set([]);
+    this.resetExampleInput();
+    this.message.set('Nueva ficha. Guardá los datos para agregar el PDF.');
+    this.error.set('');
+    this.metadataFields().focusFirst();
+  }, dialog);
+}
  async select(id:string){const t=await this.api.request('/admin/trabajos/'+id);this.current.set(t);this.checks.set(t.controles);this.duplicate.set(false);
  this.meta={titulo:t.titulo,autores:t.autores.join('; '),anio:t.anio,carrera:t.carrera,area:t.area,tipo:t.tipo,resumen:t.resumen};
+this.metaGuardada = JSON.stringify(this.meta);
  this.control={...emptyControls(),ejemplar_id:t.ejemplar_actual||'',deposito_referencia:t.deposito_referencia||'',deposito_fecha:t.deposito_fecha||'',deposito_verificado:t.deposito_verificado,conformidad_referencia:t.ejemplar?.conformidad_referencia||'',ficha_publica:t.ficha_publica,lectura:t.lectura,descarga:t.descarga,autorizacion:t.autorizacion?{...t.autorizacion,vence:t.autorizacion.vence||''}:emptyControls().autorizacion,decision:t.decision?{resultado:t.decision.resultado,motivo:t.decision.motivo}:emptyControls().decision};
  this.links.set(await this.api.request('/admin/trabajos/'+id+'/enlaces'));}
- open(id:string){this.run(async()=>{await this.select(id);this.fields.set([]);this.resetExampleInput();});}
+ open(id: string, dialog: HTMLDialogElement) {
+  this.solicitarConfirmacion(() => {
+    this.run(async () => {
+      await this.select(id);
+      this.fields.set([]);
+      this.resetExampleInput();
+    });
+  }, dialog);
+}
  private showFields(fields:string[]){
   this.fields.set(fields);
   this.metadataFields().focusFirst(fields);
@@ -71,4 +132,28 @@ export class Biblioteca {
  guide(){this.run(async()=>{this.guideInfo.set(await this.api.request('/admin/guia'));});}
  addLink(){this.run(async()=>{await this.api.request('/admin/trabajos/'+this.current().id+'/enlaces','POST',this.link);this.link={url:'',tipo:'',descripcion:''};await this.select(this.current().id);this.message.set('Enlace guardado, deshabilitado de inicio.');});}
  toggleLink(l:any){this.run(async()=>{await this.api.request('/admin/enlaces/'+l.id,'PATCH',{habilitado:!l.habilitado});await this.select(this.current().id);});}
+private selectedLink: any = null;
+
+deleteLink(l: any, dialog: HTMLDialogElement) {
+  this.selectedLink = l;
+  dialog.showModal();
+}
+
+confirmDeleteLink(dialog: HTMLDialogElement) {
+  const l = this.selectedLink;
+  if (!l) return;
+
+  dialog.close();
+  this.selectedLink = null;
+
+  this.run(async () => {
+    await this.api.request(
+      '/admin/trabajos/' + this.current().id + '/enlaces/' + l.id,
+      'DELETE'
+    );
+
+    await this.select(this.current().id);
+    this.message.set('Enlace eliminado correctamente.');
+  });
+}
 }

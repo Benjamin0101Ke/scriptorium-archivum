@@ -1,0 +1,56 @@
+.confirm-dialog {
+  width: min(440px, calc(100% - 32px));
+  padding: 0;
+  border: 1px solid #dfe3f1;
+  border-radius: 20px;
+  background: #fff;
+  color: #1c2744;
+  box-shadow: 0 20px 60px rgba(20, 25, 45, 0.25);
+}
+
+.confirm-dialog::backdrop {
+  background: rgba(15, 20, 40, 0.58);
+  backdrop-filter: blur(3px);
+}
+
+.confirm-content {
+  padding: 30px;
+}
+
+.confirm-content h2 {
+  margin: 12px 0;
+  font-size: 24px;
+}
+
+.confirm-content p {
+  color: #657089;
+  line-height: 1.6;
+}
+
+.confirm-content .actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 25px;
+}
+
+.checklist a {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 0;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.control-status {
+  font-size: 0.8em;
+  text-decoration: none;
+}
+
+[id^='biblioteca-'] {
+  scroll-margin-block: 100px;
+}

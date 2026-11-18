@@ -1,0 +1,111 @@
+<section class="section">
+  <a routerLink="/admin/roles">← Volver a Administración</a>
+  <h1>Administrar catálogos</h1>
+  <label
+    >Catálogo
+    <select name="tipoCatalogo" [(ngModel)]="tipo" (ngModelChange)="cargar()" [disabled]="busy()">
+      <option value="carreras">Carreras</option>
+      <option value="departamentos">Departamentos</option>
+      <option value="areas-tematicas">Áreas temáticas de los trabajos</option>
+      <option value="planes">Planes de estudios por carrera</option>
+      <option value="tipos-trabajo">Tipos de trabajo</option>
+    </select>
+  </label>
+  @if (error()) {
+    <p class="notice error" role="alert">{{ error() }}</p>
+  }
+  @if (message()) {
+    <p class="notice" role="status">{{ message() }}</p>
+  }
+  <form class="panel" (ngSubmit)="guardar()">
+    <h2>{{ editando ? 'Editar registro' : 'Agregar registro' }}</h2>
+    <label
+      >Nombre
+      <input
+        name="nombreCatalogo"
+        [(ngModel)]="nombre"
+        [maxlength]="
+          tipo === 'tipos-trabajo' ? 60 : tipo === 'carreras' || tipo === 'planes' ? 120 : 100
+        "
+        required
+      />
+    </label>
+    @if (tipo === 'carreras') {
+      <label
+        >Departamento
+        <select name="departamento" [(ngModel)]="idDepartamento" required>
+          <option [ngValue]="null">Seleccioná un departamento</option>
+          @for (area of departamentos(); track area.id) {
+            <option [ngValue]="area.id">{{ area.nombre }}</option>
+          }
+        </select>
+      </label>
+    }
+    @if (tipo === 'planes') {
+      <label
+        >Carrera del plan
+        <select name="carreraPlan" [(ngModel)]="idCarrera" required>
+          <option [ngValue]="null">Seleccioná la carrera</option>
+          @for (carrera of carreras(); track carrera.id) {
+            <option [ngValue]="carrera.id">{{ carrera.nombre }}</option>
+          }
+        </select>
+      </label>
+      <label
+        >Enlace al documento oficial del pénsum
+        <input
+          name="urlPlan"
+          type="url"
+          [(ngModel)]="url"
+          placeholder="https://"
+          maxlength="2000"
+        />
+      </label>
+    }
+    <label class="check"
+      ><input name="activaCatalogo" type="checkbox" [(ngModel)]="activa" />Activo</label
+    >
+    <p>
+      Al desactivar un registro, deja de ofrecerse para nuevas selecciones. Los datos ya asociados
+      se conservan.
+    </p>
+    <div class="actions">
+      <button [disabled]="busy()">Guardar catálogo</button>
+      <button type="button" class="secondary" (click)="nuevo()" [disabled]="busy()">
+        Nuevo registro
+      </button>
+    </div>
+  </form>
+  <label
+    >Buscar en este catálogo<input name="buscarCatalogo" type="search" [(ngModel)]="busqueda"
+  /></label>
+  <div class="panel table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Estado</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (registro of filtrados(); track registro.id) {
+          <tr>
+            <td>{{ registro.nombre }}</td>
+            <td>{{ registro.activa ? 'Activo' : 'Inactivo' }}</td>
+            <td>
+              <button
+                type="button"
+                class="secondary small"
+                (click)="editar(registro)"
+                [disabled]="busy()"
+              >
+                Editar {{ registro.nombre }}
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

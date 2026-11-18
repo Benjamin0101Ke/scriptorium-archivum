@@ -1,0 +1,10 @@
+.env
+storage/trabajos/
+
+.vs/
+**/bin/
+**/obj/
+*.user
+*.suo
+*.dump
+*.backup

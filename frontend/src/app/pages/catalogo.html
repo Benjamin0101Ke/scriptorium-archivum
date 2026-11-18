@@ -1,0 +1,202 @@
+<section class="hero" aria-labelledby="catalog-title">
+  <div class="hero-content">
+    <p class="hero-institution">Universidad de El Salvador · FMO</p>
+    <h1 id="catalog-title">Proyectos y <span>trabajos de grado</span></h1>
+    <p class="hero-description">
+      Buscá trabajos de la facultad, consultá sus fichas y accedé a los recursos autorizados.
+    </p>
+    <div class="hero-actions">
+      <a class="button hero-button" href="#catalogo"
+        >Explorar el catálogo <span aria-hidden="true">↓</span></a
+      >
+      @if (!api.user() || puedeEnviar(api.user()?.rol) || api.user()?.rol === 'Biblioteca') {
+        <a
+          class="button hero-submit"
+          [routerLink]="api.user()?.rol === 'Biblioteca' ? '/biblioteca' : '/mis-envios'"
+        >
+          Agregar tesis o proyecto
+        </a>
+      }
+    </div>
+  </div>
+  <div class="hero-art" aria-hidden="true">
+    <div class="hero-logo">
+      <img src="/logo.jpeg" alt="" width="1254" height="1254" fetchpriority="high" />
+    </div>
+  </div>
+</section>
+<section id="catalogo" class="section catalog-section">
+  <div class="section-heading">
+    <h2>Catálogo académico</h2>
+    <span class="badge">{{ all().length }} fichas públicas</span>
+  </div>
+  <form class="search-box" (ngSubmit)="load()">
+    <label for="busqueda">Buscar por título, tema o resumen</label>
+    <div class="search-row">
+      <input
+        id="busqueda"
+        name="q"
+        [(ngModel)]="q"
+        placeholder="¿Qué te gustaría investigar?"
+      /><button type="submit">Buscar trabajos</button>
+    </div>
+    <div class="filters">
+      @if (!api.demo) {
+        <label
+          >Departamento
+          <select name="departamento" [(ngModel)]="departamento" (ngModelChange)="carrera = ''">
+            <option value="">Todas</option>
+            @for (opcion of oferta().departamentos; track opcion.id) {
+              <option [value]="opcion.id">{{ opcion.nombre }}</option>
+            }
+          </select>
+        </label>
+      }
+      <label
+        >Autor<select name="autor" [(ngModel)]="autor">
+          <option value="">Todos</option>
+          @for (v of options('autores'); track v) {
+            <option>{{ v }}</option>
+          }
+        </select></label
+      >
+      <label
+        >Año<select name="anio" [(ngModel)]="anio">
+          <option value="">Todos</option>
+          @for (v of options('anio'); track v) {
+            <option>{{ v }}</option>
+          }
+        </select></label
+      >
+      <label
+        >Carrera<select name="carrera" [(ngModel)]="carrera">
+          <option value="">Todas</option>
+          @if (api.demo) {
+            @for (v of options('carrera'); track v) {
+              <option>{{ v }}</option>
+            }
+          } @else {
+            @for (opcion of carrerasAcademicas(); track opcion.id) {
+              <option>{{ opcion.nombre }}</option>
+            }
+          }
+        </select></label
+      >
+      <label
+        >Área temática<select name="area" [(ngModel)]="area">
+          <option value="">Todas</option>
+          @for (v of options('area'); track v) {
+            <option>{{ v }}</option>
+          }
+        </select></label
+      >
+      <label
+        >Tipo<select name="tipo" [(ngModel)]="tipo">
+          <option value="">Todos</option>
+          @for (v of tiposFiltro(); track v) {
+            <option>{{ v }}</option>
+          }
+        </select></label
+      >
+      <label
+        >Orden<select name="orden" [(ngModel)]="orden">
+          <option value="valoracion">Mejor valorados</option>
+          <option value="coincidencia">Coincidencia</option>
+          <option value="anio">Más recientes</option>
+          <option value="titulo">Título A–Z</option>
+        </select></label
+      >
+    </div>
+    @if (errorOferta()) {
+      <p class="notice error" role="alert">
+        {{ errorOferta() }}
+        <button type="button" class="text-button" (click)="cargarOferta()">Reintentar</button>
+      </p>
+    }
+    <button class="text-button" type="button" (click)="reset()">Limpiar búsqueda y filtros</button>
+  </form>
+  @if (error()) {
+    <div class="notice error" role="alert">
+      {{ error() }} <button (click)="load(true)">Reintentar</button>
+    </div>
+  }
+  @if (loading()) {
+    <p class="empty" role="status">Consultando el catálogo…</p>
+  } @else if (!error()) {
+    <p #resumenResultados class="muted catalog-results-summary" tabindex="-1" aria-live="polite">
+      @if (items().length) {
+        Mostrando {{ inicioPagina() + 1 }}–{{ finPagina() }} de {{ items().length }} resultados
+      } @else {
+        0 resultados
+      }
+    </p>
+    <div class="cards">
+      @for (t of trabajosPagina(); track t.id) {
+        <a
+          class="card catalog-card-link"
+          [class]="claseValoracion(t.valoracion_media, t.valoraciones_total)"
+          [routerLink]="['/trabajos', t.id]"
+          [attr.aria-labelledby]="'catalogo-trabajo-' + t.id"
+        >
+          <div class="card-top">
+            <span class="badge">{{ t.tipo }}</span><span>{{ t.anio }}</span>
+          </div>
+          <h3 [id]="'catalogo-trabajo-' + t.id">{{ t.titulo }}</h3>
+          <p class="authors">{{ t.autores.join(' · ') }}</p>
+          <app-estrellas [media]="t.valoracion_media ?? 0" [total]="t.valoraciones_total ?? 0" />
+          <p class="summary">{{ t.resumen }}</p>
+          <div class="card-bottom">
+            <span>{{ t.area }}</span><span class="catalog-card-action">Ver ficha ↗</span>
+          </div>
+        </a>
+      }
+    </div>
+    @if (totalPaginas() > 1) {
+      <nav class="catalog-pagination" aria-label="Paginación del catálogo">
+        <button
+          type="button"
+          class="secondary"
+          [disabled]="pagina() === 1"
+          (click)="cambiarPagina(pagina() - 1, resumenResultados)"
+        >
+          ← Anterior
+        </button>
+        <div class="pagination-pages">
+          @for (numero of paginasVisibles(); track $index) {
+            @if (numero !== null) {
+              <button
+                type="button"
+                class="secondary"
+                [attr.aria-label]="'Ir a la página ' + numero"
+                [attr.aria-current]="pagina() === numero ? 'page' : null"
+                (click)="cambiarPagina(numero, resumenResultados)"
+              >
+                {{ numero }}
+              </button>
+            } @else {
+              <span aria-hidden="true">…</span>
+            }
+          }
+        </div>
+        <button
+          type="button"
+          class="secondary"
+          [disabled]="pagina() === totalPaginas()"
+          (click)="cambiarPagina(pagina() + 1, resumenResultados)"
+        >
+          Siguiente →
+        </button>
+        <span class="muted pagination-status">Página {{ pagina() }} de {{ totalPaginas() }}</span>
+      </nav>
+    }
+    @if (!items().length) {
+      <div class="empty">
+        <h3>No hay fichas para mostrar</h3>
+        <p>
+          Probá otra búsqueda. Las nuevas fichas aparecen después de la verificación y publicación
+          de Biblioteca.
+        </p>
+      </div>
+    }
+  }
+</section>

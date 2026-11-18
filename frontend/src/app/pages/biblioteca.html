@@ -3,7 +3,7 @@
   <div class="section-heading">
     <div>
       <span class="eyebrow">GESTIÓN DEL REPOSITORIO</span>
-      <h1>Biblioteca</h1>
+      <h1 id="biblioteca-cuenta" tabindex="-1">Biblioteca</h1>
     </div>
     <button type="button" (click)="newWork(discardDialog)" [disabled]="busy()">
       + Agregar tesis o proyecto
@@ -108,7 +108,10 @@
 
       <div class="actions">
         <button class="secondary" (click)="activity()" [disabled]="busy()">
-          Actividad y reporte
+          Actividad
+        </button>
+        <button type="button" class="secondary" (click)="annualReport()" [disabled]="busy()">
+          Reporte anual
         </button>
         <button class="secondary" (click)="guide()">
           Consultar guía
@@ -117,7 +120,7 @@
     </aside>
 
     <div>
-      <form class="panel" (ngSubmit)="save()" [attr.aria-busy]="busy()">
+      <form id="biblioteca-metadatos" class="panel" tabindex="-1" (ngSubmit)="save()" [attr.aria-busy]="busy()">
         <span class="eyebrow">PASO 01</span>
         <h2>{{current()?'Corregir metadatos':'Registrar ficha'}}</h2>
 
@@ -129,9 +132,15 @@
           <p class="notice">Enviado por {{envio.nombre}} desde su cuenta lectora.</p>
         }
 
-        <app-metadata-fields [draft]="meta" [invalidFields]="fields()" />
+        @if (catalogosLoading()) {
+          <p role="status">Cargando catálogos…</p>
+        } @else if (catalogosError()) {
+          <p class="notice error" role="alert">{{ catalogosError() }}</p>
+          <button type="button" class="secondary" (click)="loadCatalogos()">Volver a cargar catálogos</button>
+        }
+        <app-metadata-fields [draft]="meta" [invalidFields]="fields()" [catalogos]="catalogos()" [seleccion]="seleccion" />
 
-        <button [disabled]="busy()">Guardar metadatos</button>
+        <button [disabled]="busy() || (!api.demo && !catalogos())">Guardar metadatos</button>
 
         @if(duplicate()){
           <div class="notice">
@@ -147,7 +156,7 @@
 
         <div class="panel">
           <span class="eyebrow">PASO 02</span>
-          <h2>Ejemplar final</h2>
+          <h2 id="biblioteca-ejemplar" tabindex="-1">Ejemplar final</h2>
           <p class="muted">
             Reemplazar el ejemplar suspende su publicación. El nuevo ejemplar requiere verificación,
             autorización y decisión.
@@ -170,11 +179,11 @@
             @if(t.ejemplar.verificador){
               <p class="muted">
                 Verificado por {{t.ejemplar.verificador}}
-                @if(t.ejemplar.fecha_verificacion){· {{t.ejemplar.fecha_verificacion}}}
+                @if(t.ejemplar.fecha_verificacion){· {{t.ejemplar.fecha_verificacion | date:'dd/MM/yyyy HH:mm':'-0600'}}}
               </p>
             }
 
-            @if(api.demo && t.ejemplar.nombre_original){
+            @if(t.ejemplar.nombre_original){
               <app-local-pdf-preview [path]="'/admin/trabajos/' + t.id + '/pdf?ejemplar=' + t.ejemplar.id" />
             }
           }
@@ -204,10 +213,10 @@
             <span class="eyebrow">PASO 03</span>
             <h2>Evidencias y permisos</h2>
 
-            <fieldset>
+            <fieldset id="biblioteca-deposito" tabindex="-1">
               <legend>Depósito institucional</legend>
               <label>Correlativo o comprobante UES
-                <input name="deposito" [(ngModel)]="control.deposito_referencia">
+                <input name="deposito" [ngModel]="control.deposito_referencia" (ngModelChange)="changeDepositReference($event)">
               </label>
               <label>Fecha de depósito, si está disponible
                 <input name="fechaDeposito" type="date" [(ngModel)]="control.deposito_fecha">
@@ -218,7 +227,7 @@
               </label>
             </fieldset>
 
-            <fieldset>
+            <fieldset id="biblioteca-conformidad" tabindex="-1">
               <legend>Conformidad del ejemplar final</legend>
               <label>Referencia de conformidad académica
                 <input name="conformidad" [(ngModel)]="control.conformidad_referencia">
@@ -230,20 +239,24 @@
               <p class="muted">La API registra responsable y fecha con la cuenta que inició sesión.</p>
             </fieldset>
 
-            <fieldset>
+            <fieldset id="biblioteca-constancia" tabindex="-1">
               <legend>Constancia de autorización</legend>
               <label>Referencia identificable de la constancia
                 <input name="referencia" [(ngModel)]="control.autorizacion.referencia">
               </label>
-              <label>Otorgantes
-                <input name="otorgantes" [(ngModel)]="control.autorizacion.otorgantes">
-              </label>
+              @if (api.demo) {
+                <label>Otorgantes
+                  <input name="otorgantes" [(ngModel)]="control.autorizacion.otorgantes">
+                </label>
+              } @else {
+                <app-person-picker searchId="otorgante" label="Otorgantes" [(selected)]="otorgantes" />
+              }
               <div class="form-grid">
                 <label>Fecha
                   <input name="fechaAut" type="date" [(ngModel)]="control.autorizacion.fecha">
                 </label>
                 <label>Vencimiento, si aplica
-                  <input name="vence" type="date" [(ngModel)]="control.autorizacion.vence">
+                  <input name="vence" type="date" [min]="control.autorizacion.fecha || null" [(ngModel)]="control.autorizacion.vence">
                 </label>
               </div>
               <label>Estado
@@ -267,7 +280,7 @@
               </label>
             </fieldset>
 
-            <fieldset>
+            <fieldset id="biblioteca-permisos" tabindex="-1">
               <legend>Permisos que se habilitarán en el catálogo</legend>
               <label class="check">
                 <input name="ficha" type="checkbox" [(ngModel)]="control.ficha_publica">
@@ -283,19 +296,41 @@
               </label>
             </fieldset>
 
-            <fieldset>
+            <fieldset id="biblioteca-decision" tabindex="-1">
               <legend>Decisión de Biblioteca para este ejemplar</legend>
-              <label>Resultado
-                <select name="resultado" [(ngModel)]="control.decision.resultado">
-                  <option>Favorable</option>
-                  <option>Desfavorable</option>
-                </select>
+              @if (t.decision; as decision) {
+                <p><strong>{{ decision.resultado }}</strong> · {{ decision.motivo }}</p>
+                @if (decision.fecha) {
+                  <p class="muted">{{ decision.fecha | date:'dd/MM/yyyy HH:mm':'-0600' }} @if (decision.responsable) { · Responsable {{ decision.responsable }} }</p>
+                }
+              } @else {
+                <p class="muted">Este ejemplar tiene una decisión pendiente.</p>
+              }
+              <label class="check">
+                <input type="checkbox" name="registrarDecision" [(ngModel)]="control.registrar_decision">
+                Registrar una decisión nueva
               </label>
-              <label>Motivo
-                <textarea name="motivo" [(ngModel)]="control.decision.motivo" rows="3"></textarea>
-              </label>
+              @if (control.registrar_decision) {
+                <label>Resultado
+                  <select name="resultado" [(ngModel)]="control.decision.resultado">
+                    <option>Favorable</option>
+                    <option>Desfavorable</option>
+                  </select>
+                </label>
+                <label>Motivo
+                  <textarea name="motivo" [(ngModel)]="control.decision.motivo" rows="3" required></textarea>
+                </label>
+              }
             </fieldset>
 
+            @if(feedback() === 'controles'){
+              @if(error()){
+                <p class="notice error" role="alert">{{error()}}</p>
+              }
+              @if(message()){
+                <p class="notice" role="status">{{message()}}</p>
+              }
+            }
             <button [disabled]="busy()">Guardar controles</button>
           </form>
         }
@@ -303,11 +338,31 @@
         <div class="panel">
           <span class="eyebrow">PASO 04</span>
           <h2>Revisar y publicar</h2>
+          <p class="muted">Esta lista muestra los controles guardados del ejemplar actual. Guardá los cambios del paso 03 antes de publicar.</p>
           <ul class="checklist">
             @for(c of checks(); track c.label){
-              <li [class.ok]="c.ok">{{c.ok?'✓':'○'}} {{c.label}}</li>
+              <li [class.ok]="c.ok || (t.estado==='Publicado' && c.label==='Cuenta de Biblioteca y estado válido')">
+                @if(t.estado==='Publicado' && c.label==='Cuenta de Biblioteca y estado válido'){
+                  <span>✓ Trabajo publicado</span>
+                } @else {
+                <a [attr.href]="'#' + destinosControl[c.label]" (click)="irAlControl($event,c.label)">
+                  <span aria-hidden="true">{{c.ok?'✓':'○'}}</span>
+                  {{c.label}}
+                  <span class="control-status">{{c.ok?'Completo':'Pendiente'}}</span>
+                  <span aria-hidden="true">↗</span>
+                </a>
+                }
+              </li>
             }
           </ul>
+          @if(feedback() === 'publicar'){
+            @if(error()){
+              <p class="notice error" role="alert">{{error()}}</p>
+            }
+            @if(message()){
+              <p class="notice" role="status">{{message()}}</p>
+            }
+          }
           <button type="button" (click)="publish()" [disabled]="busy()||t.estado==='Publicado'">
             Comprobar y publicar
           </button>
@@ -315,6 +370,7 @@
 
         <div class="panel">
           <h2>Material complementario</h2>
+          @if(!api.demo){<app-archivos-trabajo [trabajo]="t.id" [editable]="true" [biblioteca]="true" />}
           <form (ngSubmit)="addLink()">
             <label>Enlace HTTPS
               <input name="url" type="url" [(ngModel)]="link.url" required>
@@ -410,7 +466,7 @@
           <tbody>
             @for(l of logs(); track l.id){
               <tr>
-                <td>{{l.fecha}}</td>
+                <td>{{l.fecha | date:'dd/MM/yyyy HH:mm':'-0600'}}</td>
                 <td>{{l.nombre}}</td>
                 <td>{{l.evento}}</td>
               </tr>

@@ -1,57 +1,126 @@
 <div class="form-grid metadata-form">
+  @let catalog = catalogos();
+  @let selection = seleccion();
   @for (field of fields; track field.name) {
     @let invalid = invalidFields().includes(field.name);
     @let id = 'meta-' + field.name;
-    <label
-      [for]="id"
-      [class.full-width]="
-        field.name === 'titulo' || field.name === 'autores' || field.name === 'resumen'
-      "
-    >
-      {{ field.label }}
-      @switch (field.name) {
-        @case ('anio') {
-          <input
-            [id]="id"
-            name="anio"
-            type="number"
-            min="1000"
-            max="9999"
-            [(ngModel)]="draft().anio"
-            required
-            [attr.aria-invalid]="invalid"
-            [attr.aria-describedby]="invalid ? id + '-error' : null"
-          />
+    @if (field.name === 'autores' && autorPropio(); as author) {
+      <p class="full-width">Autor registrado en la cuenta · {{ author }}</p>
+    } @else if (catalog && selection && field.name === 'autores') {
+      <div class="full-width">
+        <app-person-picker
+          [searchId]="id"
+          label="Autores"
+          [invalid]="invalid"
+          [(selected)]="selection.autores"
+        />
+        @if (invalid) {
+          <span class="field-error" [id]="id + '-error'">Seleccioná al menos un autor.</span>
         }
-        @case ('resumen') {
-          <textarea
-            [id]="id"
-            name="resumen"
-            rows="5"
-            [(ngModel)]="draft().resumen"
-            required
-            [attr.aria-invalid]="invalid"
-            [attr.aria-describedby]="invalid ? id + '-error' : null"
-          ></textarea>
+      </div>
+    } @else {
+      <label
+        [for]="id"
+        [class.full-width]="
+          field.name === 'titulo' || field.name === 'autores' || field.name === 'resumen'
+        "
+      >
+        {{ catalog && field.name === 'area' ? 'Áreas temáticas' : field.label }}
+        @switch (field.name) {
+          @case ('anio') {
+            <input
+              [id]="id"
+              name="anio"
+              type="number"
+              min="1000"
+              max="9999"
+              [(ngModel)]="draft().anio"
+              required
+              [attr.aria-invalid]="invalid"
+              [attr.aria-describedby]="invalid ? id + '-error' : null"
+            />
+          }
+          @case ('resumen') {
+            <textarea
+              [id]="id"
+              name="resumen"
+              rows="5"
+              [(ngModel)]="draft().resumen"
+              required
+              [attr.aria-invalid]="invalid"
+              [attr.aria-describedby]="invalid ? id + '-error' : null"
+            ></textarea>
+          }
+          @default {
+            @if (field.name === 'carrera' && carreraPropia() !== null) {
+              <input [id]="id" [value]="carreraPropia()" readonly />
+            } @else if (catalog && selection && field.name === 'area') {
+              <select
+                [id]="id"
+                name="area_ids"
+                multiple
+                [(ngModel)]="selection.area_ids"
+                [attr.aria-invalid]="invalid"
+                [attr.aria-describedby]="invalid ? id + '-error' : null"
+              >
+                @for (option of catalog.areas; track option.id) {
+                  <option [ngValue]="option.id">{{ option.nombre }}</option>
+                }
+              </select>
+              <span class="muted">Podés seleccionar más de un área.</span>
+            } @else if (catalog && selection && field.name === 'carrera') {
+              <select
+                [id]="id"
+                name="id_carrera"
+                [(ngModel)]="selection.id_carrera"
+                [attr.aria-invalid]="invalid"
+                [attr.aria-describedby]="invalid ? id + '-error' : null"
+              >
+                <option [ngValue]="null">Seleccioná una carrera</option>
+                @for (option of catalog.carreras; track option.id) {
+                  <option [ngValue]="option.id">{{ option.nombre }}</option>
+                }
+              </select>
+            } @else if (catalog && selection && field.name === 'tipo') {
+              <select
+                [id]="id"
+                name="id_tipo_trabajo"
+                [(ngModel)]="selection.id_tipo_trabajo"
+                [attr.aria-invalid]="invalid"
+                [attr.aria-describedby]="invalid ? id + '-error' : null"
+              >
+                <option [ngValue]="null">Seleccioná un tipo</option>
+                @if (tipoFueraCatalogo()) {
+                  <option [ngValue]="selection.id_tipo_trabajo">
+                    {{ draft().tipo }} (inactivo)
+                  </option>
+                }
+                @for (option of catalog.tipos; track option.id) {
+                  <option [ngValue]="option.id">{{ option.nombre }}</option>
+                }
+              </select>
+            } @else {
+              <input
+                [id]="id"
+                [attr.name]="field.name"
+                [(ngModel)]="draft()[field.name]"
+                required
+                [attr.list]="field.name === 'tipo' ? 'tipos-trabajo' : null"
+                [attr.aria-invalid]="invalid"
+                [attr.aria-describedby]="invalid ? id + '-error' : null"
+              />
+            }
+          }
         }
-        @default {
-          <input
-            [id]="id"
-            [attr.name]="field.name"
-            [(ngModel)]="draft()[field.name]"
-            required
-            [attr.list]="field.name === 'tipo' ? 'tipos-trabajo' : null"
-            [attr.aria-invalid]="invalid"
-            [attr.aria-describedby]="invalid ? id + '-error' : null"
-          />
+        @if (invalid) {
+          <span class="field-error" [id]="id + '-error'">
+            {{
+              field.name === 'anio' ? 'Ingresá un año de cuatro dígitos.' : 'Completá este campo.'
+            }}
+          </span>
         }
-      }
-      @if (invalid) {
-        <span class="field-error" [id]="id + '-error'">
-          {{ field.name === 'anio' ? 'Ingresá un año de cuatro dígitos.' : 'Completá este campo.' }}
-        </span>
-      }
-    </label>
+      </label>
+    }
   }
 </div>
 <datalist id="tipos-trabajo">

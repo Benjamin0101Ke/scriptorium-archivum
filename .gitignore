@@ -431,6 +431,26 @@ FodyWeavers.xsd
 .env
 .env.*
 !.env.example
+/backend/storage/
+/backend/backups/
+/backend/respaldos/
+*.dump
+*.backup
+*.pgdump
+.pgpass
+# Claves privadas, configuraciones personales y copias locales de secretos
+*.pem
+*.key
+*.p12
+*.pfx
+.env.*
+!.env.example
+*.env.bak
+*.env.old
+*.env.backup
+appsettings.Local.json
+appsettings.*.local.json
+*.postman_environment.json
 **/node_modules/
 **/dist/
 **/.angular/

@@ -80,6 +80,22 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "demo": {
+              "fileReplacements": [
+                {
+                  "replace": "src/app/core/settings.ts",
+                  "with": "src/app/core/settings.demo.ts"
+                }
+              ]
+            },
+            "integration": {
+              "fileReplacements": [
+                {
+                  "replace": "src/app/core/settings.ts",
+                  "with": "src/app/core/settings.production.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"
@@ -92,9 +108,15 @@
             },
             "development": {
               "buildTarget": "frontend:build:development"
+            },
+            "demo": {
+              "buildTarget": "frontend:build:development,demo"
+            },
+            "integration": {
+              "buildTarget": "frontend:build:development,integration"
             }
           },
-          "defaultConfiguration": "development"
+          "defaultConfiguration": "integration"
         }
       }
     }

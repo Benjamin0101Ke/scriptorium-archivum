@@ -6,9 +6,14 @@
       Buscá trabajos de la facultad, consultá sus fichas y accedé a los recursos autorizados.
     </p>
     <div class="hero-actions">
-      <a class="button hero-button" href="#catalogo">Explorar el catálogo <span aria-hidden="true">↓</span></a>
-      @if (api.demo || api.user()?.rol === 'Biblioteca') {
-        <a class="button hero-submit" [routerLink]="api.user()?.rol === 'Biblioteca' ? '/biblioteca' : '/mis-envios'">
+      <a class="button hero-button" href="#catalogo"
+        >Explorar el catálogo <span aria-hidden="true">↓</span></a
+      >
+      @if (!api.user() || puedeEnviar(api.user()?.rol) || api.user()?.rol === 'Biblioteca') {
+        <a
+          class="button hero-submit"
+          [routerLink]="api.user()?.rol === 'Biblioteca' ? '/biblioteca' : '/mis-envios'"
+        >
           Agregar tesis o proyecto
         </a>
       }
@@ -36,6 +41,17 @@
       /><button type="submit">Buscar trabajos</button>
     </div>
     <div class="filters">
+      @if (!api.demo) {
+        <label
+          >Departamento
+          <select name="departamento" [(ngModel)]="departamento" (ngModelChange)="carrera = ''">
+            <option value="">Todas</option>
+            @for (opcion of oferta().departamentos; track opcion.id) {
+              <option [value]="opcion.id">{{ opcion.nombre }}</option>
+            }
+          </select>
+        </label>
+      }
       <label
         >Autor<select name="autor" [(ngModel)]="autor">
           <option value="">Todos</option>
@@ -55,13 +71,19 @@
       <label
         >Carrera<select name="carrera" [(ngModel)]="carrera">
           <option value="">Todas</option>
-          @for (v of options('carrera'); track v) {
-            <option>{{ v }}</option>
+          @if (api.demo) {
+            @for (v of options('carrera'); track v) {
+              <option>{{ v }}</option>
+            }
+          } @else {
+            @for (opcion of carrerasAcademicas(); track opcion.id) {
+              <option>{{ opcion.nombre }}</option>
+            }
           }
         </select></label
       >
       <label
-        >Área<select name="area" [(ngModel)]="area">
+        >Área temática<select name="area" [(ngModel)]="area">
           <option value="">Todas</option>
           @for (v of options('area'); track v) {
             <option>{{ v }}</option>
@@ -71,19 +93,26 @@
       <label
         >Tipo<select name="tipo" [(ngModel)]="tipo">
           <option value="">Todos</option>
-          @for (v of options('tipo'); track v) {
+          @for (v of tiposFiltro(); track v) {
             <option>{{ v }}</option>
           }
         </select></label
       >
       <label
         >Orden<select name="orden" [(ngModel)]="orden">
+          <option value="valoracion">Mejor valorados</option>
           <option value="coincidencia">Coincidencia</option>
           <option value="anio">Más recientes</option>
           <option value="titulo">Título A–Z</option>
         </select></label
       >
     </div>
+    @if (errorOferta()) {
+      <p class="notice error" role="alert">
+        {{ errorOferta() }}
+        <button type="button" class="text-button" (click)="cargarOferta()">Reintentar</button>
+      </p>
+    }
     <button class="text-button" type="button" (click)="reset()">Limpiar búsqueda y filtros</button>
   </form>
   @if (error()) {
@@ -94,26 +123,72 @@
   @if (loading()) {
     <p class="empty" role="status">Consultando el catálogo…</p>
   } @else if (!error()) {
-    <p class="muted" aria-live="polite">{{ items().length }} resultados</p>
+    <p #resumenResultados class="muted catalog-results-summary" tabindex="-1" aria-live="polite">
+      @if (items().length) {
+        Mostrando {{ inicioPagina() + 1 }}–{{ finPagina() }} de {{ items().length }} resultados
+      } @else {
+        0 resultados
+      }
+    </p>
     <div class="cards">
-      @for (t of items(); track t.id) {
-        <article class="card">
+      @for (t of trabajosPagina(); track t.id) {
+        <a
+          class="card catalog-card-link"
+          [class]="claseValoracion(t.valoracion_media, t.valoraciones_total)"
+          [routerLink]="['/trabajos', t.id]"
+          [attr.aria-labelledby]="'catalogo-trabajo-' + t.id"
+        >
           <div class="card-top">
-            <span class="badge">{{ t.tipo }}</span
-            ><span>{{ t.anio }}</span>
+            <span class="badge">{{ t.tipo }}</span><span>{{ t.anio }}</span>
           </div>
-          <h3>
-            <a [routerLink]="['/trabajos', t.id]">{{ t.titulo }}</a>
-          </h3>
+          <h3 [id]="'catalogo-trabajo-' + t.id">{{ t.titulo }}</h3>
           <p class="authors">{{ t.autores.join(' · ') }}</p>
+          <app-estrellas [media]="t.valoracion_media ?? 0" [total]="t.valoraciones_total ?? 0" />
           <p class="summary">{{ t.resumen }}</p>
           <div class="card-bottom">
-            <span>{{ t.area }}</span
-            ><a [routerLink]="['/trabajos', t.id]">Ver ficha ↗</a>
+            <span>{{ t.area }}</span><span class="catalog-card-action">Ver ficha ↗</span>
           </div>
-        </article>
+        </a>
       }
     </div>
+    @if (totalPaginas() > 1) {
+      <nav class="catalog-pagination" aria-label="Paginación del catálogo">
+        <button
+          type="button"
+          class="secondary"
+          [disabled]="pagina() === 1"
+          (click)="cambiarPagina(pagina() - 1, resumenResultados)"
+        >
+          ← Anterior
+        </button>
+        <div class="pagination-pages">
+          @for (numero of paginasVisibles(); track $index) {
+            @if (numero !== null) {
+              <button
+                type="button"
+                class="secondary"
+                [attr.aria-label]="'Ir a la página ' + numero"
+                [attr.aria-current]="pagina() === numero ? 'page' : null"
+                (click)="cambiarPagina(numero, resumenResultados)"
+              >
+                {{ numero }}
+              </button>
+            } @else {
+              <span aria-hidden="true">…</span>
+            }
+          }
+        </div>
+        <button
+          type="button"
+          class="secondary"
+          [disabled]="pagina() === totalPaginas()"
+          (click)="cambiarPagina(pagina() + 1, resumenResultados)"
+        >
+          Siguiente →
+        </button>
+        <span class="muted pagination-status">Página {{ pagina() }} de {{ totalPaginas() }}</span>
+      </nav>
+    }
     @if (!items().length) {
       <div class="empty">
         <h3>No hay fichas para mostrar</h3>

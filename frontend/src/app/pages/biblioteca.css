@@ -34,3 +34,23 @@
   flex-wrap: wrap;
   margin-top: 25px;
 }
+
+.checklist a {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 0;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.control-status {
+  font-size: 0.8em;
+  text-decoration: none;
+}
+
+[id^='biblioteca-'] {
+  scroll-margin-block: 100px;
+}

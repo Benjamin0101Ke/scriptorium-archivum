@@ -1,0 +1,211 @@
+<section class="section">
+  <h1>Administrar roles</h1>
+  <p><a class="button secondary" routerLink="/admin/catalogos">Gestionar catálogos</a></p>
+  <p>
+    Buscá una cuenta y elegí su rol. La persona deberá iniciar sesión de nuevo después del cambio.
+  </p>
+  <form class="panel" (ngSubmit)="buscar()">
+    <label for="buscar-cuenta">Nombre o correo</label>
+    <div class="search-row">
+      <input
+        id="buscar-cuenta"
+        name="consulta"
+        type="search"
+        maxlength="150"
+        [(ngModel)]="consulta"
+      />
+      <button [disabled]="busy()">Buscar cuentas</button>
+    </div>
+    <div class="form-grid">
+      <label
+        >Rol
+        <select name="filtroRol" [(ngModel)]="filtroRol">
+          <option value="">Todos</option>
+          @for (rol of roles(); track rol) {
+            <option [value]="rol">{{ etiqueta(rol) }}</option>
+          }
+        </select>
+      </label>
+      <label
+        >Estado
+        <select name="filtroEstado" [(ngModel)]="filtroEstado">
+          <option value="">Todos</option>
+          <option>Habilitada</option>
+          <option>Deshabilitada</option>
+        </select>
+      </label>
+    </div>
+  </form>
+  @if (error()) {
+    <p class="notice error" role="alert">{{ error() }}</p>
+  }
+  @if (message()) {
+    <p class="notice" role="status">{{ message() }}</p>
+  }
+  @if (!busy() && !usuarios().length && !error()) {
+    <p class="empty">No hay cuentas que coincidan con la búsqueda.</p>
+  }
+  @if (usuarios().length) {
+    <div class="panel table-scroll">
+      <table aria-label="Roles de las cuentas">
+        <thead>
+          <tr>
+            <th>Cuenta</th>
+            <th>Estado</th>
+            <th>Rol</th>
+            <th>Acción</th>
+            <th>Gestión de cuenta</th>
+            <th>Docente a cargo</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (cuenta of usuarios(); track cuenta.id) {
+            <tr>
+              <td>
+                <strong>{{ cuenta.nombre }}</strong><br />{{ cuenta.correo }}
+              </td>
+              <td>{{ cuenta.estado }}</td>
+              @if (cuenta.id === api.user()?.id || cuenta.estado !== 'Habilitada') {
+                <td>{{ etiqueta(cuenta.rol) }}</td>
+                <td>{{ cuenta.id === api.user()?.id ? 'Tu cuenta' : 'Cuenta deshabilitada' }}</td>
+              } @else {
+                <td>
+                  <select
+                    [ngModel]="borradores[cuenta.id] ?? cuenta.rol"
+                    (ngModelChange)="borradores[cuenta.id] = $event"
+                    [attr.aria-label]="'Rol de ' + cuenta.correo"
+                    [disabled]="busy()"
+                  >
+                    @for (rol of roles(); track rol) {
+                      <option [value]="rol">{{ etiqueta(rol) }}</option>
+                    }
+                  </select>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    class="small"
+                    (click)="guardar(cuenta)"
+                    [disabled]="
+                      busy() || !borradores[cuenta.id] || borradores[cuenta.id] === cuenta.rol
+                    "
+                  >
+                    Guardar rol
+                  </button>
+                </td>
+              }
+              <td>
+                @if (cuenta.id !== api.user()?.id) {
+                  <button
+                    type="button"
+                    class="secondary small"
+                    (click)="cambiarEstado(cuenta)"
+                    [disabled]="busy()"
+                  >
+                    {{ cuenta.estado === 'Habilitada' ? 'Deshabilitar' : 'Habilitar' }}
+                  </button>
+                  @if (cuenta.estado === 'Habilitada') {
+                    <button
+                      type="button"
+                      class="secondary small"
+                      (click)="recuperar(cuenta)"
+                      [disabled]="busy()"
+                    >
+                      Enviar recuperación
+                    </button>
+                  }
+                }
+              </td>
+              <td>
+                @if (cuenta.rol === 'Estudiante' && cuenta.estado === 'Habilitada') {
+                  <select
+                    [ngModel]="docenteElegido(cuenta)"
+                    (ngModelChange)="docentesBorrador[cuenta.id] = $event"
+                    [attr.aria-label]="'Docente de ' + cuenta.correo"
+                    [disabled]="busy()"
+                  >
+                    <option [ngValue]="null">Sin docente asignado</option>
+                    @if (!docenteDisponible(cuenta.id_docente)) {
+                      <option [ngValue]="cuenta.id_docente">Docente anterior no disponible</option>
+                    }
+                    @for (docente of docentes(); track docente.id) {
+                      <option [ngValue]="docente.id">
+                        {{ docente.nombre }} · {{ docente.correo }}
+                      </option>
+                    }
+                  </select>
+                  <button
+                    type="button"
+                    class="secondary small"
+                    (click)="guardarDocente(cuenta)"
+                    [disabled]="busy() || docenteElegido(cuenta) === (cuenta.id_docente ?? null)"
+                  >
+                    Guardar docente
+                  </button>
+                } @else {
+                  <span class="muted">—</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+  <section class="panel">
+    <h2>Actividad administrativa</h2>
+    <button type="button" class="secondary" (click)="verActividad()" [disabled]="busy()">
+      Consultar actividad
+    </button>
+    @for (evento of actividad(); track evento.id) {
+      <p>
+        {{ evento.fecha | date: 'dd/MM/yyyy HH:mm' : '-0600' }} · {{ evento.nombre }} ·
+        {{ evento.evento }} · {{ evento.detalle }}
+      </p>
+    }
+  </section>
+  <section class="panel">
+    <h2>Correos automáticos</h2>
+    <p>
+      Últimos 100 avisos. «Enviado» indica que el servidor de correo aceptó el mensaje. Los fallos
+      se reintentan hasta cinco veces. Las cuentas ficticias .test se omiten al usar correo real.
+    </p>
+    <button type="button" class="secondary" (click)="verCorreos()" [disabled]="busy()">
+      Actualizar correos
+    </button>
+    @if (correosConsultados() && !correos().length) {
+      <p>Todavía no hay avisos registrados.</p>
+    }
+    @if (correos().length) {
+      <div class="table-scroll">
+        <table aria-label="Estado de correos automáticos">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Destinatario</th>
+              <th>Aviso</th>
+              <th>Estado</th>
+              <th>Intentos</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (correo of correos(); track correo.id) {
+              <tr>
+                <td>{{ correo.fecha | date: 'dd/MM/yyyy HH:mm' : '-0600' }}</td>
+                <td>{{ correo.destino }}</td>
+                <td>{{ correo.asunto }}</td>
+                <td>
+                  {{ correo.estado }}
+                  @if (correo.error_tipo) {
+                    · {{ correo.error_tipo }}
+                  }
+                </td>
+                <td>{{ correo.intentos }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</section>

@@ -1,2 +1,2 @@
 
-export const settings={demo:true,apiUrl:'/api'};
+export const settings = { demo: false, apiUrl: '/api' };

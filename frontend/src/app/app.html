@@ -12,25 +12,65 @@
       [routerLinkActiveOptions]="{ exact: true }"
       >Catálogo</a
     >
-    @if (api.user()) {
+    @if (api.user(); as user) {
       <a routerLink="/favoritos" routerLinkActive="active" ariaCurrentWhenActive="page"
         >Favoritos</a
       >
-      @if (api.user()?.rol === 'Biblioteca') {
-        <a routerLink="/biblioteca" routerLinkActive="active" ariaCurrentWhenActive="page"
-          >Biblioteca</a
+      @let espacio = espaciosPorRol[user.rol];
+      <a [routerLink]="'/' + espacio.ruta" routerLinkActive="active" ariaCurrentWhenActive="page"
+        >{{ espacio.enlace }}</a
+      >
+      @if (puedeEnviar(user.rol)) {
+        <a routerLink="/mis-envios" routerLinkActive="active" ariaCurrentWhenActive="page"
+          >Mis envíos</a
         >
-      } @else if (api.demo) {
-        <a routerLink="/mis-envios" routerLinkActive="active" ariaCurrentWhenActive="page">Mis envíos</a>
       }
-      <button class="secondary" (click)="logout()">Salir</button>
+      <details class="account-menu" #accountMenu (keydown.escape)="closeMenu(true)">
+        <summary class="account-trigger" [attr.aria-label]="'Opciones de ' + user.nombre">
+          <app-avatar [tipo]="user.avatar" [foto]="user.foto" />
+          <span class="account-trigger-name">{{ user.nombre }}</span>
+          <svg class="account-chevron" viewBox="0 0 16 16" aria-hidden="true">
+            <path
+              d="m4 6 4 4 4-4"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+            />
+          </svg>
+        </summary>
+        <div class="account-options">
+          <div class="account-identity">
+            <strong>{{ user.nombre }}</strong>
+            <small>{{ user.correo }}</small>
+          </div>
+          <a routerLink="/perfil" (click)="closeMenu()">Mi perfil</a>
+          <button
+            type="button"
+            (click)="toggleTheme()"
+            [disabled]="cambiandoTema()"
+            [attr.aria-pressed]="tema.oscuro()"
+          >
+            Modo oscuro
+          </button>
+          <button type="button" (click)="logout()">Cerrar sesión</button>
+        </div>
+      </details>
     } @else {
+      <button
+        type="button"
+        class="secondary small"
+        (click)="toggleTheme()"
+        [attr.aria-pressed]="tema.oscuro()"
+      >
+        {{ tema.oscuro() ? 'Modo claro' : 'Modo oscuro' }}
+      </button>
       <a class="button small" routerLink="/ingresar">Iniciar sesión</a>
     }
   </nav>
 </header>
 @if (error()) {
-  <p class="notice error">{{ error() }}</p>
+  <p class="notice error" role="alert">{{ error() }}</p>
 }
 @if (api.demo) {
   <p class="demo-banner" role="status">

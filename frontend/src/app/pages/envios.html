@@ -6,7 +6,27 @@
   </p>
   <form class="panel" (ngSubmit)="submit(pdfInput)" [attr.aria-busy]="busy()">
     <h2>Agregar tesis o proyecto</h2>
-    <app-metadata-fields [draft]="draft" [invalidFields]="invalid()" />
+    @if (!api.demo && catalogos() && !carreraPropia()) {
+      <p class="notice">
+        Completá tu carrera en <a routerLink="/perfil">Mi perfil</a> antes de enviar un trabajo.
+      </p>
+    }
+    @if (catalogosError()) {
+      <p class="notice error" role="alert">{{ catalogosError() }}</p>
+      <button type="button" class="secondary" (click)="loadCatalogos()">
+        Reintentar catálogos
+      </button>
+    }
+    <app-metadata-fields
+      [draft]="draft"
+      [invalidFields]="invalid()"
+      [catalogos]="catalogos()"
+      [seleccion]="seleccion"
+      [autorPropio]="api.demo ? null : (api.user()?.nombre ?? null)"
+      [carreraPropia]="
+        api.demo ? null : (carreraPropia()?.nombre ?? 'Completá tu carrera en Mi perfil')
+      "
+    />
     <label
       >PDF del trabajo · máximo 25 MB
       <input #pdfInput type="file" accept=".pdf,application/pdf" required [disabled]="busy()" />
@@ -17,7 +37,9 @@
     @if (message()) {
       <p class="notice" role="status">{{ message() }}</p>
     }
-    <button [disabled]="busy()">{{ busy() ? 'Enviando…' : 'Enviar a Biblioteca' }}</button>
+    <button [disabled]="busy() || (!api.demo && (!catalogos() || !carreraPropia()))">
+      {{ busy() ? 'Enviando…' : 'Enviar a Biblioteca' }}
+    </button>
   </form>
   <section class="panel" aria-labelledby="envios-heading">
     <h2 id="envios-heading">Trabajos enviados</h2>
@@ -36,6 +58,12 @@
             <div>
               <strong>{{ item.titulo }}</strong>
               <p>{{ item.tipo }} · {{ item.fecha | date: 'dd/MM/yyyy' }}</p>
+              @if (!api.demo) {
+                <details>
+                  <summary>Adjuntar o consultar archivos complementarios</summary>
+                  <app-archivos-trabajo [trabajo]="item.id" [editable]="true" />
+                </details>
+              }
             </div>
             <span class="badge">{{
               item.estado === 'En revision' ? 'En revisión' : item.estado

@@ -1,0 +1,193 @@
+{
+  "info": {
+    "name": "Scriptorium Archivum · API local",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Empezá con Carreras. Usá una cuenta ficticia para iniciar sesión. Postman conserva la cookie emitida al iniciar sesión. Para administrar roles, iniciá sesión con una cuenta Administrador."
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:3000"
+    },
+    {
+      "key": "correo",
+      "value": ""
+    },
+    {
+      "key": "password",
+      "value": ""
+    },
+    {
+      "key": "codigo",
+      "value": ""
+    },
+    {
+      "key": "nueva",
+      "value": ""
+    },
+    {
+      "key": "usuario_id",
+      "value": ""
+    },
+    {
+      "key": "rol",
+      "value": "Estudiante"
+    },
+    {
+      "key": "correo_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Carreras · GET público",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/api/carreras"
+      }
+    },
+    {
+      "name": "Catálogo público",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/api/trabajos"
+      }
+    },
+    {
+      "name": "Iniciar sesión",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/api/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"{{correo}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Consultar sesión",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/api/auth/me"
+      }
+    },
+    {
+      "name": "Cerrar sesión",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/api/auth/logout"
+      }
+    },
+    {
+      "name": "Recuperación",
+      "item": [
+        {
+          "name": "Solicitar código",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/auth/recuperacion/solicitar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"{{correo}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Confirmar código y cambiar contraseña",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/auth/recuperacion/confirmar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"{{correo}}\",\n  \"codigo\": \"{{codigo}}\",\n  \"nueva\": \"{{nueva}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Administración",
+      "item": [
+        {
+          "name": "Consultar roles y cuentas",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/admin/roles"
+          }
+        },
+        {
+          "name": "Asignar rol",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/api/admin/roles/{{usuario_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rol\": \"{{rol}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Logs y reenvio de correos",
+      "item": [
+        {
+          "name": "Listar avisos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/admin/roles/correos",
+            "description": "Requiere sesion de Administrador. Reenviar solo acepta estado Fallido y responde 202; otros estados responden 409"
+          }
+        },
+        {
+          "name": "Historial de intentos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/admin/roles/correos/{{correo_id}}/intentos",
+            "description": "Requiere sesion de Administrador. Reenviar solo acepta estado Fallido y responde 202; otros estados responden 409"
+          }
+        },
+        {
+          "name": "Reenviar aviso fallido",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{base_url}}/api/admin/roles/correos/{{correo_id}}/reenviar",
+            "description": "Requiere sesion de Administrador. Reenviar solo acepta estado Fallido y responde 202; otros estados responden 409"
+          }
+        },
+        {
+          "name": "Intentos de recuperacion",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/admin/roles/correos/recuperaciones",
+            "description": "Requiere sesion de Administrador. Reenviar solo acepta estado Fallido y responde 202; otros estados responden 409"
+          }
+        }
+      ]
+    }
+  ]
+}

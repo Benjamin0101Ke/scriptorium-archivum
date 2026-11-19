@@ -1,0 +1,46 @@
+using System.Net.Mail;
+using APIScriptoriumArchivum.Datos;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+
+namespace APIScriptoriumArchivum.Controllers;
+
+[ApiController]
+[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+[EnableRateLimiting("recuperacion")]
+[Route("api/auth/recuperacion")]
+public sealed class RecuperacionController(Recuperacion recuperacion) : ControllerBase
+{
+    [HttpPost("solicitar")]
+    public async Task<IActionResult> Solicitar(Solicitud datos, CancellationToken ct)
+    {
+        string? correo = ValidarCorreo(datos.Correo);
+        if (correo is null) return BadRequest(new { error = "Ingresá un correo válido." });
+        await recuperacion.Solicitar(correo, ct);
+        return Accepted(new { mensaje = "Si hay una cuenta con ese correo, vas a recibir un código." });
+    }
+
+    [HttpPost("confirmar")]
+    public async Task<IActionResult> Confirmar(Confirmacion datos, CancellationToken ct)
+    {
+        string? correo = ValidarCorreo(datos.Correo);
+        string codigo = datos.Codigo?.Trim() ?? "";
+        if (correo is null || codigo.Length != 6 || codigo.Any(c => !char.IsAsciiDigit(c)))
+            return BadRequest(new { error = "Ingresá el correo y el código de seis dígitos." });
+        if (datos.Nueva is not { Length: >= 8 and <= 512 })
+            return BadRequest(new { error = "Usá una contraseña de entre 8 y 512 caracteres." });
+        if (!await recuperacion.Confirmar(correo, codigo, datos.Nueva, ct))
+            return BadRequest(new { error = "El código es incorrecto, venció o ya fue utilizado." });
+        return Ok(new { ok = true });
+    }
+
+    private static string? ValidarCorreo(string? valor)
+    {
+        string correo = valor?.Trim().ToLowerInvariant() ?? "";
+        return correo.Length <= 150 && MailAddress.TryCreate(correo, out var direccion) && direccion.Address == correo
+            ? correo : null;
+    }
+
+    public record Solicitud(string? Correo);
+    public record Confirmacion(string? Correo, string? Codigo, string? Nueva);
+}

@@ -1,0 +1,87 @@
+CUENTAS FICTICIAS DE LA PRACTICA
+
+Biblioteca: biblioteca@scriptorium.test
+Contrasena ficticia: Practica-Biblioteca-2026!
+Lector: lector@scriptorium.test
+Contrasena ficticia: Practica-Lector-2026!
+
+Prueba guiada en Postman o en un cliente HTTP
+
+Usar la base ficticia siguiendo LEEME.txt de la carpeta backend. Las rutas de aquí empiezan por http://127.0.0.1:3000. Cambia el puerto si lo personalizaste.
+
+1. Inicia sesión como Biblioteca en POST /api/auth/login con JSON. Comprueba GET /api/auth/me y conserva la cookie en el cliente.
+2. En GET /api/admin/trabajos copia el ID de Gestión de información. En GET /api/admin/personas?q=Pe%C3%B1a identifica el ID numérico de Ana María Peña de Prueba.
+3. Abre POST /api/admin/trabajos/{id}/pdf con Body → form-data. La clave archivo es de tipo File. Carga ejemplar-ficticio.pdf y anota el ID que devuelve.
+4. Abre el PDF en GET /api/admin/trabajos/{id}/pdf?ejemplar={ejemplar_id}. Guarda los controles con PUT /api/admin/trabajos/{id}/controles y el cuerpo mostrado abajo. Cambia los dos IDs por los que obtuvo tu copia.
+5. Ejecuta POST /api/admin/trabajos/{id}/publicar. La ficha debe aparecer en el catálogo público y permitir lectura. Comprueba que ?operacion=descarga devuelve 403.
+6. Sube otra copia del PDF como ejemplar B. El ID cambia. La vista previa con el ID de A queda en 404. Publicar B con los controles de A devuelve 409. Completa sus propios controles si quieres publicar B.
+7. Prueba la consulta pública y los favoritos con la cuenta Lector. Con esa sesión, GET /api/admin/trabajos debe devolver 403.
+8. Con Biblioteca retira una ficha publicada mediante POST /api/admin/trabajos/{id}/retirar con {"motivo":"Fin de la prueba"}. Espera 404 en el detalle público y comprueba la actuación en GET /api/admin/bitacora.
+
+{
+  "ejemplar_id": "REEMPLAZAR",
+  "deposito_referencia": "UES-FICTICIO-01",
+  "deposito_fecha": "2025-05-20",
+  "deposito_verificado": true,
+  "verificar": true,
+  "conformidad_referencia": "Acta de prueba",
+  "ficha_publica": true,
+  "lectura": true,
+  "descarga": false,
+  "autorizacion": {
+    "referencia": "Constancia ficticia",
+    "otorgante_ids": [3],
+    "fecha": "2025-05-20",
+    "estado": "Vigente",
+    "ficha": true,
+    "lectura": true,
+    "descarga": false
+  },
+  "decision": {
+    "resultado": "Favorable",
+    "motivo": "Revisión de ejemplo"
+  }
+}
+
+Los permisos del ejemplar y los que concede la constancia son datos separados. Al probar otros niveles, modifica cada parte de forma coherente.
+
+PROBAR ADMINISTRACION Y LOS CORREOS
+
+1. Registrar una cuenta ficticia propia con POST /api/auth/registro.
+2. Para preparar la primera cuenta Administrador en la base de practica,
+   usar el correo de esa cuenta en la consulta siguiente y volver a entrar.
+   Reemplazar el ejemplo por la cuenta elegida; no ejecutar sobre otra base.
+
+UPDATE public.usuarios AS u
+SET id_rol=r.id_rol, version_rol=u.version_rol+1
+FROM public.roles AS r
+WHERE r.nombre='Administrador' AND r.activo
+  AND u.correo_institucional='CUENTA_FICTICIA_ELEGIDA';
+
+3. Consultar GET /api/admin/roles/correos con esa sesion.
+4. Ver los avisos locales en http://127.0.0.1:8025.
+5. Solo en la practica, cambiar SMTP_PORT de 1025 a 1026 y recrear la API:
+
+docker compose -p scriptorium-archivum up -d --no-deps api
+
+6. Generar un aviso ficticio nuevo. Debe fallar y reintentarse hasta cinco
+   veces. Las esperas normales suman unos quince minutos.
+7. Reparar SMTP_PORT=1025 y recrear la API con el mismo comando.
+8. Con Administracion, POST sin cuerpo a:
+   /api/admin/roles/correos/{id_del_aviso_fallido}/reenviar
+9. Esperar 202 y comprobar que llega a Mailpit. Consultar /intentos del aviso:
+   deben conservarse los cinco fallos y aparecer el envio del ciclo nuevo.
+10. Intentar reenviar el aviso ya Enviado: debe responder 409.
+
+Sin sesion, las rutas administrativas deben responder 401.
+Con Lector, deben responder 403. El frontend no concede permisos al ocultar
+un boton: la API tambien comprueba el rol.
+
+Para recuperacion:
+POST /api/auth/recuperacion/solicitar con correo
+Revisar Mailpit y confirmar con correo, codigo y nueva en:
+POST /api/auth/recuperacion/confirmar
+El codigo dura diez minutos y no puede utilizarse dos veces.
+El historial tecnico se consulta como Administrador en:
+GET /api/admin/roles/correos/recuperaciones
+No debe mostrar el codigo ni la contrasena.

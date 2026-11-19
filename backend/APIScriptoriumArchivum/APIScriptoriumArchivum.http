@@ -1,0 +1,21 @@
+@APIScriptoriumArchivum_HostAddress = http://127.0.0.1:3000
+
+GET {{APIScriptoriumArchivum_HostAddress}}/api/trabajos
+Accept: application/json
+
+###
+
+GET {{APIScriptoriumArchivum_HostAddress}}/api/carreras
+Accept: application/json
+
+###
+
+GET {{APIScriptoriumArchivum_HostAddress}}/api/tipos-de-trabajo
+Accept: application/json
+
+###
+
+GET {{APIScriptoriumArchivum_HostAddress}}/api/areas-tematicas
+Accept: application/json
+
+###

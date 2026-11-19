@@ -1,0 +1,57 @@
+using System.Text.Json;
+using Npgsql;
+
+namespace APIScriptoriumArchivum.Datos;
+
+public sealed class AsignacionesDocentes(NpgsqlDataSource db, Avisos avisos)
+{
+    public async Task<List<JsonElement>> Docentes(CancellationToken ct)
+    {
+        await using var c = await db.OpenConnectionAsync(ct);
+        return await Comandos.FilasJson(c, """
+            SELECT jsonb_build_object('id',u.id_usuario,'nombre',coalesce(u.nombre_mostrar,concat_ws(' ',p.nombres,p.apellidos)),
+                'correo',u.correo_institucional)::text FROM public.usuarios u
+            JOIN public.personas p USING(id_persona) JOIN public.roles r USING(id_rol)
+            WHERE r.nombre='Docente revisor' AND r.activo AND u.estado='Habilitada'
+            ORDER BY p.apellidos,p.nombres,u.id_usuario
+            """, ct);
+    }
+
+    public async Task Asignar(int alumno, int? docente, int actor, CancellationToken ct)
+    {
+        await using var c = await db.OpenConnectionAsync(ct);
+        await using var tr = await c.BeginTransactionAsync(ct);
+        await using (var comando = Comandos.Crear(c, tr, """
+            SELECT u.id_docente FROM public.usuarios u JOIN public.roles r USING(id_rol)
+            WHERE u.id_usuario=@id AND u.estado='Habilitada' AND r.nombre='Estudiante' AND r.activo
+            FOR UPDATE OF u
+            """, ("id", alumno)))
+        await using (var lector = await comando.ExecuteReaderAsync(ct))
+        {
+            if (!await lector.ReadAsync(ct)) throw new ErrorApi(409, "Seleccioná una cuenta estudiantil habilitada.");
+            int? actual = lector.IsDBNull(0) ? null : lector.GetInt32(0);
+            if (actual == docente) return;
+        }
+        if (docente.HasValue && !await Comandos.Valor<bool>(c, tr, """
+            SELECT EXISTS(SELECT 1 FROM public.usuarios u JOIN public.roles r USING(id_rol)
+                WHERE u.id_usuario=@id AND u.estado='Habilitada' AND r.nombre='Docente revisor' AND r.activo)
+            """, ct, ("id", docente.Value)))
+            throw new ErrorApi(400, "Seleccioná un docente revisor habilitado.");
+        await Comandos.Ejecutar(c, tr, "UPDATE public.usuarios SET id_docente=@docente::int WHERE id_usuario=@alumno",
+            ct, ("docente", docente), ("alumno", alumno));
+        await avisos.Asignacion(c, tr, alumno, docente, actor, ct);
+        await tr.CommitAsync(ct);
+    }
+
+    public async Task<List<JsonElement>> Correos(CancellationToken ct)
+    {
+        await using var c = await db.OpenConnectionAsync(ct);
+        return await Comandos.FilasJson(c, """
+            SELECT jsonb_build_object('id',m.id_correo::text,'destino',m.destino,'asunto',m.asunto,'estado',m.estado,
+                'intentos',m.intentos,'ciclo',m.ciclo,'proximo_intento',m.proximo_intento,'fecha',m.creado_en,'enviado_en',m.enviado_en,'error_tipo',m.error_tipo,
+                'evento',b.operacion)::text
+            FROM public.correos_eventos m JOIN public.bitacora b USING(id_evento)
+            ORDER BY m.id_correo DESC LIMIT 100
+            """, ct);
+    }
+}

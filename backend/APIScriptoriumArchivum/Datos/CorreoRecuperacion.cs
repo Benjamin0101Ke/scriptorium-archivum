@@ -1,11 +1,11 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Threading.Channels;
 
 namespace APIScriptoriumArchivum.Datos;
 
 public sealed class CorreoRecuperacion(IConfiguration config, ILogger<CorreoRecuperacion> log, RegistroCorreos registro) : BackgroundService
 {
-    private readonly Channel<Mensaje> cola = Channel.CreateBounded<Mensaje>(new BoundedChannelOptions(64)
+    private Channel<Mensaje> cola = Channel.CreateBounded<Mensaje>(new BoundedChannelOptions(64)
     {
         SingleReader = true
     });

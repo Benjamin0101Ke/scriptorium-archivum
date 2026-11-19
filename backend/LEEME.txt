@@ -8,15 +8,16 @@ la interfaz. No necesitan crear los controllers nuevamente.
 
 APIScriptoriumArchivum contiene el proyecto de C#
 compose.yaml inicia PostgreSQL, la API, pgAdmin y Mailpit
-sql-init contiene los scripts 01 a 13
+sql-init contiene los scripts 01 a 14
 storage/trabajos guarda los PDF y archivos complementarios
 pruebas contiene un PDF ficticio, la coleccion de Postman y las pruebas
 integracion/CONSUMIR-API.txt explica las rutas y el uso de la sesion
 documentacion conserva los diagramas y el diccionario
 
-Los PDF de documentacion corresponden al modelo de su fecha de elaboracion.
-No representan automaticamente las ampliaciones posteriores. Para implementar
-la base completa se utilizan los 13 SQL. El resultado esperado son 32 tablas.
+Los PDF de documentacion representan el modelo actual de 31 tablas, 246 campos
+y 60 claves foraneas. Para crear la base completa se utilizan los SQL 01 a 14.
+El script 10 se conserva como migracion historica; el 14 retira valoraciones.
+Las estrellas se cuentan exclusivamente desde los favoritos activos.
 
 2. INICIAR EN UNA INSTALACION NUEVA
 
@@ -75,13 +76,16 @@ No usar down -v y no repetir datos-prueba.sql en una base utilizada.
 
 Docker ejecuta sql-init automaticamente solo cuando crea un volumen vacio.
 En una base existente se aplican las migraciones pendientes con psql, en orden.
-Si estan aplicadas 01 a 03, faltan 04 a 13. Si tiene hasta 12, falta solo 13.
+Si estan aplicadas 01 a 03, faltan 04 a 14. Si tiene hasta 12, faltan 13 y 14.
+Si tiene hasta 13, falta solo 14. No se borran los favoritos existentes.
+La migracion 14 elimina las puntuaciones antiguas de 1 a 5, sin convertirlas.
+Detener la API antes de aplicarla y desplegar la API corregida antes de reiniciarla.
 No ejecutar otra vez el script 02 sobre las tablas existentes.
 
-Ejemplo para aplicar solo 13 desde backend:
+Ejemplo para aplicar solo 14 desde backend (si ya tiene 01 a 13):
 
 $OutputEncoding = [Text.UTF8Encoding]::new($false)
-Get-Content -LiteralPath './sql-init/13_logs_y_reenvio_correo.sql' -Raw -Encoding utf8 |
+Get-Content -LiteralPath './sql-init/14_estrellas_por_favoritos.sql' -Raw -Encoding utf8 |
     docker compose -p scriptorium-archivum exec -T postgres psql -X -v ON_ERROR_STOP=1 -U postgres -d scriptorium_archivum
 if ($LASTEXITCODE -ne 0) {
     throw 'No continuar hasta revisar el error'

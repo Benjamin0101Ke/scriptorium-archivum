@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using APIScriptoriumArchivum.Dtos;
@@ -33,8 +33,8 @@ namespace APIScriptoriumArchivum.Datos
             ) p
             """;
 
-        private readonly NpgsqlDataSource baseDeDatos;
-        private readonly Avisos avisos;
+        private NpgsqlDataSource baseDeDatos;
+        private Avisos avisos;
 
         public Fichas(NpgsqlDataSource baseDeDatos, Avisos avisos)
         {

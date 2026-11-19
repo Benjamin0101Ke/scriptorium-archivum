@@ -1,12 +1,12 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Npgsql;
 
 namespace APIScriptoriumArchivum.Datos
 {
     public class Complementos
     {
-        private readonly NpgsqlDataSource baseDeDatos;
-        private readonly Avisos avisos;
+        private NpgsqlDataSource baseDeDatos;
+        private Avisos avisos;
 
         public Complementos(NpgsqlDataSource baseDeDatos, Avisos avisos)
         {

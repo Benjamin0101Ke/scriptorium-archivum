@@ -85,3 +85,20 @@ El codigo dura diez minutos y no puede utilizarse dos veces.
 El historial tecnico se consulta como Administrador en:
 GET /api/admin/roles/correos/recuperaciones
 No debe mostrar el codigo ni la contrasena.
+
+ESTRELLAS MEDIANTE FAVORITOS
+
+Usar una ficha publicada y elegible. Conservar su ID y dos cuentas ficticias.
+1. En una ficha sin favoritos, GET /api/trabajos/{id} devuelve estrellas: 0.
+2. Como Lector, PUT /api/favoritos/{id} sin cuerpo. El detalle devuelve estrellas: 1.
+3. Repetir el PUT. Debe seguir en 1 y existir una sola pareja usuario-trabajo.
+4. GET /api/favoritos incluye la ficha. Otra cuenta tiene su propia lista.
+5. Con otra cuenta, marcar la misma ficha: el total sube a 2.
+6. Con la primera cuenta, DELETE /api/favoritos/{id}. El total baja a 1 y la ficha
+   desaparece de su lista. El registro permanece con activo=false.
+7. Repetir DELETE no cambia el total. Volver a marcar reactiva la pareja sin duplicarla.
+8. GET /api/trabajos?orden=estrellas ordena por cantidad descendente, titulo e ID.
+9. Sin sesion, PUT y DELETE deben devolver 401. Marcar una ficha no publicada devuelve 404.
+10. Las rutas antiguas de valoracion devuelven 404; orden=valoracion devuelve 400.
+
+No se ingresan puntuaciones de 1 a 5 ni se calcula un promedio.

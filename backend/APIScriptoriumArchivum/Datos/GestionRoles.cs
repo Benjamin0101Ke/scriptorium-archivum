@@ -1,11 +1,11 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Npgsql;
 
 namespace APIScriptoriumArchivum.Datos;
 
 public sealed class GestionRoles(NpgsqlDataSource baseDeDatos)
 {
-    private static readonly string[] Permitidos = ["Lector", "Estudiante", "Biblioteca", "Docente revisor", "Administrador"];
+    private static string[] Permitidos = ["Lector", "Estudiante", "Biblioteca", "Docente revisor", "Administrador"];
 
     public async Task<string[]> RolesDisponibles(CancellationToken ct)
     {

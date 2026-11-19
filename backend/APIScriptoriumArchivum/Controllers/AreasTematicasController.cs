@@ -1,4 +1,4 @@
-using APIScriptoriumArchivum.Datos;
+﻿using APIScriptoriumArchivum.Datos;
 using APIScriptoriumArchivum.Dtos;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,7 +8,7 @@ namespace APIScriptoriumArchivum.Controllers
     [Route("api/areas-tematicas")]
     public class AreasTematicasController : ControllerBase
     {
-        private readonly Catalogos catalogos;
+        private Catalogos catalogos;
 
         public AreasTematicasController(Catalogos catalogos)
         {

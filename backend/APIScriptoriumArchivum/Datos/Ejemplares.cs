@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using APIScriptoriumArchivum.Dtos;
@@ -8,10 +8,10 @@ namespace APIScriptoriumArchivum.Datos
 {
     public class Ejemplares
     {
-        private readonly NpgsqlDataSource baseDeDatos;
-        private readonly ArchivoPdf archivos;
-        private readonly Avisos avisos;
-        private static readonly string[] Controles =
+        private NpgsqlDataSource baseDeDatos;
+        private ArchivoPdf archivos;
+        private Avisos avisos;
+        private static string[] Controles =
         {
             "Metadatos completos", "Comprobante UES verificado", "Ejemplar final verificado",
             "Constancia vigente para el ejemplar", "Decisión favorable de Biblioteca",

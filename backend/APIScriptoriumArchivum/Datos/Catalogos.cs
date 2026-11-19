@@ -1,11 +1,11 @@
-using APIScriptoriumArchivum.Dtos;
+﻿using APIScriptoriumArchivum.Dtos;
 using Npgsql;
 
 namespace APIScriptoriumArchivum.Datos
 {
     public class Catalogos
     {
-        private readonly NpgsqlDataSource baseDeDatos;
+        private NpgsqlDataSource baseDeDatos;
 
         public Catalogos(NpgsqlDataSource baseDeDatos)
         {

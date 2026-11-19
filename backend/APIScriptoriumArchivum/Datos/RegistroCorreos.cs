@@ -1,11 +1,11 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Npgsql;
 
 namespace APIScriptoriumArchivum.Datos
 {
     public sealed class RegistroCorreos
     {
-        private readonly NpgsqlDataSource db;
+        private NpgsqlDataSource db;
 
         public RegistroCorreos(NpgsqlDataSource db)
         {

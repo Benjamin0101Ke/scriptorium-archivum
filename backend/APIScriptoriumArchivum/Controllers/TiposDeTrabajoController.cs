@@ -1,4 +1,4 @@
-using APIScriptoriumArchivum.Datos;
+﻿using APIScriptoriumArchivum.Datos;
 using APIScriptoriumArchivum.Dtos;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,7 +8,7 @@ namespace APIScriptoriumArchivum.Controllers
     [Route("api/tipos-de-trabajo")]
     public class TiposDeTrabajoController : ControllerBase
     {
-        private readonly Catalogos catalogos;
+        private Catalogos catalogos;
 
         public TiposDeTrabajoController(Catalogos catalogos)
         {

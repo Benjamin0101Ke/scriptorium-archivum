@@ -1,11 +1,11 @@
-using Npgsql;
+﻿using Npgsql;
 
 namespace APIScriptoriumArchivum.Datos
 {
     public class Usuarios
     {
-        private readonly NpgsqlDataSource baseDeDatos;
-        private readonly Avisos avisos;
+        private NpgsqlDataSource baseDeDatos;
+        private Avisos avisos;
 
         public Usuarios(NpgsqlDataSource baseDeDatos, Avisos avisos)
         {

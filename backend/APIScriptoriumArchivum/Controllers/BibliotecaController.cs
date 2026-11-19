@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Text.Json;
 using APIScriptoriumArchivum.Datos;
 using APIScriptoriumArchivum.Dtos;
@@ -12,10 +12,10 @@ namespace APIScriptoriumArchivum.Controllers
     [Route("api/admin")]
     public class BibliotecaController : ControllerBase
     {
-        private readonly Fichas fichas;
-        private readonly Ejemplares ejemplares;
-        private readonly ArchivoPdf archivos;
-        private readonly Complementos complementos;
+        private Fichas fichas;
+        private Ejemplares ejemplares;
+        private ArchivoPdf archivos;
+        private Complementos complementos;
 
         public BibliotecaController(Fichas fichas, Ejemplares ejemplares, ArchivoPdf archivos, Complementos complementos)
         {

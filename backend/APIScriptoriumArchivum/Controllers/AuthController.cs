@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Net.Mail;
 using APIScriptoriumArchivum.Datos;
 using Microsoft.AspNetCore.Authentication;
@@ -11,12 +11,12 @@ namespace APIScriptoriumArchivum.Controllers
 {
     [ApiController]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-    [Route("api/auth")]
+    [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly Usuarios usuarios;
-        private readonly Avisos avisos;
-        private readonly IPasswordHasher<Cuenta> contrasenas;
+        private Usuarios usuarios;
+        private Avisos avisos;
+        private IPasswordHasher<Cuenta> contrasenas;
 
         public AuthController(Usuarios usuarios, IPasswordHasher<Cuenta> contrasenas, Avisos avisos)
         {

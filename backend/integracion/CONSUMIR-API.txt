@@ -57,7 +57,7 @@ Rutas para cada equipo
 
 Consulta pública y sesión - Uso
 GET /api/carreras, /api/tipos-de-trabajo, /api/areas-tematicas - Catálogos
-GET /api/trabajos, GET /api/trabajos/{id} - Resultados y detalle. Filtros q, autor, anio, carrera, area, tipo. Orden coincidencia, anio, titulo
+GET /api/trabajos, GET /api/trabajos/{id} - Resultados y detalle. Filtros q, autor, anio, carrera, area, tipo. Orden coincidencia, anio, titulo, estrellas
 GET /api/trabajos/{id}/pdf?operacion=lectura o descarga - PDF con permiso por operación
 GET /api/favoritos, PUT /api/favoritos/{id}, DELETE /api/favoritos/{id} - Favoritos de la sesión
 GET /api/mis-envios, POST /api/mis-envios - Sesion Lector o Estudiante; requiere carrera guardada en el perfil. Consulta sus propias fichas. El alta recibe el PDF y los campos titulo, anio, resumen, id_carrera, id_tipo_trabajo, area_ids como FormData. La cuenta autenticada queda como autora y la ficha comienza En revisión
@@ -98,18 +98,29 @@ GET /api/trabajos/{id}/archivos/{archivo} - Descarga sujeta a los mismos permiso
 
 Los valores de tipo son carreras, departamentos, areas-tematicas y planes. Los planes requieren id_carrera, nombre y activa, con url HTTPS opcional.
 
-Valoraciones
+Estrellas y favoritos
 
-Aplicá sql-init/10_valoraciones.sql para una base existente.
+Aplicar sql-init/14_estrellas_por_favoritos.sql despues de las migraciones anteriores.
+Retira las valoraciones de 1 a 5 sin convertirlas en favoritos. Los favoritos existentes
+conservan su estado. En una instalacion nueva ejecutar los SQL 01 a 14 en orden.
 
-Método y ruta - Comportamiento
-GET /api/trabajos?orden=valoracion - Ordena por promedio descendente, cantidad de votos y título. Conserva la respuesta de listado existente.
-GET /api/trabajos/{id} - Incluye valoracion_media y valoraciones_total.
-GET /api/trabajos/{id}/valoracion - Sesión requerida. Devuelve estrellas de la cuenta actual o null.
-PUT /api/trabajos/{id}/valoracion - Sesión requerida. JSON estrellas entre 1 y 5. Crea o actualiza el único voto de esa cuenta en un trabajo publicado.
-DELETE /api/trabajos/{id}/valoracion - Sesión requerida. Quita el voto propio.
+Metodo y ruta - Comportamiento
+GET /api/trabajos?orden=estrellas - Ordena por cantidad de favoritos activos, titulo e ID.
+GET /api/trabajos y GET /api/trabajos/{id} - Incluyen estrellas, un numero entero que empieza en cero.
+GET /api/favoritos - Sesion requerida. Lista los favoritos activos y publicados elegibles de la cuenta.
+PUT /api/favoritos/{id} - Sesion requerida, sin cuerpo. Marca o reactiva el favorito propio.
+DELETE /api/favoritos/{id} - Sesion requerida, sin cuerpo. Desactiva el favorito propio sin borrar el registro.
 
-El catálogo pagina la presentación en grupos de hasta 12, manteniendo los filtros y la respuesta del contrato de consulta.
+Marcar dos veces no suma dos estrellas. Cada usuario aporta como maximo una por trabajo.
+Al quitar el favorito deja de sumar y desaparece de la lista personal. Reactivarlo reutiliza
+la misma pareja. Tras marcar o quitar, consultar el detalle para refrescar estrellas.
+Las operaciones PUT y DELETE mantienen la respuesta {"ok": true}.
+
+Las rutas /api/trabajos/{id}/valoracion y los campos valoracion_media y valoraciones_total
+se retiraron. Cambiar el selector de orden a estrellas, quitar la puntuacion de 1 a 5 y
+usar los endpoints de favoritos para el boton estrella. No se requiere otra tabla.
+
+El catalogo mantiene los filtros existentes. La interfaz puede paginar su presentacion.
 
 Tipos de trabajo
 

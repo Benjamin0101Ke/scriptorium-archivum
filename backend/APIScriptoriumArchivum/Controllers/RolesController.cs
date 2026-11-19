@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using APIScriptoriumArchivum.Datos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +8,7 @@ namespace APIScriptoriumArchivum.Controllers;
 [ApiController]
 [Authorize(Roles = "Administrador")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-[Route("api/admin/roles")]
+[Route("api/admin/[controller]")]
 public sealed class RolesController(GestionRoles gestion, Complementos complementos, Recuperacion recuperacion, AsignacionesDocentes asignaciones, RegistroCorreos registroCorreos) : ControllerBase
 {
     [HttpGet]

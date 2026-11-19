@@ -36,6 +36,10 @@
     {
       "key": "correo_id",
       "value": ""
+    },
+    {
+      "key": "trabajo_id",
+      "value": ""
     }
   ],
   "item": [
@@ -185,6 +189,52 @@
             "header": [],
             "url": "{{base_url}}/api/admin/roles/correos/recuperaciones",
             "description": "Requiere sesion de Administrador. Reenviar solo acepta estado Fallido y responde 202; otros estados responden 409"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Estrellas y favoritos",
+      "description": "Indicar trabajo_id de una ficha publicada. PUT, DELETE y la lista personal usan la cookie de la sesion; no llevan cuerpo",
+      "item": [
+        {
+          "name": "Detalle y cantidad de estrellas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/trabajos/{{trabajo_id}}"
+          }
+        },
+        {
+          "name": "Ordenar por estrellas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/trabajos?orden=estrellas"
+          }
+        },
+        {
+          "name": "Lista personal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/favoritos"
+          }
+        },
+        {
+          "name": "Marcar o reactivar",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{base_url}}/api/favoritos/{{trabajo_id}}"
+          }
+        },
+        {
+          "name": "Quitar favorito",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/api/favoritos/{{trabajo_id}}"
           }
         }
       ]

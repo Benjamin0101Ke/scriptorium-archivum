@@ -14,7 +14,6 @@ export async function handleLibrary(
   { works, logs }: DemoData,
   user: User,
   save: () => void,
-  expectedExemplar: string | null = null,
 ) {
   if (user.rol !== 'Biblioteca')
     error('Seleccioná la cuenta de Biblioteca de demostración.', {}, 403);
@@ -88,8 +87,10 @@ export async function handleLibrary(
   const [, , , id, action] = p.split('/');
   const t = works.find((item) => item.id === id);
   if (!t) error('Ficha no disponible.');
-  if (!action && method === 'GET') return { ...copy(t), controles: checks(t) };
-  if (!action && method === 'PUT') {
+if (!action && method === 'GET') {
+  console.log('ESTADO DE FICHA:', JSON.stringify(t.estado));
+  return { ...copy(t), controles: checks(t) };
+}  if (!action && method === 'PUT') {
     const fields = validateMetadata(body);
     if (fields.length) error('Revisá estos campos: ' + fields.join(', '), { fields });
     const { confirmarDuplicado, ...metadata } = body;
@@ -100,8 +101,6 @@ export async function handleLibrary(
   }
   if (action === 'pdf' || action === 'referencia') {
     if (action === 'pdf' && method === 'GET') {
-      if (expectedExemplar !== null && expectedExemplar !== t.ejemplar_actual)
-        error('El ejemplar cambió. Recargá la ficha.', {}, 404);
       if (!t.ejemplar?.nombre_original) error('Esta ficha no tiene un PDF asociado.');
       return (await readPdf(t.ejemplar_actual)) ?? error('El PDF no está disponible en este navegador.');
     }
@@ -121,7 +120,6 @@ export async function handleLibrary(
       autorizacion: null,
       decision: null,
       estado: 'En revision',
-      deposito_verificado: false,
       ficha_publica: false,
       lectura: false,
       descarga: false,
@@ -129,14 +127,12 @@ export async function handleLibrary(
     log(t, 'EJEMPLAR_SELECCIONADO_DEMO');
     await persistPdf(id, f, save);
     if (previous) await deletePdf(previous).catch(() => undefined);
-    return { ejemplar_id: id };
+    return copy(t);
   }
   if (action === 'controles') {
     if (!t.ejemplar || body.ejemplar_id !== t.ejemplar_actual)
-      error('El ejemplar cambió. Recargá la ficha.', {}, 409);
-    const { verificar, conformidad_referencia, ejemplar_id, registrar_decision, decision, autorizacion, ...b } = copy(body);
-    if (registrar_decision && (!decision?.motivo?.trim() || !['Favorable', 'Desfavorable'].includes(decision.resultado)))
-      error('Indicá el resultado y el motivo de la decisión de Biblioteca.');
+      error('El ejemplar cambió. Recargá la ficha.');
+    const { verificar, conformidad_referencia, ejemplar_id, ...b } = copy(body);
     if (verificar) {
       if (!conformidad_referencia?.trim()) error('Falta la referencia de conformidad.');
       Object.assign(t.ejemplar, {
@@ -145,11 +141,7 @@ export async function handleLibrary(
         fecha_verificacion: new Date().toISOString(),
       });
     }
-    Object.assign(t, b);
-    if (autorizacion) t.autorizacion = autorizacion;
-    if (registrar_decision) {
-      t.decision = { ...decision, fecha: new Date().toISOString(), responsable: user.nombre };
-    }
+    Object.assign(t, { ...b, autorizacion: b.autorizacion ?? null, decision: b.decision ?? null });
     if (t.estado === 'Publicado' && !isPublic(t)) t.estado = 'En revision';
     log(t, 'CONTROLES_REGISTRADOS_DEMO');
     save();

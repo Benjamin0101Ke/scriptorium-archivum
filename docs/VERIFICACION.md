@@ -21,14 +21,3 @@ Capturas de la misma ficha ficticia en [pantalla de 390 px](evidencia/ficha-loca
 - Pruebas de aceptación en los navegadores y versiones previstos, rendimiento con carga y prueba de tareas con estudiantes.
 
 La bitácora y la matriz de cobertura pueden vincular estas capturas como evidencia de la demostración local.
-
-## Legibilidad en modo claro y tamaños para celular
-
-- Tarjetas con fondo blanco y textos más oscuros. Los seis colores de estrellas superan una relación de contraste de 4.5:1 sobre el fondo de la tarjeta; la paleta de estrellas del modo oscuro se conserva.
-- Formularios en una columna en celulares, campos de 16 px para evitar el aumento automático de iOS, controles de al menos 44 px y navegación de cuenta adaptada al ancho disponible.
-- Las tablas administrativas conservan su desplazamiento dentro de su contenedor; no ensanchan toda la página.
-- Se revisaron 36 combinaciones de página y anchura en Chromium: 320, 390, 768 y 1024 px, sin desbordamiento horizontal de la página ni errores de JavaScript.
-- Páginas revisadas: catálogo, ingreso, recuperación, ficha pública, Mis envíos, perfil, roles, catálogos administrativos y Biblioteca con un ejemplar seleccionado. Las vistas protegidas se probaron con respuestas de API simuladas para revisar el diseño sin generar correos ni modificar PostgreSQL.
-- La compilación de producción de Angular finalizó correctamente. Queda la comprobación de uso en teléfonos físicos, especialmente del visor PDF nativo que proporciona cada navegador.
-
-Capturas: [catálogo claro](evidencia/catalogo-claro-mejorado.png), [catálogo en celular](evidencia/catalogo-movil.png) y [formulario de envío en celular](evidencia/envios-movil.png).

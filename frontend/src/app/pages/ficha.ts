@@ -1,18 +1,15 @@
 import {Component,DestroyRef,inject,signal} from '@angular/core';
 import {ActivatedRoute,RouterLink} from '@angular/router';import {Api,Trabajo} from '../core/api';
 import {DomSanitizer,SafeResourceUrl} from '@angular/platform-browser';
-import {ArchivosTrabajo} from '../shared/archivos-trabajo';
-import {ValoracionTrabajo} from '../shared/valoracion-trabajo';
-@Component({selector:'app-ficha',imports:[RouterLink,ArchivosTrabajo,ValoracionTrabajo],templateUrl:'./ficha.html'})
+@Component({selector:'app-ficha',imports:[RouterLink],templateUrl:'./ficha.html'})
 export class Ficha {
  api=inject(Api);route=inject(ActivatedRoute);t=signal<Trabajo|null>(null);error=signal('');message=signal('');
  private sanitizer=inject(DomSanitizer);
- private destroyRef=inject(DestroyRef);
  private objectUrl:string|null=null;
  preview=signal<SafeResourceUrl|null>(null);
  pdfBusy=signal(false);
  constructor(){
-  this.destroyRef.onDestroy(()=>this.closePreview());
+  inject(DestroyRef).onDestroy(()=>this.closePreview());
   this.route.paramMap.subscribe(async params=>{
    this.closePreview();
    this.error.set('');
@@ -36,8 +33,8 @@ export class Ficha {
   this.message.set('');
   this.pdfBusy.set(true);
   try{
-   const pdf=await this.api.pdf('/trabajos/'+work.id+'/pdf?operacion='+operation);
-   if(this.destroyRef.destroyed||this.t()?.id!==work.id)return;
+   const pdf=await this.api.request<Blob>('/trabajos/'+work.id+'/pdf?operacion='+operation);
+   if(this.t()?.id!==work.id)return;
    const url=URL.createObjectURL(pdf);
    if(operation==='lectura'){
     this.closePreview();

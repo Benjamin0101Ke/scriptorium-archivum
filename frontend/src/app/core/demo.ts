@@ -18,7 +18,7 @@ export function demoRequest(path: string, method: string, body: any): Promise<an
     if (url.pathname === '/mis-envios')
       return handleSubmissions(method, body, data, requireUser(user), save);
     if (url.pathname.startsWith('/admin/'))
-      return handleLibrary(url.pathname, method, body, data, requireUser(user), save, url.searchParams.get('ejemplar'));
+      return handleLibrary(url.pathname, method, body, data, requireUser(user), save);
     return handleCatalog(url, method, data, user, save);
   });
 }

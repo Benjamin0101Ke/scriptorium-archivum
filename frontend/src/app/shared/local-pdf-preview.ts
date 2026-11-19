@@ -49,7 +49,7 @@ export class LocalPdfPreview {
     this.error.set('');
     this.busy.set(true);
     try {
-      const file = await this.api.pdf(path);
+      const file = await this.api.request<Blob>(path);
       if (this.destroyRef.destroyed || path !== this.path()) return;
       this.close();
       const url = URL.createObjectURL(file);

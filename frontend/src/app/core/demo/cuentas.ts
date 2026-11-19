@@ -1,4 +1,4 @@
-import type { Avatar, Tema, User } from '../api';
+import type { User } from '../api';
 import { error, LocalAccount } from './datos';
 import { demoSession, setDemoSession } from './almacenamiento';
 
@@ -32,8 +32,8 @@ async function verifier(password: string, salt: string): Promise<string> {
 export function currentUser(accounts: LocalAccount[]): User | undefined {
   const id = demoSession();
   return (
-    accounts.find((account) => account.user.id === id)?.user ??
-    builtinUsers.find((user) => user.id === id)
+    builtinUsers.find((user) => user.id === id) ??
+    accounts.find((account) => account.user.id === id)?.user
   );
 }
 
@@ -44,7 +44,7 @@ export function requireUser(user: User | undefined): User {
 export async function handleAccount(
   path: string,
   accounts: LocalAccount[],
-  body: { nombres?: string; apellidos?: string; nombre?: string; correo: string; password: string; avatar?: Avatar; tema?: Tema; actual?: string; nueva?: string },
+  body: { nombre: string; correo: string; password: string },
   save: () => void,
 ) {
   if (path === '/auth/me') return requireUser(currentUser(accounts));
@@ -54,15 +54,15 @@ export async function handleAccount(
       (person) => person.correo === correo && body.password === 'demo1234',
     );
     const local = accounts.find((account) => account.user.correo === correo);
-    const authenticated = local
-      ? (await verifier(body.password, local.salt)) === local.verifier ? local.user : null
-      : builtin;
+    const authenticated =
+      builtin ??
+      (local && (await verifier(body.password, local.salt)) === local.verifier ? local.user : null);
     if (!authenticated) error('El correo o la contraseña no coinciden.');
     setDemoSession(authenticated.id);
     return authenticated;
   }
   if (path === '/auth/registro') {
-    const nombre = body.nombre?.trim() || [body.nombres?.trim(), body.apellidos?.trim()].filter(Boolean).join(' '),
+    const nombre = body.nombre.trim(),
       correo = body.correo.trim().toLowerCase();
     if (!nombre || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo) || body.password.length < 8)
       error('Ingresá tu nombre, un correo válido y una contraseña de al menos 8 caracteres.');
@@ -77,36 +77,6 @@ export async function handleAccount(
     save();
     setDemoSession(account.id);
     return account;
-  }
-  if (path === '/auth/perfil' || path === '/auth/contrasena') {
-    const user = requireUser(currentUser(accounts));
-    const local = accounts.find(item => item.user.id === user.id);
-    const salt = crypto.randomUUID();
-    if (path === '/auth/perfil') {
-      if (body.nombre !== undefined && (!body.nombre.trim() || body.nombre.trim().length > 120))
-        error('Ingresá un nombre visible de hasta 120 caracteres.');
-      if (body.avatar && !['turquesa', 'violeta'].includes(body.avatar) ||
-          body.tema && !['sistema', 'claro', 'oscuro'].includes(body.tema))
-        error('Elegí un avatar y un tema disponibles.');
-      const updated = {
-        ...user, nombre: body.nombre?.trim() ?? user.nombre,
-        avatar: body.avatar ?? user.avatar, tema: body.tema ?? user.tema,
-      };
-      if (local) local.user = updated;
-      else accounts.push({ user: updated, salt, verifier: await verifier('demo1234', salt) });
-      save();
-      return updated;
-    }
-    const actual = body.actual ?? '';
-    const verified = local ? await verifier(actual, local.salt) === local.verifier : actual === 'demo1234';
-    if (!verified) error('La contraseña actual es incorrecta.');
-    if (!body.nueva || body.nueva.length < 8 || body.nueva.length > 512 || body.nueva === actual)
-      error('Elegí una contraseña distinta de entre 8 y 512 caracteres.');
-    const replacement = { user, salt, verifier: await verifier(body.nueva, salt) };
-    if (local) Object.assign(local, replacement);
-    else accounts.push(replacement);
-    save();
-    return { ok: true };
   }
   if (path === '/auth/logout') {
     setDemoSession(null);

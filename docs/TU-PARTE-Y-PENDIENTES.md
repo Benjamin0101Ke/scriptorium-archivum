@@ -1,7 +1,5 @@
 # Alcance de la entrega de Benjamín Daniel
 
-Este registro describe la entrega inicial del frontend. La configuración integrada y el estado de las funciones actuales se explican en el [README del repositorio](../README.md) y la [guía del backend](../backend/README.md).
-
 ## Archivos propios
 
 | Grupo de archivos | Trabajo de Benjamín | Continuación coordinada |

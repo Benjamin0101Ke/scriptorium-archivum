@@ -1,5 +1,4 @@
 import { validateMetadata } from '../metadata';
-import { hoyElSalvador } from '../fechas';
 import { seed } from './datos';
 
 export function checks(t: any) {
@@ -11,7 +10,7 @@ export function checks(t: any) {
     a?.referencia?.trim() &&
     a?.otorgantes?.trim() &&
     a?.fecha &&
-    (!a.vence || a.vence >= hoyElSalvador());
+    (!a.vence || a.vence >= new Date().toISOString().slice(0, 10));
   return [
     [validateMetadata(t).length === 0, '01 · Siete metadatos completos'],
     [t.deposito_verificado && t.deposito_referencia, '02 · Depósito UES verificado'],

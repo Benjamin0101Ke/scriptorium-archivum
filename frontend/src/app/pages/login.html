@@ -1,6 +1,6 @@
 <section class="section login-layout">
   <div>
-    <h1>{{ registering() ? 'Creá tu cuenta' : 'Ingresá al repositorio' }}</h1>
+    <h1>{{ registering() ? 'Creá tu cuenta lectora' : 'Ingresá al repositorio' }}</h1>
     @if (forSubmissions()) {
       <p>Ingresá con tu cuenta lectora o creá una para enviar tu trabajo a Biblioteca.</p>
     } @else {
@@ -11,26 +11,18 @@
     }
   </div>
   <form class="panel" (ngSubmit)="submit()" [attr.aria-busy]="busy()">
-    <h2>{{ registering() ? 'Crear cuenta' : 'Iniciar sesión' }}</h2>
+    <h2>{{ registering() ? 'Crear cuenta local' : 'Iniciar sesión' }}</h2>
     @if (registering()) {
-      @if (api.demo) {
-        <p class="notice">Esta cuenta de demostración se guarda en este navegador.</p>
-      }
+      <p class="notice">
+        Tu cuenta lectora se guarda en este navegador. Usá una contraseña de prueba.
+      </p>
       <label
-        >Nombres<input
+        >Nombre<input
           name="nombre"
-          autocomplete="given-name"
-          maxlength="100"
+          autocomplete="name"
+          maxlength="120"
           required
           [(ngModel)]="nombre"
-      /></label>
-      <label
-        >Apellidos<input
-          name="apellidos"
-          autocomplete="family-name"
-          maxlength="100"
-          required
-          [(ngModel)]="apellidos"
       /></label>
     } @else if (api.demo) {
       <div class="notice">
@@ -46,69 +38,65 @@
         name="correo"
         type="email"
         autocomplete="username"
-        maxlength="150"
+        maxlength="254"
         required
         [(ngModel)]="correo"
     /></label>
 
-    <label class="password-label">
-      Contraseña
+<label class="password-label">
+  Contraseña
 
-      <div class="password-container">
-        <input
-          name="password"
-          [type]="showPassword() ? 'text' : 'password'"
-          [attr.autocomplete]="registering() ? 'new-password' : 'current-password'"
-          [attr.minlength]="registering() ? 8 : null"
-          required
-          [(ngModel)]="password"
-        />
+  <div class="password-container">
+    <input
+      name="password"
+      [type]="showPassword() ? 'text' : 'password'"
+      [attr.autocomplete]="registering() ? 'new-password' : 'current-password'"
+      [attr.minlength]="registering() ? 8 : null"
+      required
+      [(ngModel)]="password"
+    />
 
-        <button
-          type="button"
-          class="password-toggle"
-          (click)="togglePassword()"
-          [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            @if (showPassword()) {
-              <path d="M3 3l18 18" />
-              <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
-              <path d="M9.9 5.2A11 11 0 0 1 12 5c5 0 9 5 10 7a13 13 0 0 1-3 3.7" />
-              <path d="M6.2 6.2C3.8 7.7 2 10 2 12c1 2 5 7 10 7a10 10 0 0 0 4-.8" />
-            } @else {
-              <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" />
-              <circle cx="12" cy="12" r="3" />
-            }
-          </svg>
-        </button>
-      </div>
-    </label>
+    <button
+      type="button"
+      class="password-toggle"
+      (click)="togglePassword()"
+      [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        @if (showPassword()) {
+          <path d="M3 3l18 18" />
+          <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+          <path d="M9.9 5.2A11 11 0 0 1 12 5c5 0 9 5 10 7a13 13 0 0 1-3 3.7" />
+          <path d="M6.2 6.2C3.8 7.7 2 10 2 12c1 2 5 7 10 7a10 10 0 0 0 4-.8" />
+        } @else {
+          <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" />
+          <circle cx="12" cy="12" r="3" />
+        }
+      </svg>
+    </button>
+  </div>
+</label>
 
     @if (error()) {
       <p class="notice error" role="alert">{{ error() }}</p>
     }
-    @if (!api.demo) {
-      <app-carrera-selector [(seleccion)]="carrera" [(plan)]="plan" />
-    }
     <button [disabled]="busy()">
       {{ busy() ? 'Procesando…' : registering() ? 'Crear cuenta' : 'Ingresar' }}
     </button>
-    @if (!registering() && !api.demo) {
-      <p><a routerLink="/recuperar-contrasena">Olvidé mi contraseña</a></p>
+    @if (api.demo) {
+      <button type="button" class="text-button" [disabled]="busy()" (click)="toggleRegistration()">
+        {{ registering() ? 'Volver a iniciar sesión' : 'Crear cuenta lectora' }}
+      </button>
     }
-    <button type="button" class="text-button" [disabled]="busy()" (click)="toggleRegistration()">
-      {{ registering() ? 'Volver a iniciar sesión' : 'Crear cuenta' }}
-    </button>
   </form>
 </section>

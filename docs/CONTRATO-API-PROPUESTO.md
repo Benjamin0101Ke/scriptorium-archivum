@@ -1,7 +1,5 @@
 # Contrato propuesto por la interfaz
 
-Este documento conserva la propuesta inicial. Para integrar la versión actual, consultá el [contrato del backend](../backend/integracion/INTEGRACION.md).
-
 Este documento describe **lo que actualmente espera el frontend**. No es documentación de una API ya entregada o aprobada por Roberto.
 
 ## Reglas comunes

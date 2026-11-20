@@ -1,10 +1,10 @@
-using UglyToad.PdfPig;
+﻿using UglyToad.PdfPig;
 
 namespace APIScriptoriumArchivum.Datos
 {
     public class ArchivoPdf
     {
-        private readonly string carpeta;
+        private string carpeta;
 
         public ArchivoPdf(IConfiguration configuracion, IWebHostEnvironment entorno)
         {

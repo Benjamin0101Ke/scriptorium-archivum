@@ -48,7 +48,7 @@ public sealed class AsignacionesDocentes(NpgsqlDataSource db, Avisos avisos)
         await using var c = await db.OpenConnectionAsync(ct);
         return await Comandos.FilasJson(c, """
             SELECT jsonb_build_object('id',m.id_correo::text,'destino',m.destino,'asunto',m.asunto,'estado',m.estado,
-                'intentos',m.intentos,'fecha',m.creado_en,'enviado_en',m.enviado_en,'error_tipo',m.error_tipo,
+                'intentos',m.intentos,'ciclo',m.ciclo,'proximo_intento',m.proximo_intento,'fecha',m.creado_en,'enviado_en',m.enviado_en,'error_tipo',m.error_tipo,
                 'evento',b.operacion)::text
             FROM public.correos_eventos m JOIN public.bitacora b USING(id_evento)
             ORDER BY m.id_correo DESC LIMIT 100

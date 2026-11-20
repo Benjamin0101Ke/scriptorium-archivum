@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.DataProtection;
@@ -12,7 +12,7 @@ public sealed class Recuperacion(
     IPasswordHasher<Cuenta> contrasenas, CorreoRecuperacion correo)
 {
     private const int Minutos = 10;
-    private readonly IDataProtector protector = proteccion.CreateProtector("Scriptorium.Recuperacion.v1");
+    private IDataProtector protector = proteccion.CreateProtector("Scriptorium.Recuperacion.v1");
 
     public async Task Solicitar(string direccion, CancellationToken ct)
     {
@@ -35,7 +35,10 @@ public sealed class Recuperacion(
               AND (recuperaciones_contrasena.inicio_ventana <= now() - interval '1 hour'
                    OR recuperaciones_contrasena.envios_ventana < 5)
             """, ("id", cuenta.Id), ("codigo", protegido), ("minutos", Minutos));
-        if (await comando.ExecuteNonQueryAsync(ct) == 1) correo.Encolar(cuenta.Correo, codigo, Minutos);
+        if (await comando.ExecuteNonQueryAsync(ct) == 1)
+        {
+            correo.Encolar(cuenta.Id, cuenta.Correo, codigo, Minutos);
+        }
     }
 
     public async Task<bool> Confirmar(string direccion, string codigo, string nueva, CancellationToken ct)

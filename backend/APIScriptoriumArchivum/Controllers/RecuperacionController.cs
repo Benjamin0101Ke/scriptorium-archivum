@@ -1,4 +1,4 @@
-using System.Net.Mail;
+﻿using System.Net.Mail;
 using APIScriptoriumArchivum.Datos;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -8,7 +8,7 @@ namespace APIScriptoriumArchivum.Controllers;
 [ApiController]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 [EnableRateLimiting("recuperacion")]
-[Route("api/auth/recuperacion")]
+[Route("api/auth/[controller]")]
 public sealed class RecuperacionController(Recuperacion recuperacion) : ControllerBase
 {
     [HttpPost("solicitar")]

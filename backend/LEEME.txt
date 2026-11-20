@@ -1,0 +1,133 @@
+INSTRUCCIONES DEL BACKEND
+
+Les dejo los pasos para iniciar la API y consumirla desde su parte del proyecto.
+Recomiendo hacer primero la prueba de /api/carreras en Postman y despues conectar
+la interfaz. No necesitan crear los controllers nuevamente.
+
+1. ARCHIVOS QUE SE UTILIZAN
+
+APIScriptoriumArchivum contiene el proyecto de C#
+compose.yaml inicia PostgreSQL, la API, pgAdmin y Mailpit
+sql-init contiene los scripts 01 a 14
+storage/trabajos guarda los PDF y archivos complementarios
+pruebas contiene un PDF ficticio, la coleccion de Postman y las pruebas
+integracion/CONSUMIR-API.txt explica las rutas y el uso de la sesion
+documentacion conserva los diagramas y el diccionario
+
+Los PDF de documentacion representan el modelo actual de 31 tablas, 246 campos
+y 60 claves foraneas. Para crear la base completa se utilizan los SQL 01 a 14.
+El script 10 se conserva como migracion historica; el 14 retira valoraciones.
+Las estrellas se cuentan exclusivamente desde los favoritos activos.
+
+2. INICIAR EN UNA INSTALACION NUEVA
+
+Abrir Docker Desktop y esperar que inicie. Abrir PowerShell 7 en backend.
+Copiar la plantilla solo si no existe un .env propio:
+
+if (!(Test-Path -LiteralPath '.env')) {
+    Copy-Item -LiteralPath '.env.example' -Destination '.env'
+}
+notepad .env
+
+Completar POSTGRES_PASSWORD y PGADMIN_DEFAULT_PASSWORD con las claves locales.
+API_PROJECT_PATH se deja vacio para compilar APIScriptoriumArchivum de esta carpeta.
+La plantilla no incluye credenciales privadas. El .env no se sube a GitHub.
+
+docker compose -p scriptorium-archivum up -d --build
+docker compose -p scriptorium-archivum ps
+docker compose -p scriptorium-archivum exec -T postgres pg_isready -h 127.0.0.1 -U postgres -d scriptorium_archivum
+
+Repetir pg_isready hasta que indique que acepta conexiones. Si hay un error de
+inicializacion, revisar el primer error antes de continuar.
+
+Direcciones de ejemplo, si no se cambiaron los puertos en .env:
+API: http://127.0.0.1:3000
+PostgreSQL desde Windows: 127.0.0.1:5433
+pgAdmin: http://127.0.0.1:5052
+Mailpit: http://127.0.0.1:8025
+
+Para registrar PostgreSQL desde pgAdmin:
+Host: postgres
+Puerto: 5432
+Base: scriptorium_archivum
+Usuario: postgres
+Contrasena: POSTGRES_PASSWORD del .env local
+
+3. CARGAR DATOS FICTICIOS
+
+Hacerlo una sola vez y unicamente en una base de practica sin usuarios ni fichas:
+
+$OutputEncoding = [Text.UTF8Encoding]::new($false)
+Get-Content -LiteralPath './datos-prueba.sql' -Raw -Encoding utf8 |
+    docker compose -p scriptorium-archivum exec -T postgres psql -X -v ON_ERROR_STOP=1 -U postgres -d scriptorium_archivum
+if ($LASTEXITCODE -ne 0) {
+    throw 'Revisar el error antes de continuar'
+}
+
+Consultar http://127.0.0.1:3000/api/carreras. Un 404 en la raiz / no significa
+que falle la API. El catalogo de trabajos queda vacio hasta publicar una ficha.
+Las cuentas ficticias se explican en pruebas/PRUEBA-GUIADA.txt.
+
+4. UTILIZAR UNA BASE QUE YA TIENE DATOS
+
+Usar el mismo nombre de proyecto Docker, volumen y carpeta de archivos.
+Recomiendo conservar un respaldo privado y detener las escrituras antes.
+No usar down -v y no repetir datos-prueba.sql en una base utilizada.
+
+Docker ejecuta sql-init automaticamente solo cuando crea un volumen vacio.
+En una base existente se aplican las migraciones pendientes con psql, en orden.
+Si estan aplicadas 01 a 03, faltan 04 a 14. Si tiene hasta 12, faltan 13 y 14.
+Si tiene hasta 13, falta solo 14. No se borran los favoritos existentes.
+La migracion 14 elimina las puntuaciones antiguas de 1 a 5, sin convertirlas.
+Detener la API antes de aplicarla y desplegar la API corregida antes de reiniciarla.
+No ejecutar otra vez el script 02 sobre las tablas existentes.
+
+Ejemplo para aplicar solo 14 desde backend (si ya tiene 01 a 13):
+
+$OutputEncoding = [Text.UTF8Encoding]::new($false)
+Get-Content -LiteralPath './sql-init/14_estrellas_por_favoritos.sql' -Raw -Encoding utf8 |
+    docker compose -p scriptorium-archivum exec -T postgres psql -X -v ON_ERROR_STOP=1 -U postgres -d scriptorium_archivum
+if ($LASTEXITCODE -ne 0) {
+    throw 'No continuar hasta revisar el error'
+}
+docker compose -p scriptorium-archivum up -d --build api mailpit
+
+Los scripts no forman una unica transaccion. Algunos tambien cargan catalogos.
+Si algo falla, revisar lo aplicado antes de repetir. Algunos incluyen \connect,
+que es un comando de psql; no se pega tal cual en Query Tool de pgAdmin.
+
+5. CORREOS Y REENVIO
+
+Mailpit sirve para las pruebas locales. Para correo externo se configuran
+SMTP_HOST, SMTP_PORT, SMTP_TLS, SMTP_FROM, SMTP_USER y SMTP_PASSWORD en el .env.
+Con usuario SMTP se requiere TLS. Consultar los requisitos del proveedor.
+SMTP_AVISOS indica el buzon para registros y accesos; vacio usa el remitente.
+SMTP_AVISOS_ACCESO permite activar o desactivar los avisos de inicio de sesion.
+
+Los avisos quedan en PostgreSQL y tienen hasta cinco intentos por ciclo.
+Las esperas son de 1, 2, 4 y 8 minutos. Administracion puede reenviar un aviso
+Fallido y consultar todos sus intentos, conservando los ciclos anteriores.
+La respuesta 202 indica que quedo en cola, no que ya se entrego.
+
+Los codigos de recuperacion duran diez minutos y se usan una sola vez.
+Su correo tiene hasta cinco intentos, con esperas de 2, 4, 8 y 16 segundos.
+Esta cola es temporal: un reinicio puede perder un pendiente. En ese caso
+se solicita otro codigo cuando lo permitan los limites de reenvio.
+El historial tecnico nunca guarda el codigo ni la contrasena.
+
+Enviado significa que SMTP acepto el mensaje, no que se haya leido.
+Si SMTP acepta y el proceso se interrumpe antes de confirmar, puede haber
+un duplicado al reintentar. No se promete entrega exactamente una vez.
+
+6. ARCHIVOS AUXILIARES NECESARIOS
+
+.gitignore evita subir .env, PDF reales, compilaciones y respaldos
+.dockerignore evita copiar archivos innecesarios al construir la imagen
+.env.example es la plantilla publica; .env es la configuracion privada
+
+No necesitan escribir esos archivos de nuevo: se utilizan como estan.
+Las instrucciones para consumir la API estan en integracion/CONSUMIR-API.txt.
+Para detener y retomar sin borrar datos:
+
+docker compose -p scriptorium-archivum stop
+docker compose -p scriptorium-archivum start

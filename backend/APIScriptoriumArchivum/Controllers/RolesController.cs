@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using APIScriptoriumArchivum.Datos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,8 +8,8 @@ namespace APIScriptoriumArchivum.Controllers;
 [ApiController]
 [Authorize(Roles = "Administrador")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-[Route("api/admin/roles")]
-public sealed class RolesController(GestionRoles gestion, Complementos complementos, Recuperacion recuperacion, AsignacionesDocentes asignaciones) : ControllerBase
+[Route("api/admin/[controller]")]
+public sealed class RolesController(GestionRoles gestion, Complementos complementos, Recuperacion recuperacion, AsignacionesDocentes asignaciones, RegistroCorreos registroCorreos) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> Listar([FromQuery] string? q, [FromQuery] string? rol, [FromQuery] string? estado, CancellationToken ct)
@@ -53,6 +53,26 @@ public sealed class RolesController(GestionRoles gestion, Complementos complemen
         int actor = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         await gestion.Cambiar(actor, id, datos.Rol?.Trim() ?? "", ct);
         return Ok(new { ok = true });
+    }
+
+    [HttpPost("correos/{correo:long}/reenviar")]
+    public async Task<IActionResult> ReenviarCorreo(long correo, CancellationToken ct)
+    {
+        int actor = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        await registroCorreos.Reenviar(correo, actor, ct);
+        return Accepted(new { mensaje = "El aviso quedo pendiente de reenvio" });
+    }
+
+    [HttpGet("correos/{correo:long}/intentos")]
+    public async Task<IActionResult> IntentosCorreo(long correo, CancellationToken ct)
+    {
+        return Ok(await registroCorreos.Intentos(correo, ct));
+    }
+
+    [HttpGet("correos/recuperaciones")]
+    public async Task<IActionResult> CorreosRecuperacion(CancellationToken ct)
+    {
+        return Ok(await registroCorreos.Recuperaciones(ct));
     }
 
     public record CambioRol(string? Rol);

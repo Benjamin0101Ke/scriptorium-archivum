@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using APIScriptoriumArchivum.Datos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,13 +8,13 @@ namespace APIScriptoriumArchivum.Controllers;
 
 [ApiController]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-[Route("api/trabajos/{id:int}/archivos")]
+[Route("api/trabajos/{id:int}/[controller]")]
 public sealed class ArchivosController(NpgsqlDataSource db, ConsultaPublica consulta, Avisos avisos,
     IConfiguration configuracion, IWebHostEnvironment entorno) : ControllerBase
 {
-    private readonly string carpeta = Path.GetFullPath(configuracion["Storage:Ruta"] ??
+    private string carpeta = Path.GetFullPath(configuracion["Storage:Ruta"] ??
         Path.Combine(entorno.ContentRootPath, "storage", "trabajos"));
-    private static readonly HashSet<string> Extensiones = new(StringComparer.OrdinalIgnoreCase)
+    private static HashSet<string> Extensiones = new(StringComparer.OrdinalIgnoreCase)
     {
         ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip", ".txt", ".csv", ".md",
         ".js", ".ts", ".html", ".css", ".json", ".py", ".java", ".cs", ".sql", ".cpp", ".c", ".h"

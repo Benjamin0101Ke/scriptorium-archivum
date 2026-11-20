@@ -1,14 +1,14 @@
-using APIScriptoriumArchivum.Datos;
+﻿using APIScriptoriumArchivum.Datos;
 using APIScriptoriumArchivum.Dtos;
 using Microsoft.AspNetCore.Mvc;
 
 namespace APIScriptoriumArchivum.Controllers
 {
     [ApiController]
-    [Route("api/carreras")]
+    [Route("api/[controller]")]
     public class CarrerasController : ControllerBase
     {
-        private readonly Catalogos catalogos;
+        private Catalogos catalogos;
 
         public CarrerasController(Catalogos catalogos)
         {

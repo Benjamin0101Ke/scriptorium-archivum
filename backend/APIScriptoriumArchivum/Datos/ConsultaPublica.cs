@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -8,9 +8,9 @@ namespace APIScriptoriumArchivum.Datos
 {
     public class ConsultaPublica
     {
-        private readonly NpgsqlDataSource baseDeDatos;
-        private readonly ArchivoPdf archivos;
-        private static readonly StringComparer OrdenTitulo = StringComparer.Create(CultureInfo.GetCultureInfo("es-SV"), true);
+        private NpgsqlDataSource baseDeDatos;
+        private ArchivoPdf archivos;
+        private static StringComparer OrdenTitulo = StringComparer.Create(CultureInfo.GetCultureInfo("es-SV"), true);
 
         public ConsultaPublica(NpgsqlDataSource baseDeDatos, ArchivoPdf archivos)
         {
@@ -34,10 +34,9 @@ namespace APIScriptoriumArchivum.Datos
                     f.AreaNormal.Contains(p, StringComparison.Ordinal) || f.ResumenNormal.Contains(p, StringComparison.Ordinal)));
 
             IOrderedEnumerable<FichaPublica> ordenadas;
-            if (orden == "valoracion")
+            if (orden == "estrellas")
             {
-                ordenadas = filtradas.OrderByDescending(f => f.Datos["valoracion_media"]!.GetValue<decimal>())
-                    .ThenByDescending(f => f.Datos["valoraciones_total"]!.GetValue<int>())
+                ordenadas = filtradas.OrderByDescending(f => f.Datos["estrellas"]!.GetValue<long>())
                     .ThenBy(f => f.TituloNormal, OrdenTitulo);
             }
             else if (orden == "anio")
@@ -68,7 +67,7 @@ namespace APIScriptoriumArchivum.Datos
         {
             const string extras = """
                 ,'lectura', acceso.lectura, 'descarga', acceso.descarga,
-                'valoracion_media',coalesce(v.promedio,0),'valoraciones_total',v.total,
+                'estrellas',v.total,
                 'clave_pdf', re.ubicacion, 'nombre_pdf',re.nombre,
                 'enlaces',coalesce((SELECT jsonb_agg(jsonb_build_object('id',l.id_recurso::text,'url',l.ubicacion,
                     'tipo',l.tipo_formato,'descripcion',l.descripcion) ORDER BY l.id_recurso)
@@ -77,8 +76,8 @@ namespace APIScriptoriumArchivum.Datos
                 """;
             const string condiciones = """
                 LEFT JOIN LATERAL (
-                    SELECT avg(estrellas)::numeric AS promedio,count(*)::int AS total
-                    FROM public.valoraciones WHERE id_trabajo=t.id_trabajo
+                    SELECT count(*) AS total
+                    FROM public.favoritos WHERE id_trabajo=t.id_trabajo AND activo
                 ) v ON true
                 LEFT JOIN public.recursos_digitales re ON re.id_trabajo=t.id_trabajo AND re.id_entrega=t.id_entrega_final
                       AND re.clase='PDF' AND re.estado_carga='Disponible'

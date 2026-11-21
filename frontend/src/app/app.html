@@ -45,7 +45,7 @@
             <small>{{ user.correo }}</small>
           </div>
           <a routerLink="/perfil" (click)="closeMenu()">Mi perfil</a>
-          <button
+          <button [attr.data-icon]="tema.oscuro() ? 'sun' : 'moon'"
             type="button"
             (click)="toggleTheme()"
             [disabled]="cambiandoTema()"
@@ -53,11 +53,11 @@
           >
             Modo oscuro
           </button>
-          <button type="button" (click)="logout()">Cerrar sesión</button>
+          <button data-icon="log-out" type="button" (click)="logout()">Cerrar sesión</button>
         </div>
       </details>
     } @else {
-      <button
+      <button [attr.data-icon]="tema.oscuro() ? 'sun' : 'moon'"
         type="button"
         class="secondary small"
         (click)="toggleTheme()"
@@ -65,7 +65,7 @@
       >
         {{ tema.oscuro() ? 'Modo claro' : 'Modo oscuro' }}
       </button>
-      <a class="button small" routerLink="/ingresar">Iniciar sesión</a>
+      <a data-icon="log-in" class="button small" routerLink="/ingresar">Iniciar sesión</a>
     }
   </nav>
 </header>

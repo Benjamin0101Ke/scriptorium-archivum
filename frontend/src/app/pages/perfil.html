@@ -21,11 +21,11 @@
         <input #fotoInput type="file" accept="image/jpeg,image/png" [disabled]="busy()" />
       </label>
       <div class="actions">
-        <button type="button" (click)="savePhoto(fotoInput)" [disabled]="busy()">
+        <button data-icon="save" type="button" (click)="savePhoto(fotoInput)" [disabled]="busy()">
           Guardar foto
         </button>
         @if (api.user()?.foto) {
-          <button type="button" class="secondary" (click)="removePhoto()" [disabled]="busy()">
+          <button data-icon="trash" type="button" class="secondary" (click)="removePhoto()" [disabled]="busy()">
             Quitar foto
           </button>
         }
@@ -61,7 +61,7 @@
     @if (!api.demo && (api.user()?.rol === 'Lector' || api.user()?.rol === 'Estudiante')) {
       <app-carrera-selector [(seleccion)]="carrera" [(plan)]="plan" />
     }
-    <button [disabled]="busy()">Guardar perfil</button>
+    <button data-icon="save" [disabled]="busy()">Guardar perfil</button>
   </form>
   <form class="panel" (ngSubmit)="savePassword()" [attr.aria-busy]="busy()">
     <h2>Cambiar contraseña</h2>
@@ -102,6 +102,6 @@
         [(ngModel)]="confirmar"
       />
     </label>
-    <button [disabled]="busy()">Cambiar contraseña</button>
+    <button data-icon="key" [disabled]="busy()">Cambiar contraseña</button>
   </form>
 </section>

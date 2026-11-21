@@ -1,127 +1,25 @@
-.account-menu {
-  position: relative;
-  min-width: 0;
-  max-width: 100%;
-}
-
-.account-trigger {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  max-width: 100%;
-  cursor: pointer;
-  padding: 5px 9px 5px 5px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface, white);
-  color: var(--navy);
-  font-weight: 650;
-  transition:
-    background-color 180ms,
-    border-color 180ms;
-}
-
-.account-trigger:hover,
-.account-menu[open] .account-trigger {
-  background: var(--lavender);
-  border-color: var(--violet);
-}
-
-.account-trigger::-webkit-details-marker {
-  display: none;
-}
-.account-trigger::marker {
-  content: '';
-}
-.account-trigger:focus-visible {
-  outline: 3px solid var(--teal);
-  outline-offset: 3px;
-}
-.account-trigger-name {
-  max-width: 21ch;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.account-chevron {
-  width: 16px;
-  height: 16px;
-  flex: none;
-  transition: transform 180ms;
-}
-.account-menu[open] .account-chevron {
-  transform: rotate(180deg);
-}
-.account-options {
-  position: absolute;
-  z-index: 5;
-  inset: calc(100% + 8px) 0 auto auto;
-  width: min(250px, calc(100vw - 40px));
-  padding: 8px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface, white);
-  box-shadow:
-    var(--surface-shadow),
-    0 10px 24px rgb(15 25 56 / 0.12);
-  transform-origin: top right;
-  animation: account-pop 170ms ease-out;
-}
-.account-identity {
-  display: grid;
-  padding: 10px;
-  gap: 3px;
-  border-bottom: 1px solid var(--line);
-  overflow-wrap: anywhere;
-}
-.account-identity small {
-  color: var(--muted-text, #52607a);
-}
-.account-options a,
-.account-options button {
-  display: flex;
-  width: 100%;
-  justify-content: flex-start;
-  text-align: left;
-  padding: 10px;
-  margin-top: 3px;
-  border: 0;
-  border-radius: 7px;
-  color: var(--navy);
-  background: transparent;
-  font: inherit;
-}
-.account-options a:hover,
-.account-options button:hover {
-  background: var(--lavender);
-}
-.account-options button[aria-pressed='true'] {
-  color: var(--teal);
-  font-weight: 700;
-}
-@keyframes account-pop {
-  from {
-    opacity: 0;
-    transform: translateY(-5px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
+/* Menú de cuenta */
+.account-menu { position: relative; min-width: 0; max-width: 100%; margin-left: 6px; }
+.account-trigger { display: flex; align-items: center; gap: 10px; max-width: 100%; cursor: pointer; padding: 5px 12px 5px 5px; border: 1.5px solid var(--line-strong); border-radius: 999px; background: var(--surface); color: var(--navy); font-weight: 700; transition: background-color 150ms, border-color 150ms, box-shadow 150ms; }
+.account-trigger:hover, .account-menu[open] .account-trigger { background: var(--lavender); border-color: var(--violet); box-shadow: 0 0 0 4px rgb(97 68 214 / 0.12); }
+.account-trigger::-webkit-details-marker { display: none; }
+.account-trigger::marker { content: ''; }
+.account-trigger:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+.account-trigger-name { max-width: 21ch; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.account-chevron { width: 16px; height: 16px; flex: none; color: var(--violet); transition: transform 150ms; }
+.account-menu[open] .account-chevron { transform: rotate(180deg); }
+.account-options { position: absolute; z-index: 40; inset: calc(100% + 10px) 0 auto auto; width: min(260px, calc(100vw - 40px)); padding: 8px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); box-shadow: var(--surface-shadow), 0 24px 48px -16px rgb(21 28 58 / 0.35); animation: account-pop 160ms ease-out; }
+.account-identity { display: grid; padding: 12px; gap: 3px; margin-bottom: 4px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.account-identity small { color: var(--muted-text); }
+.account-options a, .account-options button { display: flex; width: 100%; justify-content: flex-start; text-align: left; padding: 11px 12px; margin-top: 3px; border: 0; border-radius: 12px; color: var(--navy); background: transparent; font: inherit; font-weight: 600; box-shadow: none; filter: none; transform: none; }
+.account-options a:hover, .account-options button:hover { background: var(--lavender); text-decoration: none; box-shadow: none; transform: none; }
+.account-options button[aria-pressed='true'] { color: var(--violet); font-weight: 800; }
+:root[data-theme='dark'] .account-options button[aria-pressed='true'] { color: #bfb2ff; }
+@keyframes account-pop { from { opacity: 0; transform: translateY(-6px) scale(0.97); } to { opacity: 1; transform: none; } }
 @media (max-width: 650px) {
   nav { position: relative; }
-  .account-menu { position: static; grid-column: 1 / -1; }
+  .account-menu { position: static; grid-column: 1 / -1; margin-left: 0; }
   .account-trigger { min-height: 48px; width: 100%; }
   .account-trigger-name { min-width: 0; max-width: none; flex: 1; }
-  .account-options { inset: calc(100% + 8px) 0 auto auto; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .account-trigger,
-  .account-chevron {
-    transition: none;
-  }
-  .account-options {
-    animation: none;
-  }
-}
+@media (prefers-reduced-motion: reduce) { .account-options { animation: none; } }

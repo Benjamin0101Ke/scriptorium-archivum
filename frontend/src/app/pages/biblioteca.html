@@ -1,22 +1,39 @@
-<section class="section">
+<section class="section biblioteca-page">
 
-  <div class="section-heading">
+  <div class="section-heading biblioteca-heading">
     <div>
       <span class="eyebrow">GESTIÓN DEL REPOSITORIO</span>
       <h1 id="biblioteca-cuenta" tabindex="-1">Biblioteca</h1>
     </div>
-    <button type="button" (click)="newWork(discardDialog)" [disabled]="busy()">
-      + Agregar tesis o proyecto
+    <button data-icon="plus" type="button" (click)="newWork(discardDialog)" [disabled]="busy()">
+      Agregar tesis o proyecto
     </button>
   </div>
 
-  <p class="notice">
+  <p class="notice biblioteca-intro">
     El depósito y la aprobación académica se realizan por los canales institucionales.
     Aquí se registra su evidencia y la decisión de difusión.
   </p>
 
+  <nav class="biblioteca-flow" aria-label="Etapas de gestión de un trabajo">
+    <div class="biblioteca-flow__item">
+      <span class="biblioteca-flow__number">01</span>
+      <span><strong>Ficha</strong><small>Metadatos del trabajo</small></span>
+    </div>
+    <div class="biblioteca-flow__item">
+      <span class="biblioteca-flow__number">02</span>
+      <span><strong>Ejemplar</strong><small>PDF y referencia</small></span>
+    </div>
+    <div class="biblioteca-flow__item">
+      <span class="biblioteca-flow__number">03</span>
+      <span><strong>Verificación</strong><small>Evidencias y permisos</small></span>
+    </div>
+    <div class="biblioteca-flow__item">
+      <span class="biblioteca-flow__number">04</span>
+      <span><strong>Publicación</strong><small>Revisión final</small></span>
+    </div>
+  </nav>
 
-  <!-- Modal para descartar cambios -->
 <dialog #discardDialog class="confirm-dialog">
   <div class="confirm-content">
     <span class="eyebrow">CAMBIOS SIN GUARDAR</span>
@@ -26,11 +43,11 @@
       Si continúas, perderás los cambios realizados en esta ficha.
     </p>
     <div class="actions">
-      <button type="button" class="secondary"
+      <button data-icon="pencil" type="button" class="secondary"
         (click)="resolverConfirmacion(false, discardDialog)">
         Seguir editando
       </button>
-      <button type="button" class="danger"
+      <button data-icon="x-circle" type="button" class="danger"
         (click)="resolverConfirmacion(true, discardDialog)">
         Descartar cambios
       </button>
@@ -44,18 +61,17 @@
     <h2>¿Eliminar este enlace?</h2>
     <p>Esta acción eliminará permanentemente el enlace seleccionado.</p>
     <div class="actions">
-      <button type="button" class="secondary"
+      <button data-icon="x" type="button" class="secondary"
         (click)="deleteLinkDialog.close()">
         Cancelar
       </button>
-      <button type="button" class="danger"
+      <button data-icon="trash" type="button" class="danger"
         (click)="confirmDeleteLink(deleteLinkDialog)">
         Eliminar enlace
       </button>
     </div>
   </div>
 </dialog>
-
 
   @if(error()){
     <p class="notice error" role="alert">{{error()}}</p>
@@ -80,16 +96,22 @@
       } @else {
         <p>{{guia.mensaje || 'La unidad responsable todavía no ha proporcionado una edición vigente.'}}</p>
       }
-      <button type="button" class="secondary" (click)="guideInfo.set(null)">
+      <button data-icon="x" type="button" class="secondary" (click)="guideInfo.set(null)">
         Cerrar guía
       </button>
     </section>
   }
 
-  <div class="admin-layout">
+  <div class="admin-layout biblioteca-layout">
 
-    <aside class="panel">
-      <h2>Fichas registradas</h2>
+    <aside class="panel biblioteca-sidebar">
+      <div class="biblioteca-sidebar__heading">
+        <div>
+          <span class="eyebrow">ADMINISTRACIÓN</span>
+          <h2>Fichas registradas</h2>
+        </div>
+        <span class="biblioteca-count" aria-label="Cantidad de fichas">{{items().length}}</span>
+      </div>
 
       @for(t of items(); track t.id){
         <button
@@ -98,7 +120,7 @@
           (click)="open(t.id, discardDialog)"
           [disabled]="busy()">
           <strong>{{t.titulo}}</strong>
-          <span>{{t.estado}} · {{t.anio}}</span>
+          <span class="biblioteca-state" [attr.data-state]="t.estado">{{t.estado}} · {{t.anio}}</span>
         </button>
       }
 
@@ -107,21 +129,21 @@
       }
 
       <div class="actions">
-        <button class="secondary" (click)="activity()" [disabled]="busy()">
+        <button data-icon="activity" class="secondary" (click)="activity()" [disabled]="busy()">
           Actividad
         </button>
-        <button type="button" class="secondary" (click)="annualReport()" [disabled]="busy()">
+        <button data-icon="bar-chart" type="button" class="secondary" (click)="annualReport()" [disabled]="busy()">
           Reporte anual
         </button>
-        <button class="secondary" (click)="guide()">
+        <button data-icon="book" class="secondary" (click)="guide()">
           Consultar guía
         </button>
       </div>
     </aside>
 
-    <div>
-      <form id="biblioteca-metadatos" class="panel" tabindex="-1" (ngSubmit)="save()" [attr.aria-busy]="busy()">
-        <span class="eyebrow">PASO 01</span>
+    <div class="biblioteca-main">
+      <form id="biblioteca-metadatos" class="panel biblioteca-card biblioteca-step-card biblioteca-step-card--metadata" tabindex="-1" (ngSubmit)="save()" [attr.aria-busy]="busy()">
+        <span class="eyebrow biblioteca-step-label">ETAPA 01 · REGISTRO</span>
         <h2>{{current()?'Corregir metadatos':'Registrar ficha'}}</h2>
 
         @if(!current()){
@@ -136,16 +158,16 @@
           <p role="status">Cargando catálogos…</p>
         } @else if (catalogosError()) {
           <p class="notice error" role="alert">{{ catalogosError() }}</p>
-          <button type="button" class="secondary" (click)="loadCatalogos()">Volver a cargar catálogos</button>
+          <button data-icon="refresh" type="button" class="secondary" (click)="loadCatalogos()">Volver a cargar catálogos</button>
         }
         <app-metadata-fields [draft]="meta" [invalidFields]="fields()" [catalogos]="catalogos()" [seleccion]="seleccion" />
 
-        <button [disabled]="busy() || (!api.demo && !catalogos())">Guardar metadatos</button>
+        <button data-icon="save" [disabled]="busy() || (!api.demo && !catalogos())">Guardar metadatos</button>
 
         @if(duplicate()){
           <div class="notice">
             <p>Se encontró un posible duplicado. Revisá las fichas existentes antes de continuar.</p>
-            <button type="button" class="secondary" (click)="save(true)" [disabled]="busy()">
+            <button data-icon="check" type="button" class="secondary" (click)="save(true)" [disabled]="busy()">
               Confirmar alta de todas formas
             </button>
           </div>
@@ -154,8 +176,8 @@
 
       @if(current(); as t){
 
-        <div class="panel">
-          <span class="eyebrow">PASO 02</span>
+        <div class="panel biblioteca-card biblioteca-step-card">
+          <span class="eyebrow biblioteca-step-label">ETAPA 02 · EJEMPLAR</span>
           <h2 id="biblioteca-ejemplar" tabindex="-1">Ejemplar final</h2>
           <p class="muted">
             Reemplazar el ejemplar suspende su publicación. El nuevo ejemplar requiere verificación,
@@ -193,7 +215,7 @@
             <input id="pdf-file" type="file" accept=".pdf,application/pdf"
               (change)="choose($event)" [disabled]="busy()">
           </label>
-          <button type="button" (click)="upload()" [disabled]="busy()||!file">
+          <button data-icon="upload" type="button" (click)="upload()" [disabled]="busy()||!file">
             Asociar PDF
           </button>
 
@@ -202,15 +224,15 @@
               Referencia institucional del ejemplar
               <input name="referenciaEjemplar" [(ngModel)]="reference" required>
             </label>
-            <button class="secondary" [disabled]="busy()||!reference.trim()">
+            <button data-icon="link" class="secondary" [disabled]="busy()||!reference.trim()">
               Asociar referencia
             </button>
           </form>
         </div>
 
         @if(t.ejemplar){
-          <form class="panel" (ngSubmit)="saveControls()">
-            <span class="eyebrow">PASO 03</span>
+          <form class="panel biblioteca-card biblioteca-step-card" (ngSubmit)="saveControls()">
+            <span class="eyebrow biblioteca-step-label">ETAPA 03 · VALIDACIÓN</span>
             <h2>Evidencias y permisos</h2>
 
             <fieldset id="biblioteca-deposito" tabindex="-1">
@@ -331,12 +353,12 @@
                 <p class="notice" role="status">{{message()}}</p>
               }
             }
-            <button [disabled]="busy()">Guardar controles</button>
+            <button data-icon="save" [disabled]="busy()">Guardar controles</button>
           </form>
         }
 
-        <div class="panel">
-          <span class="eyebrow">PASO 04</span>
+        <div class="panel biblioteca-card biblioteca-step-card biblioteca-publish-card" id="biblioteca-publicacion">
+          <span class="eyebrow biblioteca-step-label">ETAPA 04 · CIERRE</span>
           <h2>Revisar y publicar</h2>
           <p class="muted">Esta lista muestra los controles guardados del ejemplar actual. Guardá los cambios del paso 03 antes de publicar.</p>
           <ul class="checklist">
@@ -363,12 +385,13 @@
               <p class="notice" role="status">{{message()}}</p>
             }
           }
-          <button type="button" (click)="publish()" [disabled]="busy()||t.estado==='Publicado'">
+          <button data-icon="check-circle" type="button" (click)="publish()" [disabled]="busy()||t.estado==='Publicado'">
             Comprobar y publicar
           </button>
         </div>
 
-        <div class="panel">
+        <div class="panel biblioteca-card biblioteca-extra-card">
+          <span class="eyebrow biblioteca-step-label">RECURSOS ADICIONALES</span>
           <h2>Material complementario</h2>
           @if(!api.demo){<app-archivos-trabajo [trabajo]="t.id" [editable]="true" [biblioteca]="true" />}
           <form (ngSubmit)="addLink()">
@@ -381,16 +404,16 @@
             <label>Descripción
               <input name="descEnlace" [(ngModel)]="link.descripcion" required>
             </label>
-            <button class="secondary" [disabled]="busy()">Agregar deshabilitado</button>
+            <button data-icon="save" class="secondary" [disabled]="busy()">Guardar como deshabilitado</button>
           </form>
 
           @for(l of links(); track l.id){
             <div class="link-row">
               <span>{{l.descripcion}} · {{l.habilitado?'Habilitado':'Deshabilitado'}}</span>
-              <button type="button" class="secondary" (click)="toggleLink(l)" [disabled]="busy()">
+              <button data-icon="power" type="button" class="secondary" (click)="toggleLink(l)" [disabled]="busy()">
                 {{l.habilitado?'Deshabilitar':'Autorizar difusión'}}
               </button>
-              <button
+              <button data-icon="trash"
                  type="button"
                  class="secondary"
                  (click)="deleteLink(l, deleteLinkDialog)"               [disabled]="busy()">
@@ -401,9 +424,10 @@
         </div>
 
         @if(t.estado==='Publicado'){
-          <section class="panel">
+          <section class="panel biblioteca-card biblioteca-retire-card">
+            <span class="eyebrow biblioteca-step-label">ACCIÓN ADMINISTRATIVA</span>
             <h2>Retirar publicación</h2>
-            <button type="button" class="danger" (click)="retireDialog.showModal()" [disabled]="busy()">
+            <button data-icon="trash" type="button" class="danger" (click)="retireDialog.showModal()" [disabled]="busy()">
               Retirar del catálogo
             </button>
             <dialog #retireDialog aria-labelledby="retire-title">
@@ -416,10 +440,10 @@
                   <p class="notice error" role="alert">{{error()}}</p>
                 }
                 <div class="actions">
-                  <button type="button" class="secondary" [disabled]="busy()" (click)="retireDialog.close()">
+                  <button data-icon="x" type="button" class="secondary" [disabled]="busy()" (click)="retireDialog.close()">
                     Cancelar
                   </button>
-                  <button class="danger" [disabled]="busy()||!retireReason.trim()">
+                  <button data-icon="trash" class="danger" [disabled]="busy()||!retireReason.trim()">
                     Confirmar retiro
                   </button>
                 </div>
@@ -433,7 +457,8 @@
   </div>
 
   @if(report().length){
-    <section class="panel">
+    <section class="panel biblioteca-card biblioteca-report-card">
+      <span class="eyebrow biblioteca-step-label">ESTADÍSTICAS</span>
       <h2>Conteo por año de depósito</h2>
       <div class="table-scroll">
         <table>
@@ -456,7 +481,8 @@
   }
 
   @if(logs().length){
-    <section class="panel">
+    <section class="panel biblioteca-card biblioteca-report-card">
+      <span class="eyebrow biblioteca-step-label">HISTORIAL</span>
       <h2>Últimas 200 actuaciones</h2>
       <div class="table-scroll">
         <table>

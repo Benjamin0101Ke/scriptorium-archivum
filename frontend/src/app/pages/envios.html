@@ -13,7 +13,7 @@
     }
     @if (catalogosError()) {
       <p class="notice error" role="alert">{{ catalogosError() }}</p>
-      <button type="button" class="secondary" (click)="loadCatalogos()">
+      <button data-icon="refresh" type="button" class="secondary" (click)="loadCatalogos()">
         Reintentar catálogos
       </button>
     }
@@ -37,7 +37,7 @@
     @if (message()) {
       <p class="notice" role="status">{{ message() }}</p>
     }
-    <button [disabled]="busy() || (!api.demo && (!catalogos() || !carreraPropia()))">
+    <button data-icon="send" [disabled]="busy() || (!api.demo && (!catalogos() || !carreraPropia()))">
       {{ busy() ? 'Enviando…' : 'Enviar a Biblioteca' }}
     </button>
   </form>
@@ -47,7 +47,7 @@
       <p role="status">Cargando envíos…</p>
     } @else if (listError()) {
       <p class="notice error" role="alert">{{ listError() }}</p>
-      <button class="secondary" (click)="load()">Reintentar</button>
+      <button data-icon="refresh" class="secondary" (click)="load()">Reintentar</button>
     } @else if (!items().length) {
       <p class="muted">Todavía no has enviado trabajos.</p>
     }

@@ -6,11 +6,11 @@
       Buscá trabajos de la facultad, consultá sus fichas y accedé a los recursos autorizados.
     </p>
     <div class="hero-actions">
-      <a class="button hero-button" href="#catalogo"
-        >Explorar el catálogo <span aria-hidden="true">↓</span></a
+      <a data-icon="arrow-down" data-icon-pos="end" class="button hero-button" href="#catalogo"
+        >Explorar el catálogo</a
       >
       @if (!api.user() || puedeEnviar(api.user()?.rol) || api.user()?.rol === 'Biblioteca') {
-        <a
+        <a data-icon="plus"
           class="button hero-submit"
           [routerLink]="api.user()?.rol === 'Biblioteca' ? '/biblioteca' : '/mis-envios'"
         >
@@ -38,7 +38,7 @@
         name="q"
         [(ngModel)]="q"
         placeholder="¿Qué te gustaría investigar?"
-      /><button type="submit">Buscar trabajos</button>
+      /><button data-icon="search" type="submit">Buscar trabajos</button>
     </div>
     <div class="filters">
       @if (!api.demo) {
@@ -110,14 +110,14 @@
     @if (errorOferta()) {
       <p class="notice error" role="alert">
         {{ errorOferta() }}
-        <button type="button" class="text-button" (click)="cargarOferta()">Reintentar</button>
+        <button data-icon="refresh" type="button" class="text-button" (click)="cargarOferta()">Reintentar</button>
       </p>
     }
-    <button class="text-button" type="button" (click)="reset()">Limpiar búsqueda y filtros</button>
+    <button data-icon="x-circle" class="text-button" type="button" (click)="reset()">Limpiar búsqueda y filtros</button>
   </form>
   @if (error()) {
     <div class="notice error" role="alert">
-      {{ error() }} <button (click)="load(true)">Reintentar</button>
+      {{ error() }} <button data-icon="refresh" (click)="load(true)">Reintentar</button>
     </div>
   }
   @if (loading()) {
@@ -153,13 +153,13 @@
     </div>
     @if (totalPaginas() > 1) {
       <nav class="catalog-pagination" aria-label="Paginación del catálogo">
-        <button
+        <button data-icon="arrow-left"
           type="button"
           class="secondary"
           [disabled]="pagina() === 1"
           (click)="cambiarPagina(pagina() - 1, resumenResultados)"
         >
-          ← Anterior
+          Anterior
         </button>
         <div class="pagination-pages">
           @for (numero of paginasVisibles(); track $index) {
@@ -178,13 +178,13 @@
             }
           }
         </div>
-        <button
+        <button data-icon="arrow-right" data-icon-pos="end"
           type="button"
           class="secondary"
           [disabled]="pagina() === totalPaginas()"
           (click)="cambiarPagina(pagina() + 1, resumenResultados)"
         >
-          Siguiente →
+          Siguiente
         </button>
         <span class="muted pagination-status">Página {{ pagina() }} de {{ totalPaginas() }}</span>
       </nav>

@@ -70,8 +70,8 @@
       se conservan.
     </p>
     <div class="actions">
-      <button [disabled]="busy()">Guardar catálogo</button>
-      <button type="button" class="secondary" (click)="nuevo()" [disabled]="busy()">
+      <button data-icon="save" [disabled]="busy()">Guardar catálogo</button>
+      <button data-icon="plus" type="button" class="secondary" (click)="nuevo()" [disabled]="busy()">
         Nuevo registro
       </button>
     </div>
@@ -94,7 +94,7 @@
             <td>{{ registro.nombre }}</td>
             <td>{{ registro.activa ? 'Activo' : 'Inactivo' }}</td>
             <td>
-              <button
+              <button data-icon="pencil"
                 type="button"
                 class="secondary small"
                 (click)="editar(registro)"

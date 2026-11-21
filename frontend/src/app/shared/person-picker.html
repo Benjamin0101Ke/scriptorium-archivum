@@ -4,7 +4,7 @@
     @for (person of selected(); track person.id) {
       <li>
         {{ person.nombre }}
-        <button
+        <button data-icon="x"
           type="button"
           class="secondary small"
           (click)="remove(person.id)"
@@ -26,7 +26,7 @@
   [attr.aria-describedby]="invalid() ? searchId() + '-error' : null"
   (keydown.enter)="$event.preventDefault(); search()"
 />
-<button type="button" class="secondary small" (click)="search()" [disabled]="busy()">
+<button data-icon="search" type="button" class="secondary small" (click)="search()" [disabled]="busy()">
   {{ busy() ? 'Buscando…' : 'Buscar personas' }}
 </button>
 @if (error()) {

@@ -22,7 +22,7 @@
               [(ngModel)]="correo"
             />
           </label>
-          <button [disabled]="busy() || correoForm.invalid">Enviar código</button>
+          <button data-icon="send" [disabled]="busy() || correoForm.invalid">Enviar código</button>
         </form>
       }
       @case ('codigo') {
@@ -67,20 +67,20 @@
               [(ngModel)]="confirmar"
             />
           </label>
-          <button [disabled]="busy() || codigoForm.invalid">Restablecer contraseña</button>
+          <button data-icon="key" [disabled]="busy() || codigoForm.invalid">Restablecer contraseña</button>
         </form>
         <div class="actions">
-          <button type="button" class="secondary small" (click)="solicitar()" [disabled]="busy()">
+          <button data-icon="refresh" type="button" class="secondary small" (click)="solicitar()" [disabled]="busy()">
             Pedir otro código
           </button>
-          <button type="button" class="secondary small" (click)="volver()" [disabled]="busy()">
+          <button data-icon="mail" type="button" class="secondary small" (click)="volver()" [disabled]="busy()">
             Cambiar correo
           </button>
         </div>
       }
       @case ('listo') {
         <p role="status">Contraseña restablecida. Ya podés entrar con tu nueva contraseña.</p>
-        <a class="button" routerLink="/ingresar">Iniciar sesión</a>
+        <a data-icon="log-in" class="button" routerLink="/ingresar">Iniciar sesión</a>
       }
     }
   </div>

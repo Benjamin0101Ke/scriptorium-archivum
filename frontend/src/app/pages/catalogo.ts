@@ -25,7 +25,7 @@ export class Catalogo {
   carrera = '';
   area = '';
   tipo = '';
-  orden = 'valoracion';
+  orden = 'coincidencia';
   departamento = '';
   oferta = signal<OfertaAcademica>({ departamentos: [], carreras: [], planes: [] });
   errorOferta = signal('');
@@ -128,7 +128,7 @@ export class Catalogo {
   }
   reset() {
     this.q = this.autor = this.anio = this.carrera = this.area = this.tipo = this.departamento = '';
-    this.orden = 'valoracion';
+    this.orden = 'coincidencia';
     this.load();
   }
 }

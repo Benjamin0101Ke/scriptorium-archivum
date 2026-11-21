@@ -4,15 +4,12 @@ import { RouterLink } from '@angular/router';
 import { Api, puedeEnviar, Trabajo } from '../core/api';
 import type { OfertaAcademica } from '../shared/carrera-selector';
 import type { OpcionCatalogo } from '../core/biblioteca-catalogos';
-import { Estrellas } from '../shared/estrellas';
-import { claseValoracion } from '../core/valoraciones';
 @Component({
   selector: 'app-catalogo',
-  imports: [FormsModule, RouterLink, Estrellas],
+  imports: [FormsModule, RouterLink],
   templateUrl: './catalogo.html',
 })
 export class Catalogo {
-  claseValoracion = claseValoracion;
   puedeEnviar = puedeEnviar;
   api = inject(Api);
   items = signal<Trabajo[]>([]);

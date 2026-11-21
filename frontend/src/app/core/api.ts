@@ -5,7 +5,7 @@ export type Tema = 'sistema' | 'claro' | 'oscuro';
 export type Rol = 'Biblioteca' | 'Lector' | 'Estudiante' | 'Docente revisor' | 'Administrador';
 export const puedeEnviar = (rol?: Rol) => rol === 'Lector' || rol === 'Estudiante';
 export interface User {id:string;nombre:string;correo:string;rol:Rol;avatar?:Avatar;tema?:Tema;foto?:string|null;id_carrera?:number|null;id_plan?:number|null}
-export interface Trabajo {id:string;titulo:string;autores:string[];anio:number;carrera:string;area:string;areas?:string[];tipo:string;resumen:string;lectura:boolean;descarga:boolean;estado?:string;valoracion_media?:number;valoraciones_total?:number;enlaces?:{id:string;url:string;tipo:string;descripcion:string}[]}
+export interface Trabajo {id:string;titulo:string;autores:string[];anio:number;carrera:string;area:string;areas?:string[];tipo:string;resumen:string;lectura:boolean;descarga:boolean;estado?:string;estrellas?:number;enlaces?:{id:string;url:string;tipo:string;descripcion:string}[]}
 @Injectable({providedIn:'root'})
 export class Api {
  demo=settings.demo;

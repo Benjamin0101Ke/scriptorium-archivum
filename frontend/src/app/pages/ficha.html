@@ -10,9 +10,8 @@
   @else{<a data-icon="download" class="button secondary" [href]="'/api/trabajos/'+work.id+'/pdf?operacion=descarga'">Descargar PDF</a>}
 }
 @if(!work.lectura&&!work.descarga){<p class="notice">Esta ficha permite consultar únicamente los metadatos.</p>}
-<button data-icon="heart" class="secondary" (click)="favorite()">Guardar en favoritos</button><button data-icon="link" class="secondary" (click)="share()">Copiar enlace</button></div>
+@if(api.user()){<button class="secondary" (click)="toggleFavorite()" [disabled]="favoritoBusy()">{{favorito()?'Quitar de favoritos':'Guardar en favoritos'}}</button>}@else{<a class="button secondary" routerLink="/ingresar">Iniciá sesión para guardar en favoritos</a>}<button class="secondary" (click)="share()">Copiar enlace</button></div>
 @if(message()){<p class="notice" role="status">{{message()}}</p>}
-@if(!api.demo){<app-valoracion-trabajo [trabajo]="work" (actualizado)="t.set($event)" />}
 @if(preview();as pdf){
   <section id="visor-ejemplar" class="pdf-preview" aria-label="Visor del ejemplar">
     <button data-icon="x" class="secondary" (click)="closePreview()">Cerrar visor</button>

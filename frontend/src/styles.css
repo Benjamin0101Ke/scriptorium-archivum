@@ -230,28 +230,7 @@ nav > .button, nav > .secondary { margin-left: 4px; }
 .card-bottom span, .work-choice { overflow-wrap: anywhere; }
 
 
-.rating-gold { --rating-color: #865900; }
-.rating-silver { --rating-color: #48586f; }
-.rating-bronze { --rating-color: #88451f; }
-.rating-teal { --rating-color: #006369; }
-.rating-violet { --rating-color: #603c9f; }
-.rating-coral { --rating-color: #9e3732; }
-:root[data-theme='dark'] .rating-gold { --rating-color: #ffd167; }
-:root[data-theme='dark'] .rating-silver { --rating-color: #c6d2e2; }
-:root[data-theme='dark'] .rating-bronze { --rating-color: #dba16e; }
-:root[data-theme='dark'] .rating-teal { --rating-color: #52d7cc; }
-:root[data-theme='dark'] .rating-violet { --rating-color: #c3a2ff; }
-:root[data-theme='dark'] .rating-coral { --rating-color: #ffaaa0; }
-.card:is(.rating-gold, .rating-silver, .rating-bronze, .rating-teal, .rating-violet, .rating-coral) { --accent: var(--rating-color); border-color: color-mix(in srgb, var(--rating-color) 55%, var(--line)); }
-.rating-summary { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 8px 0; color: var(--rating-color, var(--muted-text)); font-size: 0.92rem; font-weight: 700; }
-.rating-stars { position: relative; display: inline-block; white-space: nowrap; color: var(--line-strong); font-size: 1.35rem; line-height: 1; letter-spacing: 2px; }
-.rating-stars-fill { position: absolute; inset: 0 auto 0 0; overflow: hidden; color: var(--rating-color, #e0a100); }
-.rating-input { display: flex; flex-wrap: wrap; gap: 8px; }
-.rating-choice { min-width: 46px; min-height: 46px; padding: 6px; font-size: 1.8rem; line-height: 1; background: var(--surface-2); color: var(--muted-text); box-shadow: inset 0 0 0 1.5px var(--line); }
-.rating-choice:hover { background: var(--lavender); color: #b07a00; box-shadow: inset 0 0 0 1.5px var(--amber); }
-.rating-choice.selected { color: #865900; background: #fff1c7; box-shadow: inset 0 0 0 2px #e0a100; }
-.rating-choice[aria-pressed='true'] { outline: 2px solid var(--cyan); outline-offset: 2px; }
-:root[data-theme='dark'] .rating-choice.selected { background: #4a3c1c; color: #ffd167; }
+
 
 
 .empty { padding: 60px 28px; text-align: center; border: 2px dashed var(--line-strong); border-radius: 20px; margin: 25px 0; }

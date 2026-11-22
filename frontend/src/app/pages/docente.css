@@ -1,4 +1,4 @@
-.active { background: var(--surface-2); font-weight: bold; }
+.active { background: var(--surface-3); font-weight: bold;}
 
 .card {
   color: var(--navy) !important;

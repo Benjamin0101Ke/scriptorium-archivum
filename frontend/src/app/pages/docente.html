@@ -83,14 +83,14 @@
         <form class="panel" (ngSubmit)="enviarRevision(t.id)">
           <h3>Registrar revisión</h3>
           <label>
-            <input type="radio" name="resultado-{{ t.id }}" value="Conforme" [(ngModel)]="resultado" /> Conforme
+            <input type="radio" name="resultado-{{ t.id }}" value="Conforme" [checked]="resultado() === 'Conforme'" (change)="resultado.set('Conforme')" /> Conforme
           </label>
           <label>
-            <input type="radio" name="resultado-{{ t.id }}" value="Requiere cambios" [(ngModel)]="resultado" /> Requiere cambios
+            <input type="radio" name="resultado-{{ t.id }}" value="Requiere cambios" [checked]="resultado() === 'Requiere cambios'" (change)="resultado.set('Requiere cambios')" /> Requiere cambios
           </label>
           <label>
             Observaciones (10 a 5000 caracteres)
-            <textarea [(ngModel)]="observaciones" name="observaciones-{{ t.id }}" minlength="10" maxlength="5000" rows="5"></textarea>
+            <textarea [ngModel]="observaciones()" (ngModelChange)="observaciones.set($event)" name="observaciones-{{ t.id }}" minlength="10" maxlength="5000" rows="5"></textarea>
           </label>
           <p class="muted">{{ observaciones().length }} / 5000</p>
           @if (mensaje()) {

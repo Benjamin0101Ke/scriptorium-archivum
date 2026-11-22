@@ -14,14 +14,11 @@ pruebas contiene un PDF ficticio, la coleccion de Postman y las pruebas
 integracion/CONSUMIR-API.txt explica las rutas y el uso de la sesion
 documentacion conserva los diagramas y el diccionario
 
-Los PDF de documentacion representan el modelo actual de 31 tablas, 246 campos
-y 60 claves foraneas. Para crear la base completa se utilizan los SQL 01 a 14.
-El script 10 se conserva como migracion historica; el 14 retira valoraciones.
-Las estrellas se cuentan exclusivamente desde los favoritos activos.
+Las estrellas se cuentan desde los favoritos activos de cada trabajo
 
 2. INICIAR EN UNA INSTALACION NUEVA
 
-Abrir Docker Desktop y esperar que inicie. Abrir PowerShell 7 en backend.
+Abrir Docker Desktop y esperar que inicie. Abrir PowerShell en backend.
 Copiar la plantilla solo si no existe un .env propio:
 
 if (!(Test-Path -LiteralPath '.env')) {
@@ -36,6 +33,13 @@ La plantilla no incluye credenciales privadas. El .env no se sube a GitHub.
 docker compose -p scriptorium-archivum up -d --build
 docker compose -p scriptorium-archivum ps
 docker compose -p scriptorium-archivum exec -T postgres pg_isready -h 127.0.0.1 -U postgres -d scriptorium_archivum
+Este comando consulta si PostgreSQL ya acepta conexiones
+-p scriptorium-archivum selecciona el proyecto de Docker
+exec -T postgres ejecuta la comprobacion dentro del servicio PostgreSQL
+pg_isready comprueba la disponibilidad del servidor
+-h 127.0.0.1 se refiere al propio contenedor en esta comprobacion
+-U postgres indica el usuario y -d indica la base de datos
+No comprueba que esten todas las tablas ni que funcione la API
 
 Repetir pg_isready hasta que indique que acepta conexiones. Si hay un error de
 inicializacion, revisar el primer error antes de continuar.
@@ -53,7 +57,7 @@ Base: scriptorium_archivum
 Usuario: postgres
 Contrasena: POSTGRES_PASSWORD del .env local
 
-3. CARGAR DATOS FICTICIOS
+3. AGREGAR DATOS DE PRUEBA, OPCIONAL
 
 Hacerlo una sola vez y unicamente en una base de practica sin usuarios ni fichas:
 
@@ -76,21 +80,8 @@ No usar down -v y no repetir datos-prueba.sql en una base utilizada.
 
 Docker ejecuta sql-init automaticamente solo cuando crea un volumen vacio.
 En una base existente se aplican las migraciones pendientes con psql, en orden.
-Si estan aplicadas 01 a 03, faltan 04 a 14. Si tiene hasta 12, faltan 13 y 14.
-Si tiene hasta 13, falta solo 14. No se borran los favoritos existentes.
-La migracion 14 elimina las puntuaciones antiguas de 1 a 5, sin convertirlas.
-Detener la API antes de aplicarla y desplegar la API corregida antes de reiniciarla.
-No ejecutar otra vez el script 02 sobre las tablas existentes.
-
-Ejemplo para aplicar solo 14 desde backend (si ya tiene 01 a 13):
-
-$OutputEncoding = [Text.UTF8Encoding]::new($false)
-Get-Content -LiteralPath './sql-init/14_estrellas_por_favoritos.sql' -Raw -Encoding utf8 |
-    docker compose -p scriptorium-archivum exec -T postgres psql -X -v ON_ERROR_STOP=1 -U postgres -d scriptorium_archivum
-if ($LASTEXITCODE -ne 0) {
-    throw 'No continuar hasta revisar el error'
-}
-docker compose -p scriptorium-archivum up -d --build api mailpit
+No repetir el script 02 sobre tablas existentes
+Aplicar solamente los scripts pendientes y conservar un respaldo antes de cambiarlos
 
 Los scripts no forman una unica transaccion. Algunos tambien cargan catalogos.
 Si algo falla, revisar lo aplicado antes de repetir. Algunos incluyen \connect,
@@ -98,7 +89,11 @@ que es un comando de psql; no se pega tal cual en Query Tool de pgAdmin.
 
 5. CORREOS Y REENVIO
 
-Mailpit sirve para las pruebas locales. Para correo externo se configuran
+Mailpit es un buzon de pruebas que captura los correos enviados por la API
+Se pueden ver en http://127.0.0.1:8025, por ejemplo un codigo de recuperacion
+No entrega estos mensajes a Gmail ni a otros destinatarios reales
+Permite probar los correos sin utilizar una cuenta de correo externa
+Para correo externo se configuran
 SMTP_HOST, SMTP_PORT, SMTP_TLS, SMTP_FROM, SMTP_USER y SMTP_PASSWORD en el .env.
 Con usuario SMTP se requiere TLS. Consultar los requisitos del proveedor.
 SMTP_AVISOS indica el buzon para registros y accesos; vacio usa el remitente.
@@ -127,6 +122,9 @@ un duplicado al reintentar. No se promete entrega exactamente una vez.
 
 No necesitan escribir esos archivos de nuevo: se utilizan como estan.
 Las instrucciones para consumir la API estan en integracion/CONSUMIR-API.txt.
+Para respaldar la base y los PDF y restaurarlos en otra instalacion, seguir
+pruebas/RESPALDO.txt. Alli se explica cada comando y como comprobar la copia
+
 Para detener y retomar sin borrar datos:
 
 docker compose -p scriptorium-archivum stop

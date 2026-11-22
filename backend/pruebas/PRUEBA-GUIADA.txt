@@ -5,6 +5,27 @@ Contrasena ficticia: Practica-Biblioteca-2026!
 Lector: lector@scriptorium.test
 Contrasena ficticia: Practica-Lector-2026!
 
+PRUEBA OPCIONAL EN UNA BASE LOCAL FICTICIA
+
+Estas cuentas pertenecen a datos-prueba.sql y solo sirven si se cargo ese archivo
+No son las cuentas de Railway ni deben utilizarse en una base con datos reales
+En Postman seleccionar el metodo, escribir la URL completa y pulsar Send
+Para JSON: Body, raw y JSON
+Para PDF: Body, form-data, campo archivo de tipo File
+Postman conserva automaticamente la cookie de sesion si su gestor de cookies esta habilitado
+Una cookie permite que la API reconozca que cuenta inicio sesion
+{id} y {ejemplar_id} se reemplazan por los numeros reales obtenidos en las respuestas
+
+RESPUESTAS QUE SE COMPRUEBAN
+200: operacion correcta
+201: registro creado
+202: solicitud aceptada para procesarla, no confirma entrega del correo
+400: datos incorrectos
+401: falta una sesion valida
+403: la cuenta no tiene permiso
+404: el recurso no existe o no esta disponible para esa consulta
+409: la operacion esta bloqueada por el estado o por controles pendientes
+
 Prueba guiada en Postman o en un cliente HTTP
 
 Usar la base ficticia siguiendo LEEME.txt de la carpeta backend. Las rutas de aquí empiezan por http://127.0.0.1:3000. Cambia el puerto si lo personalizaste.
@@ -43,6 +64,8 @@ Usar la base ficticia siguiendo LEEME.txt de la carpeta backend. Las rutas de aq
   }
 }
 
+El numero 3 de otorgante_ids es un ejemplo: reemplazarlo por el ID real de la persona autora obtenido en el paso 2
+
 Los permisos del ejemplar y los que concede la constancia son datos separados. Al probar otros niveles, modifica cada parte de forma coherente.
 
 PROBAR ADMINISTRACION Y LOS CORREOS
@@ -77,14 +100,48 @@ Sin sesion, las rutas administrativas deben responder 401.
 Con Lector, deben responder 403. El frontend no concede permisos al ocultar
 un boton: la API tambien comprueba el rol.
 
-Para recuperacion:
-POST /api/auth/recuperacion/solicitar con correo
-Revisar Mailpit y confirmar con correo, codigo y nueva en:
-POST /api/auth/recuperacion/confirmar
-El codigo dura diez minutos y no puede utilizarse dos veces.
-El historial tecnico se consulta como Administrador en:
-GET /api/admin/roles/correos/recuperaciones
-No debe mostrar el codigo ni la contrasena.
+RECUPERAR LA CONTRASENA DE UNA CUENTA FICTICIA
+
+Esto recupera el acceso a una cuenta y no restaura la base de datos
+Para restaurar la base y los archivos consultar pruebas/RESPALDO.txt
+
+1. Comprobar que Mailpit esta iniciado y abrir http://127.0.0.1:8025
+   Es un buzon local de prueba y no envia estos mensajes a Gmail
+
+2. Solicitar el codigo en Postman
+   POST http://127.0.0.1:3000/api/auth/recuperacion/solicitar
+   Body, raw, JSON:
+
+   {"correo":"lector@scriptorium.test"}
+
+   La respuesta 202 no confirma que la cuenta exista ni que el correo ya llego
+   Esto evita revelar si una direccion pertenece a una cuenta
+
+3. Abrir el mensaje recibido en Mailpit y copiar el codigo de seis digitos
+   El codigo dura diez minutos y solamente sirve una vez
+   Utilizar el codigo que realmente llegue, no el numero de ejemplo siguiente
+
+4. Confirmar la nueva contrasena
+   POST http://127.0.0.1:3000/api/auth/recuperacion/confirmar
+   Body, raw, JSON:
+
+   {"correo":"lector@scriptorium.test","codigo":"123456","nueva":"Practica-Lector-Nueva-2026!"}
+
+   123456 es un ejemplo que debe sustituirse por el codigo recibido
+   nueva contiene la contrasena elegida, de entre 8 y 512 caracteres
+   Si se acepta, responde 200 con {"ok":true}
+   Si el codigo no sirve, vence o ya se utilizo, responde 400
+
+5. Iniciar sesion con la nueva contrasena en POST /api/auth/login
+   La contrasena anterior de esa cuenta deja de servir
+   Repetir la confirmacion con el codigo consumido debe devolver 400
+   No se necesita conservar una sesion anterior para solicitar la recuperacion
+
+6. Con una cuenta Administrador consultar los resultados tecnicos en:
+   GET /api/admin/roles/correos/recuperaciones
+   El historial no debe contener el codigo ni la contrasena
+   No se reenvian codigos anteriores desde ese historial
+   Para obtener otro codigo utilizar nuevamente la ruta solicitar
 
 ESTRELLAS MEDIANTE FAVORITOS
 
@@ -99,6 +156,5 @@ Usar una ficha publicada y elegible. Conservar su ID y dos cuentas ficticias.
 7. Repetir DELETE no cambia el total. Volver a marcar reactiva la pareja sin duplicarla.
 8. GET /api/trabajos?orden=estrellas ordena por cantidad descendente, titulo e ID.
 9. Sin sesion, PUT y DELETE deben devolver 401. Marcar una ficha no publicada devuelve 404.
-10. Las rutas antiguas de valoracion devuelven 404; orden=valoracion devuelve 400.
 
-No se ingresan puntuaciones de 1 a 5 ni se calcula un promedio.
+Cada estrella corresponde a un favorito activo y se cuenta como una unidad

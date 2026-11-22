@@ -4,17 +4,65 @@ Recomiendo iniciar con la prueba de catalogos y sesion. Las rutas de ejemplo
 usan el puerto 3000. Si se cambia en .env, ajustar el proxy del frontend.
 No es necesario crear otra API ni copiar controllers al proyecto Angular.
 
-Integración con Angular
+CONEXION DE ANGULAR CON LA API
 
-Arranque en dos terminales
+Node.js ejecuta las herramientas de desarrollo de la interfaz
+npm es el administrador de paquetes que se instala con Node.js
+package.json indica las bibliotecas necesarias y los comandos del proyecto
+Los comandos npm se ejecutan en la carpeta frontend, donde esta ese archivo
 
-1. En el backend descomprimido sigue LEEME.txt. Comprueba que http://127.0.0.1:3000/api/carreras devuelve el catálogo de prueba.
-2. En tu carpeta Angular, revisa frontend/proxy.conf.json o el archivo que pase tu comando npm start a Angular. Puedes adaptar proxy.conf.example.json. Ajusta el puerto si cambiaste API_PORT.
-3. En la interfaz, utilizar su configuracion de conexion real para enviar las solicitudes a /api. Conservar el resto de la configuracion del frontend.
-4. Con Node y npm compatibles con el package.json de tu proyecto, ejecuta npm ci y npm start desde la carpeta Angular que contiene package.json. Abre la dirección que imprime Angular. Reinicia el servidor de Angular al cambiar el proxy.
-5. En la pestaña Red del navegador, comprueba que las solicitudes salgan a la misma dirección de la página con el prefijo /api. El proxy es el que se comunica con Docker. En otro equipo, 127.0.0.1 representa ese equipo, así que cada integrante puede levantar su propio backend.
+1. Iniciar primero el backend siguiendo backend/LEEME.txt
+   Comprobar que http://127.0.0.1:3000/api/carreras devuelve las carreras
+   Asi se confirma que la API responde antes de conectar la interfaz
 
-En un despliegue compartido, configura el servidor web con HTTPS y proxy de /api hacia el backend bajo el mismo origen. El proxy de Angular CLI solo actúa en su servidor de desarrollo.
+2. Abrir frontend/proxy.conf.json
+   Su configuracion actual envia /api/** a http://127.0.0.1:3000
+   El proxy recibe las peticiones /api de la pagina y las reenvia a la API
+   Por ejemplo, /api/carreras termina consultando el backend en el puerto 3000
+   Si API_PORT cambia en .env, cambiar tambien el puerto de target en ese JSON
+   Esto mantiene el proxy apuntando al puerto donde realmente escucha la API
+   proxy.conf.example.json es solo una plantilla de referencia, si se necesita
+   El archivo que utiliza este proyecto es frontend/proxy.conf.json
+
+3. Abrir PowerShell en frontend y ejecutar:
+
+   npm ci
+
+   Descarga las bibliotecas con las versiones registradas en package-lock.json
+   Prepara node_modules y reemplaza esa carpeta si ya existia
+   No es necesario repetirlo cada vez que se inicia la pagina
+   Se utiliza al preparar la copia o cuando cambian las dependencias del proyecto
+
+4. Desde esa misma carpeta ejecutar:
+
+   npm start
+
+   Ejecuta el comando start definido en package.json
+   En este proyecto es ng serve --proxy-config proxy.conf.json
+   ng serve inicia el servidor de desarrollo de Angular
+   --proxy-config le indica que utilice el archivo de proxy mencionado
+   La terminal muestra una direccion local, normalmente http://localhost:4200
+   Abrir la direccion que realmente aparezca y dejar esa terminal abierta
+   Para detener ese servidor se utiliza Ctrl+C en su terminal
+
+5. Si se modifica proxy.conf.json, detener Angular y ejecutar npm start otra vez
+   El servidor necesita cargar la nueva configuracion del proxy
+   La API puede seguir funcionando en su contenedor durante ese cambio
+
+6. Revisar en las herramientas del navegador la pestana Red o Network
+   Las solicitudes deben ir a la direccion de la pagina y empezar por /api
+   La interfaz utiliza /api, mientras el proxy se comunica con el puerto 3000
+   Esto permite que pagina y solicitudes compartan origen y utilicen la sesion
+   No cambiar las solicitudes para enviarlas directamente a otro origen
+
+Cada integrante puede iniciar su propia copia del backend
+127.0.0.1 representa el equipo donde se esta ejecutando el programa
+No permite acceder a la computadora de otro integrante desde la propia
+
+Para publicar la pagina se necesita un servidor con HTTPS que sirva la interfaz
+y reenvie /api al backend bajo el mismo origen
+El proxy de ng serve funciona durante el desarrollo y no se incluye como servidor
+al compilar la pagina de produccion
 
 Sesión y formatos
 
@@ -53,82 +101,255 @@ if (!respuesta.ok) {
 }
 const { ejemplar_id } = await respuesta.json();
 
-Rutas para cada equipo
+RECUPERAR EL ACCESO A UNA CUENTA
+
+Solicitar un codigo de recuperacion para el correo indicado
+POST /api/auth/recuperacion/solicitar
+
+Recibe {"correo":"..."} y responde 202 sin confirmar si la cuenta existe
+
+Establecer una contrasena nueva con el codigo recibido
+POST /api/auth/recuperacion/confirmar
+
+Recibe correo, codigo y nueva
+El codigo dura diez minutos y solo sirve una vez
+La prueba completa esta en ../pruebas/PRUEBA-GUIADA.txt
+
+COMO LEER LAS RUTAS
+
+GET consulta informacion
+POST envia datos para crear un registro o ejecutar una accion
+PUT guarda los datos indicados o establece un estado, segun la ruta
+PATCH cambia una parte concreta
+DELETE retira el elemento indicado; en favoritos lo desactiva sin borrar la fila
+{id} se reemplaza por el identificador real, por ejemplo /api/trabajos/12
+No se escribe la palabra GET o POST dentro de la direccion
+En Postman se selecciona el metodo y se escribe la URL en su campo
+Desde Angular se utiliza fetch o el cliente HTTP con ese mismo metodo
+
+RUTAS POR FUNCION
 
 Consulta pública y sesión - Uso
-GET /api/carreras, /api/tipos-de-trabajo, /api/areas-tematicas - Catálogos
-GET /api/trabajos, GET /api/trabajos/{id} - Resultados y detalle. Filtros q, autor, anio, carrera, area, tipo. Orden coincidencia, anio, titulo, estrellas
-GET /api/trabajos/{id}/pdf?operacion=lectura o descarga - PDF con permiso por operación
-GET /api/favoritos, PUT /api/favoritos/{id}, DELETE /api/favoritos/{id} - Favoritos de la sesión
-GET /api/mis-envios, POST /api/mis-envios - Sesion Lector o Estudiante; requiere carrera guardada en el perfil. Consulta sus propias fichas. El alta recibe el PDF y los campos titulo, anio, resumen, id_carrera, id_tipo_trabajo, area_ids como FormData. La cuenta autenticada queda como autora y la ficha comienza En revisión
+Obtener las carreras disponibles para el formulario
+GET /api/carreras
+
+Obtener los tipos de trabajo disponibles
+GET /api/tipos-de-trabajo
+
+Obtener las areas tematicas que permiten clasificar un trabajo
+GET /api/areas-tematicas
+
+Consultar los trabajos publicados con sus filtros y orden
+GET /api/trabajos
+
+Filtros: q, autor, anio, carrera, area, tipo
+Orden: coincidencia, anio, titulo, estrellas
+
+Consultar la ficha publica de un trabajo concreto
+GET /api/trabajos/{id}
+
+Abrir el PDF cuando el ejemplar permite lectura
+GET /api/trabajos/{id}/pdf?operacion=lectura
+
+Descargar el PDF cuando el ejemplar permite descarga
+GET /api/trabajos/{id}/pdf?operacion=descarga
+
+Consultar los trabajos favoritos activos de la cuenta que inicio sesion
+GET /api/favoritos
+
+Marcar un trabajo como favorito o reactivar el favorito propio
+PUT /api/favoritos/{id}
+
+No recibe cuerpo y no modifica los datos del trabajo
+
+Quitar el favorito propio para que deje de sumar una estrella
+DELETE /api/favoritos/{id}
+
+Conserva la fila con activo=false y no borra el trabajo
+Consultar los trabajos enviados por la cuenta autenticada
+GET /api/mis-envios
+
+Requiere sesion Lector o Estudiante
+
+Enviar un trabajo nuevo y su PDF a revision
+POST /api/mis-envios
+
+Requiere sesion Lector o Estudiante y carrera guardada en el perfil
+Recibe FormData con archivo, titulo, anio, resumen, id_carrera, id_tipo_trabajo
+y area_ids repetido por cada area seleccionada
+La cuenta queda como autora y la ficha comienza En revision
 
 Biblioteca - Uso
-GET /api/admin/personas, POST /api/admin/personas - Buscar ?q= y registrar con nombres, apellidos, identificador_institucional opcional
-GET /api/admin/trabajos, POST /api/admin/trabajos, GET /api/admin/trabajos/{id}, PUT /api/admin/trabajos/{id} - Fichas. Campos titulo, anio, resumen, id_carrera, id_tipo_trabajo, area_ids, autor_ids. Para confirmar un duplicado usa confirmarDuplicado
-POST /api/admin/trabajos/{id}/pdf - Máximo 25 MB y campo archivo. Devuelve ejemplar_id
-POST /api/admin/trabajos/{id}/referencia - Referencia verificable con { "referencia": "..." }. Para PDF público se usa un archivo administrado
-GET /api/admin/trabajos/{id}/pdf?ejemplar={ejemplar_id} - Vista previa autenticada. Si responde 404 después de una sustitución, recarga la ficha antes de verificar
-PUT /api/admin/trabajos/{id}/controles - Ejemplo de campos (../pruebas/PRUEBA-GUIADA.txt). El detalle devuelve decision.fecha y decision.responsable
-POST /api/admin/trabajos/{id}/publicar, POST /api/admin/trabajos/{id}/retirar - Publicar o retirar. Retiro recibe { "motivo": "..." }. Los controles fallidos devuelven 409
-GET /api/admin/trabajos/{id}/enlaces, POST /api/admin/trabajos/{id}/enlaces, PATCH /api/admin/enlaces/{id}, DELETE /api/admin/trabajos/{id}/enlaces/{enlace} - Enlaces HTTPS. Alta con url, tipo, descripcion. Activar con habilitado. La eliminación necesita el ID de la ficha que contiene el enlace
-GET /api/admin/bitacora, GET /api/admin/guia, GET /api/admin/reporte - Auditoría y consultas administrativas
+Buscar las personas registradas, con ?q= opcional
+GET /api/admin/personas
+
+Registrar una persona para seleccionarla como autora u otorgante
+POST /api/admin/personas
+
+Recibe nombres, apellidos e identificador_institucional opcional
+Consultar las fichas que gestiona Biblioteca
+GET /api/admin/trabajos
+
+Crear una ficha
+POST /api/admin/trabajos
+
+Consultar una ficha con sus ejemplares y controles
+GET /api/admin/trabajos/{id}
+
+Guardar los metadatos de una ficha existente
+PUT /api/admin/trabajos/{id}
+
+El alta y la edicion reciben titulo, anio, resumen, id_carrera,
+id_tipo_trabajo, area_ids y autor_ids
+Si la API detecta un posible duplicado, mostrarlo antes de confirmar
+confirmarDuplicado permite confirmar conscientemente esa coincidencia
+Máximo 25 MB y campo archivo. Devuelve ejemplar_id
+POST /api/admin/trabajos/{id}/pdf
+
+Referencia verificable con { "referencia": "..." }. Para PDF público se usa un archivo administrado
+POST /api/admin/trabajos/{id}/referencia
+
+Vista previa autenticada. Si responde 404 después de una sustitución, recarga la ficha antes de verificar
+GET /api/admin/trabajos/{id}/pdf?ejemplar={ejemplar_id}
+
+Ejemplo de campos (../pruebas/PRUEBA-GUIADA.txt). El detalle devuelve decision.fecha y decision.responsable
+PUT /api/admin/trabajos/{id}/controles
+
+Publicar el ejemplar que cumple sus controles y permisos
+POST /api/admin/trabajos/{id}/publicar
+
+Si faltan controles responde 409 con los motivos
+
+Retirar una ficha de la consulta publica y registrar el motivo
+POST /api/admin/trabajos/{id}/retirar
+
+Recibe {"motivo":"..."}
+Consultar los enlaces complementarios de una ficha
+GET /api/admin/trabajos/{id}/enlaces
+
+Agregar un enlace HTTPS con url, tipo y descripcion
+POST /api/admin/trabajos/{id}/enlaces
+
+Habilitar o suspender un enlace con {"habilitado":true} o false
+PATCH /api/admin/enlaces/{id}
+
+Aqui el ID corresponde al enlace
+
+Eliminar un enlace perteneciente a la ficha indicada
+DELETE /api/admin/trabajos/{id}/enlaces/{enlace}
+
+Consultar las actuaciones registradas
+GET /api/admin/bitacora
+
+Consultar la guia de controles para Biblioteca
+GET /api/admin/guia
+
+Consultar el reporte disponible para Biblioteca
+GET /api/admin/reporte
 
 Usa autor_ids y otorgante_ids seleccionados desde personas. Si cambia el correlativo UES, pide una confirmación nueva del depósito. Después de una suspensión, permite confirmar una decisión nueva y enviar registrar_decision: true en esa actuación. Muestra el estado y los motivos devueltos por la API.
 Extensiones del perfil y de Administración
 
-La API conserva las rutas existentes. Las siguientes extensiones requieren aplicar las migraciones 06, 07, 08 y 09 de sql-init.
+Estas rutas permiten gestionar el perfil y los catalogos administrativos
 
 Método y ruta - Acceso y comportamiento
-GET /api/oferta-academica - Público. Devuelve departamentos, carreras y planes activos.
-POST /api/auth/registro - Acepta los campos opcionales id_carrera e id_plan. Una carrera válida crea una cuenta Estudiante.
-PUT /api/auth/perfil - Acepta carrera y plan. Una cuenta Lector que elige carrera pasa a Estudiante y recibe una cookie actualizada.
-POST /api/auth/foto - Cuenta autenticada. Multipart con archivo, JPG o PNG de hasta 2 MB.
-GET /api/auth/foto - Foto propia de la cuenta autenticada.
-DELETE /api/auth/foto - Elimina la foto propia.
-GET /api/admin/roles?q=&rol=&estado= - Administrador. Filtra cuentas y devuelve su nombre visible actualizado.
-PUT /api/admin/roles/{id}/estado - Administrador. JSON habilitada, invalida las sesiones anteriores.
-POST /api/admin/roles/{id}/recuperacion - Administrador. Solicita el correo de recuperación para esa cuenta.
-GET /api/admin/roles/actividad - Administrador. Actividad reciente.
-GET, POST /api/admin/catalogos/{tipo} - Administrador. Listar o crear carreras, departamentos, áreas temáticas o planes.
-PUT /api/admin/catalogos/{tipo}/{id} - Administrador. Editar nombre, asociación y estado activo.
-GET /api/trabajos/{id}/archivos - Remitente o Biblioteca ven todos. El público ve archivos autorizados del ejemplar vigente si el trabajo permite descarga.
-POST /api/trabajos/{id}/archivos - Remitente o Biblioteca. Multipart con archivo y descripción. Queda pendiente de habilitación.
-PATCH /api/trabajos/{id}/archivos/{archivo} - Biblioteca. JSON habilitado.
-GET /api/trabajos/{id}/archivos/{archivo} - Descarga sujeta a los mismos permisos del listado.
+Público. Devuelve departamentos, carreras y planes activos.
+GET /api/oferta-academica
 
-Los valores de tipo son carreras, departamentos, areas-tematicas y planes. Los planes requieren id_carrera, nombre y activa, con url HTTPS opcional.
+Acepta los campos opcionales id_carrera e id_plan. Una carrera válida crea una cuenta Estudiante.
+POST /api/auth/registro
+
+Acepta carrera y plan. Una cuenta Lector que elige carrera pasa a Estudiante y recibe una cookie actualizada.
+PUT /api/auth/perfil
+
+Cuenta autenticada. Multipart con archivo, JPG o PNG de hasta 2 MB.
+POST /api/auth/foto
+
+Foto propia de la cuenta autenticada.
+GET /api/auth/foto
+
+Elimina la foto propia.
+DELETE /api/auth/foto
+
+Administrador. Filtra cuentas y devuelve su nombre visible actualizado.
+GET /api/admin/roles?q=&rol=&estado=
+
+Administrador. JSON habilitada, invalida las sesiones anteriores.
+PUT /api/admin/roles/{id}/estado
+
+Administrador. Solicita el correo de recuperación para esa cuenta.
+POST /api/admin/roles/{id}/recuperacion
+
+Cambiar el rol de una cuenta, solo Administrador
+PUT /api/admin/roles/{id}
+
+Recibe {"rol":"Estudiante"}, utilizando uno de los roles disponibles
+
+Administrador. Actividad reciente.
+GET /api/admin/roles/actividad
+
+Consultar registros de un catalogo administrativo
+GET /api/admin/catalogos/{tipo}
+
+Solo Administrador
+
+Crear un registro de un catalogo administrativo
+POST /api/admin/catalogos/{tipo}
+
+Solo Administrador
+Administrador. Editar nombre, asociación y estado activo.
+PUT /api/admin/catalogos/{tipo}/{id}
+
+Remitente o Biblioteca ven todos. El público ve archivos autorizados del ejemplar vigente si el trabajo permite descarga.
+GET /api/trabajos/{id}/archivos
+
+Remitente o Biblioteca. Multipart con archivo y descripción. Queda pendiente de habilitación.
+POST /api/trabajos/{id}/archivos
+
+Biblioteca. JSON habilitado.
+PATCH /api/trabajos/{id}/archivos/{archivo}
+
+Descarga sujeta a los mismos permisos del listado.
+GET /api/trabajos/{id}/archivos/{archivo}
+
+Los valores de tipo son carreras, departamentos, areas-tematicas, planes y tipos-trabajo. Los planes requieren id_carrera, nombre y activa, con url HTTPS opcional.
 
 Estrellas y favoritos
 
-Aplicar sql-init/14_estrellas_por_favoritos.sql despues de las migraciones anteriores.
-Retira las valoraciones de 1 a 5 sin convertirlas en favoritos. Los favoritos existentes
-conservan su estado. En una instalacion nueva ejecutar los SQL 01 a 14 en orden.
+Las estrellas son favoritos activos y no una puntuacion
 
 Metodo y ruta - Comportamiento
-GET /api/trabajos?orden=estrellas - Ordena por cantidad de favoritos activos, titulo e ID.
-GET /api/trabajos y GET /api/trabajos/{id} - Incluyen estrellas, un numero entero que empieza en cero.
-GET /api/favoritos - Sesion requerida. Lista los favoritos activos y publicados elegibles de la cuenta.
-PUT /api/favoritos/{id} - Sesion requerida, sin cuerpo. Marca o reactiva el favorito propio.
-DELETE /api/favoritos/{id} - Sesion requerida, sin cuerpo. Desactiva el favorito propio sin borrar el registro.
+Ordena por cantidad de favoritos activos, titulo e ID.
+GET /api/trabajos?orden=estrellas
+
+Incluyen estrellas, un numero entero que empieza en cero.
+GET /api/trabajos
+
+GET /api/trabajos/{id}
+
+Sesion requerida. Lista los favoritos activos y publicados elegibles de la cuenta.
+GET /api/favoritos
+
+Sesion requerida, sin cuerpo. Marca o reactiva el favorito propio.
+PUT /api/favoritos/{id}
+
+Sesion requerida, sin cuerpo. Desactiva el favorito propio sin borrar el registro.
+DELETE /api/favoritos/{id}
 
 Marcar dos veces no suma dos estrellas. Cada usuario aporta como maximo una por trabajo.
 Al quitar el favorito deja de sumar y desaparece de la lista personal. Reactivarlo reutiliza
 la misma pareja. Tras marcar o quitar, consultar el detalle para refrescar estrellas.
 Las operaciones PUT y DELETE mantienen la respuesta {"ok": true}.
 
-Las rutas /api/trabajos/{id}/valoracion y los campos valoracion_media y valoraciones_total
-se retiraron. Cambiar el selector de orden a estrellas, quitar la puntuacion de 1 a 5 y
-usar los endpoints de favoritos para el boton estrella. No se requiere otra tabla.
-
 El catalogo mantiene los filtros existentes. La interfaz puede paginar su presentacion.
 
 Tipos de trabajo
 
-La migración 11_tipos_trabajo.sql agrega el estado activo y los tipos iniciales. El catálogo administrativo acepta el tipo tipos-trabajo en sus rutas GET, POST y PUT. El cuerpo usa nombre (máximo 60 caracteres) y activa. GET /api/tipos-de-trabajo devuelve los tipos activos. Las fichas existentes conservan su tipo aunque este se desactive.
+Los tipos de trabajo tienen nombre y estado activo. El catálogo administrativo acepta el tipo tipos-trabajo en sus rutas GET, POST y PUT. El cuerpo usa nombre (máximo 60 caracteres) y activa. GET /api/tipos-de-trabajo devuelve los tipos activos. Las fichas existentes conservan su tipo aunque este se desactive.
 
 Avisos por correo y docente asignado
 
-Aplicar la migración 12_avisos_y_docentes.sql antes de desplegar esta API en una base existente. Las operaciones guardan su aviso en la misma transacción; el envío SMTP ocurre en segundo plano. Ver matriz de eventos y guía (../LEEME.txt).
+Las operaciones guardan su aviso en la misma transaccion que registra la accion. El envio de correo ocurre en segundo plano y su funcionamiento se explica en LEEME.txt.
 
 - GET /api/admin/roles incluye docentes habilitados (id, nombre, correo), y cada cuenta incluye id_docente.
 - PUT /api/admin/roles/{id}/docente acepta {"id_docente": 12}; null retira la asignación. Solo Administración; el destinatario debe ser Estudiante habilitado y el docente debe tener rol Docente revisor habilitado.

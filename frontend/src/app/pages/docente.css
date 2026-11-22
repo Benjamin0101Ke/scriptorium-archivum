@@ -17,3 +17,11 @@
 .card .badge {
   color: var(--navy) !important;
 }
+
+.panel{
+  margin-top: 1rem;
+  margin-bottom:1rem;
+}
+
+
+

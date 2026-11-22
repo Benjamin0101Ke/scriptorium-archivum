@@ -57,7 +57,7 @@
   @for (t of items(); track t.id) {
     <section class="panel" aria-labelledby="trabajo-{{ t.id }}">
       <h2 id="trabajo-{{ t.id }}">{{ t.titulo }}</h2>
-      <p class="muted">{{ t.autores ? t.autores.join(', ') : '' }} · {{ t.estudiante }} · {{ t.carrera }} · {{ t.anio }}</p>
+      <p class="muted">{{ formateAutores(t.autores) }} · {{ t.estudiante }} · {{ t.carrera }} · {{ t.anio }}</p>
       <p class="muted">{{ t.tipo }} · Versión {{ t.version }} · Estado: {{ t.estado }}</p>
       <p>
         <span class="badge">{{ t.estado_revision === 'pendiente' ? 'Pendiente' : t.estado_revision === 'conforme' ? 'Conforme' : 'Con cambios' }}</span>
@@ -82,12 +82,17 @@
       @if (revisandoId() === t.id) {
         <form class="panel" (ngSubmit)="enviarRevision(t.id)">
           <h3>Registrar revisión</h3>
-          <label>
-            <input type="radio" name="resultado-{{ t.id }}" value="Conforme" [checked]="resultado() === 'Conforme'" (change)="resultado.set('Conforme')" /> Conforme
-          </label>
-          <label>
-            <input type="radio" name="resultado-{{ t.id }}" value="Requiere cambios" [checked]="resultado() === 'Requiere cambios'" (change)="resultado.set('Requiere cambios')" /> Requiere cambios
-          </label>
+          
+          <div class="contenedor-personalizado">
+            <label for="conforme">Conforme</label>
+            <input id="conforme" type="radio" name="resultado-{{ t.id }}" value="Conforme" [checked]="resultado() === 'Conforme'" (change)="resultado.set('Conforme')"/>
+          </div>
+          
+          <div class="contenedor-personalizado">
+            <label for="requiere">Requiere cambios</label>
+            <input id="requiere" type="radio" name="resultado-{{ t.id }}" value="Requiere cambios" [checked]="resultado() === 'Requiere cambios'" (change)="resultado.set('Requiere cambios')" />
+          </div>
+          
           <label>
             Observaciones (10 a 5000 caracteres)
             <textarea [ngModel]="observaciones()" (ngModelChange)="observaciones.set($event)" name="observaciones-{{ t.id }}" minlength="10" maxlength="5000" rows="5"></textarea>

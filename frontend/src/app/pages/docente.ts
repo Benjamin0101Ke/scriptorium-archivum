@@ -86,14 +86,25 @@ export class Docente {
     await this.cargar();
   }
 
+  formateAutores(autores: any): string {
+    if (!autores) return '';
+    if (Array.isArray(autores)) return autores.join(', ');
+    return String(autores);
+  }
+
   seleccionarFiltro(f: string) {
     this.estado.set(f as 'todas' | 'pendiente' | 'conforme' | 'cambios');
     this.cargar();
   }
 
   abrirRevision(id: string) {
+    console.log('🔧 abrirRevision called with id:', id);
     const trabajo = this.items().find((t) => t.id === id);
-    if (!trabajo) return;
+    if (!trabajo) {
+      console.log('🔧 Trabajo no encontrado');
+      return;
+    }
+    console.log('🔧 Trabajo encontrado:', trabajo);
     this.revisandoId.set(id);
     this.resultado.set('Conforme');
     this.observaciones.set('');

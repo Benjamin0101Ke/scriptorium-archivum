@@ -28,6 +28,15 @@ export class Envios {
   catalogos = signal<CatalogosBiblioteca | null>(null);
   catalogosError = signal('');
   seleccion = nuevaSeleccion();
+  enlaceProyecto = '';
+
+get esProyectoSoftware(): boolean {
+  const tipo = this.catalogos()?.tipos.find(
+    (t) => Number(t.id) === Number(this.seleccion.id_tipo_trabajo)
+  );
+
+  return tipo?.nombre.trim().toLowerCase() === 'proyecto de software';
+}
   carreraPropia = computed(() =>
     this.catalogos()?.carreras.find((carrera) => carrera.id === this.api.user()?.id_carrera),
   );
@@ -89,12 +98,23 @@ export class Envios {
       this.metadataFields().focusFirst(invalid);
       return;
     }
-    const file = fileInput.files?.[0];
-    if (!file) {
-      this.error.set('Seleccioná el PDF de tu trabajo.');
-      fileInput.focus();
-      return;
-    }
+    const esSoftware = this.esProyectoSoftware;
+const file = fileInput.files?.[0];
+const enlace = this.enlaceProyecto.trim();
+
+if (esSoftware) {
+  try {
+    const url = new URL(enlace);
+    if (url.protocol !== 'https:') throw new Error();
+  } catch {
+    this.error.set('Ingresá un enlace HTTPS válido para tu proyecto.');
+    return;
+  }
+} else if (!file) {
+  this.error.set('Seleccioná el PDF de tu trabajo.');
+  fileInput.focus();
+  return;
+}
     const body = new FormData();
     const { autores, titulo, anio, resumen, ...labels } = metadata;
     const fields = this.api.demo
@@ -106,7 +126,11 @@ export class Envios {
     } else {
       for (const id of area_ids) body.append('area_ids', String(id));
     }
-    body.set('archivo', file);
+    if (esSoftware) {
+  body.set('enlace', enlace);
+} else if (file) {
+  body.set('archivo', file);
+}
 
     this.busy.set(true);
     try {
@@ -114,6 +138,7 @@ export class Envios {
       this.items.update((items) => [submission, ...items]);
       this.draft = createMetadataDraft(this.api.user()?.nombre);
       this.seleccion = nuevaSeleccion();
+      this.enlaceProyecto = '';
       fileInput.value = '';
       this.message.set('Tu trabajo quedó en revisión en Biblioteca.');
     } catch (e: any) {

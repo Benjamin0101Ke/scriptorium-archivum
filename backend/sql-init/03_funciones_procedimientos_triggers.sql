@@ -1,6 +1,3 @@
--- Ejecutar en scriptorium_archivum despues de crear las tablas
--- Las operaciones que cambian la difusion toman primero el bloqueo de la ficha
-
 BEGIN;
 SET LOCAL client_encoding = 'UTF8';
 
@@ -71,7 +68,7 @@ BEGIN
     FROM public.recursos_digitales AS r
     WHERE r.id_trabajo = ficha.id_trabajo
       AND r.id_entrega = ejemplar.id_entrega
-      AND r.clase IN ('PDF', 'REF_UES');
+     AND r.clase IN ('PDF', 'REF_UES', 'ENLACE');
 
     SELECT a.* INTO constancia
     FROM public.autorizaciones_difusion AS a

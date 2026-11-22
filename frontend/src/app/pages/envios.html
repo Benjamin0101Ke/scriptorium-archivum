@@ -1,9 +1,8 @@
 <section class="section narrow">
   <h1>Mis envíos</h1>
-  <p>
-    Enviá tu tesis, trabajo de grado o proyecto con el PDF. Biblioteca lo revisa antes de decidir su
-    publicación.
-  </p>
+ <p>
+  Enviá tu tesis, trabajo de grado o proyecto. Según el tipo de trabajo, adjuntá el PDF o proporcioná el enlace del proyecto. Biblioteca lo revisará antes de decidir su publicación.
+</p>
   <form class="panel" (ngSubmit)="submit(pdfInput)" [attr.aria-busy]="busy()">
     <h2>Agregar tesis o proyecto</h2>
     @if (!api.demo && catalogos() && !carreraPropia()) {
@@ -27,10 +26,29 @@
         api.demo ? null : (carreraPropia()?.nombre ?? 'Completá tu carrera en Mi perfil')
       "
     />
-    <label
-      >PDF del trabajo · máximo 25 MB
-      <input #pdfInput type="file" accept=".pdf,application/pdf" required [disabled]="busy()" />
-    </label>
+ <label [style.display]="esProyectoSoftware ? 'none' : 'grid'">
+  PDF del trabajo · máximo 25 MB
+  <input
+    #pdfInput
+    type="file"
+    accept=".pdf,application/pdf"
+    [required]="!esProyectoSoftware"
+    [disabled]="busy() || esProyectoSoftware"
+  />
+</label>
+
+<label [style.display]="esProyectoSoftware ? 'grid' : 'none'">
+  Enlace del proyecto · GitHub, Google Drive, MediaFire, etc.
+  <input
+    type="url"
+    name="enlaceProyecto"
+    [(ngModel)]="enlaceProyecto"
+    placeholder="https://github.com/usuario/proyecto"
+    [required]="esProyectoSoftware"
+    [disabled]="busy() || !esProyectoSoftware"
+  />
+</label>
+
     @if (error()) {
       <p class="notice error" role="alert">{{ error() }}</p>
     }

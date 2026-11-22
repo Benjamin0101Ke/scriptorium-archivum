@@ -37,6 +37,7 @@ namespace APIScriptoriumArchivum.Datos
                 'ejemplar', CASE WHEN e.id_entrega IS NOT NULL THEN jsonb_build_object(
                     'id',e.id_entrega::text,'nombre_original', CASE WHEN re.clase='PDF' THEN re.nombre END,
                     'referencia_institucional',CASE WHEN re.clase='REF_UES' THEN re.ubicacion END,
+                    'enlace_proyecto', CASE WHEN re.clase='ENLACE' THEN re.ubicacion END,
                     'conformidad_referencia',e.referencia_conformidad,'verificador',e.verificado_por::text,
                     'fecha_verificacion',e.verificado_en) END,
                 'decision', CASE WHEN v.id_revision IS NOT NULL THEN jsonb_build_object('resultado',v.resultado,'motivo',v.motivo_decision,
@@ -45,7 +46,7 @@ namespace APIScriptoriumArchivum.Datos
                 """;
             const string joins = """
                 LEFT JOIN LATERAL (SELECT * FROM public.entregas x WHERE x.id_trabajo=t.id_trabajo ORDER BY x.numero_version DESC LIMIT 1) e ON true
-                LEFT JOIN public.recursos_digitales re ON re.id_entrega=e.id_entrega AND re.clase IN ('PDF','REF_UES')
+                LEFT JOIN public.recursos_digitales re ON re.id_entrega=e.id_entrega AND re.clase IN ('PDF','REF_UES','ENLACE')
                 LEFT JOIN LATERAL (SELECT * FROM public.revisiones x WHERE x.id_entrega=e.id_entrega AND x.ambito_revision='Difusión'
                     AND x.fecha_cierre IS NOT NULL ORDER BY x.fecha_cierre DESC,x.id_revision DESC LIMIT 1) v ON true
                 LEFT JOIN LATERAL (SELECT jsonb_build_object('referencia', x.referencia_respaldo,
@@ -105,11 +106,13 @@ namespace APIScriptoriumArchivum.Datos
                 RETURNING id_entrega
                 """, ct, ("id", id), ("actor", actor));
             await Comandos.Ejecutar(conexion, tr, """
-                INSERT INTO public.recursos_digitales(id_trabajo,id_entrega,clase,ubicacion,nombre,tamano_bytes,tipo_formato,estado_carga)
-                VALUES (@id,@ejemplar,@clase,@ubicacion,@nombre::text,@bytes::bigint,
-                    CASE WHEN @clase='PDF' THEN 'application/pdf' END, CASE WHEN @clase='PDF' THEN 'Disponible' END)
-                """, ct, ("id", id), ("ejemplar", ejemplar), ("clase", clase), ("ubicacion", ubicacion),
-                ("nombre", nombre), ("bytes", bytes));
+    INSERT INTO public.recursos_digitales(id_trabajo,id_entrega,clase,ubicacion,nombre,tamano_bytes,tipo_formato,estado_carga,descripcion)
+    VALUES (@id,@ejemplar,@clase,@ubicacion,@nombre::text,@bytes::bigint,
+        CASE WHEN @clase='PDF' THEN 'application/pdf' WHEN @clase='ENLACE' THEN 'text/html' END,
+        CASE WHEN @clase='PDF' THEN 'Disponible' END,
+        CASE WHEN @clase='ENLACE' THEN 'Repositorio externo del proyecto de software' END)
+    """, ct, ("id", id), ("ejemplar", ejemplar), ("clase", clase), ("ubicacion", ubicacion),
+    ("nombre", nombre), ("bytes", bytes));
             return ejemplar;
         }
 

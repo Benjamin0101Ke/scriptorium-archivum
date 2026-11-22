@@ -185,10 +185,21 @@
           </p>
 
           @if(t.ejemplar){
-            <p>
-  <strong>Archivo PDF:</strong>
-  {{t.ejemplar.nombre_original || 'Sin archivo'}}
-</p>
+           @if (t.ejemplar.nombre_original) {
+  <p>
+    <strong>Archivo PDF:</strong>
+    {{ t.ejemplar.nombre_original }}
+  </p>
+} @else if (t.ejemplar.enlace_proyecto) {
+  <p>
+    <strong>Proyecto de software:</strong>
+    <a [href]="t.ejemplar.enlace_proyecto" target="_blank" rel="noopener noreferrer">
+      Abrir enlace del proyecto
+    </a>
+  </p>
+} @else {
+  <p>Sin archivo ni enlace asociado.</p>
+}
 
 @if(t.ejemplar.referencia_institucional){
   <p>

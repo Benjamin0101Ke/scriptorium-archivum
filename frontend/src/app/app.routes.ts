@@ -77,7 +77,7 @@ export const routes: Routes = [
   {
     path: espaciosPorRol['Docente revisor'].ruta,
     canActivate: [paraRol('Docente revisor')],
-    loadComponent: () => import('./pages/espacios').then((m) => m.Docente),
+    loadComponent: () => import('./pages/docente').then((m) => m.Docente),
   },
   { path: '**', redirectTo: '' },
 ];

@@ -6,6 +6,3 @@ export class Lector {}
 
 @Component({ selector: 'app-estudiante', imports: [RouterLink], templateUrl: './estudiante.html' })
 export class Estudiante {}
-
-@Component({ selector: 'app-docente', imports: [RouterLink], templateUrl: './docente.html' })
-export class Docente {}

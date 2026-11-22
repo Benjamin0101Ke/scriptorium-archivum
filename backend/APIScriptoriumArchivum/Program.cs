@@ -39,6 +39,7 @@ builder.Services.AddScoped<Usuarios>();
 builder.Services.AddSingleton<Avisos>();
 builder.Services.AddSingleton<RegistroCorreos>();
 builder.Services.AddScoped<AsignacionesDocentes>();
+builder.Services.AddScoped<RevisionesDocentes>();
 builder.Services.AddHostedService<CorreoEventos>();
 builder.Services.AddScoped<Fichas>();
 builder.Services.AddScoped<Ejemplares>();

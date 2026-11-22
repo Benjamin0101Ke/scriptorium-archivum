@@ -1,1 +1,18 @@
 .active { background: var(--surface-2); font-weight: bold; }
+
+.card {
+  color: var(--navy);
+}
+.card h2,
+.card h3 {
+  color: var(--navy);
+}
+.card p {
+  color: var(--navy);
+}
+.card .muted {
+  color: var(--muted-text);
+}
+.card .badge {
+  color: var(--navy);
+}

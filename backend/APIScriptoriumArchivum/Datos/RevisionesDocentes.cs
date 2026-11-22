@@ -145,7 +145,7 @@ namespace APIScriptoriumArchivum.Datos
                 FROM base
                 WHERE (@q = '' OR strpos(lower(base.titulo), lower(@q)) > 0 OR strpos(lower(base.autores), lower(@q)) > 0 OR strpos(lower(base.estudiante), lower(@q)) > 0)
                   AND (@estado = 'todas' OR (@estado = 'pendiente' AND base.id_revision IS NULL) OR (@estado = 'conforme' AND base.resultado_docente = 'Conforme') OR (@estado = 'cambios' AND base.resultado_docente = 'Requiere cambios'))
-                  AND (@estudiante IS NULL OR base.id_estudiante = @estudiante)
+                  AND (@estudiante::int IS NULL OR base.id_estudiante = @estudiante::int)
                 ORDER BY base.fecha_registro DESC
                 """, ct, ("docente", docente), ("q", busqueda ?? ""), ("estado", estado ?? "todas"), ("estudiante", estudiante));
             return filas;
@@ -280,7 +280,7 @@ namespace APIScriptoriumArchivum.Datos
                 WITH nueva AS (
                     INSERT INTO public.revisiones(id_entrega, id_usuario_revisor, fecha_inicio, fecha_cierre, ambito_revision, resultado, motivo_decision)
                     VALUES (@entrega, @actor, clock_timestamp(), clock_timestamp(), 'Revisión docente', @resultado, @observaciones)
-                    RETURNING id_revision, id_entrega
+                    RETURNING id_revision, id_entrega, id_usuario_revisor, resultado, motivo_decision, fecha_cierre
                 )
                 SELECT jsonb_build_object(
                     'id_revision', n.id_revision::text,

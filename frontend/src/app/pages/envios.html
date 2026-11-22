@@ -68,6 +68,16 @@
             <span class="badge">{{
               item.estado === 'En revision' ? 'En revisión' : item.estado
             }}</span>
+            @if (item.revision_docente) {
+              <div class="panel">
+                <p class="muted">
+                  Revisión docente: {{ item.revision_docente.resultado }} ·
+                  {{ item.revision_docente.docente }} ·
+                  {{ item.revision_docente.fecha | date: 'dd/MM/yyyy HH:mm' }} · Versión {{ item.revision_docente.version }}
+                </p>
+                <p>{{ item.revision_docente.observaciones }}</p>
+              </div>
+            }
           </li>
         }
       </ul>

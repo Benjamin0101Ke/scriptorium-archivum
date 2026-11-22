@@ -9,6 +9,13 @@ export interface Envio {
   tipo: string;
   estado: string;
   fecha: string;
+  revision_docente?: {
+    resultado: 'Conforme' | 'Requiere cambios';
+    observaciones: string;
+    fecha: string;
+    docente: string;
+    version: number;
+  } | null;
 }
 
 export async function handleSubmissions(

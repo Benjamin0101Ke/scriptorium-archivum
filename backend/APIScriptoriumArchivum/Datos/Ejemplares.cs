@@ -41,6 +41,26 @@ namespace APIScriptoriumArchivum.Datos
                     'fecha_verificacion',e.verificado_en) END,
                 'decision', CASE WHEN v.id_revision IS NOT NULL THEN jsonb_build_object('resultado',v.resultado,'motivo',v.motivo_decision,
                     'fecha',v.fecha_cierre,'responsable',v.id_usuario_revisor::text) END,
+                'revision_docente', CASE WHEN d.id_revision IS NOT NULL THEN jsonb_build_object(
+                    'resultado', d.resultado,
+                    'observaciones', d.motivo_decision,
+                    'fecha', d.fecha_cierre,
+                    'docente', coalesce(du.nombre_mostrar, concat_ws(' ', dp.nombres, dp.apellidos)),
+                    'version', e.numero_version) END,
+                'historial_docente', COALESCE((
+                    SELECT jsonb_agg(jsonb_build_object(
+                        'resultado', x.resultado,
+                        'observaciones', x.motivo_decision,
+                        'fecha', x.fecha_cierre,
+                        'docente', coalesce(ru.nombre_mostrar, concat_ws(' ', rp.nombres, rp.apellidos)),
+                        'version', xe.numero_version) ORDER BY x.fecha_cierre, x.id_revision)
+                    FROM public.revisiones x
+                    JOIN public.entregas xe ON xe.id_entrega = x.id_entrega
+                    LEFT JOIN public.usuarios ru ON ru.id_usuario = x.id_usuario_revisor
+                    LEFT JOIN public.personas rp ON rp.id_persona = ru.id_persona
+                    WHERE x.id_entrega IN (SELECT id_entrega FROM public.entregas WHERE id_trabajo = t.id_trabajo)
+                      AND x.ambito_revision = 'Revisión docente' AND x.fecha_cierre IS NOT NULL
+                ), '[]'::jsonb),
                 'autorizacion', co.datos
                 """;
             const string joins = """
@@ -48,6 +68,10 @@ namespace APIScriptoriumArchivum.Datos
                 LEFT JOIN public.recursos_digitales re ON re.id_entrega=e.id_entrega AND re.clase IN ('PDF','REF_UES')
                 LEFT JOIN LATERAL (SELECT * FROM public.revisiones x WHERE x.id_entrega=e.id_entrega AND x.ambito_revision='Difusión'
                     AND x.fecha_cierre IS NOT NULL ORDER BY x.fecha_cierre DESC,x.id_revision DESC LIMIT 1) v ON true
+                LEFT JOIN LATERAL (SELECT * FROM public.revisiones x WHERE x.id_entrega=e.id_entrega AND x.ambito_revision='Revisión docente'
+                    AND x.fecha_cierre IS NOT NULL ORDER BY x.fecha_cierre DESC,x.id_revision DESC LIMIT 1) d ON true
+                LEFT JOIN public.usuarios du ON du.id_usuario = d.id_usuario_revisor
+                LEFT JOIN public.personas dp ON dp.id_persona = du.id_persona
                 LEFT JOIN LATERAL (SELECT jsonb_build_object('referencia', x.referencia_respaldo,
                     'fecha',(x.fecha_otorgamiento AT TIME ZONE 'America/El_Salvador')::date, 'vence',x.vigencia_hasta,
                     'estado', CASE WHEN x.estado='Activa' THEN 'Vigente' ELSE x.estado END,

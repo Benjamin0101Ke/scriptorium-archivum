@@ -57,7 +57,7 @@
   @for (t of items(); track t.id) {
     <section class="panel" aria-labelledby="trabajo-{{ t.id }}">
       <h2 id="trabajo-{{ t.id }}">{{ t.titulo }}</h2>
-      <p class="muted">{{ t.autores.join(', ') }} · {{ t.estudiante }} · {{ t.carrera }} · {{ t.anio }}</p>
+      <p class="muted">{{ t.autores ? t.autores.join(', ') : '' }} · {{ t.estudiante }} · {{ t.carrera }} · {{ t.anio }}</p>
       <p class="muted">{{ t.tipo }} · Versión {{ t.version }} · Estado: {{ t.estado }}</p>
       <p>
         <span class="badge">{{ t.estado_revision === 'pendiente' ? 'Pendiente' : t.estado_revision === 'conforme' ? 'Conforme' : 'Con cambios' }}</span>

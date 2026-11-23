@@ -1,16 +1,130 @@
 <section class="section">
   <h1>Espacio docente revisor</h1>
-  <div class="cards">
-    <a class="card card-link" routerLink="/" aria-labelledby="docente-catalogo">
-      <h2 id="docente-catalogo">Consultar el catálogo</h2>
-      <span class="card-link-arrow" aria-hidden="true">→</span>
-      <p>Buscá trabajos difundidos y consultá el ejemplar según los permisos de la ficha.</p>
-    </a>
-    <a class="card card-link" routerLink="/favoritos" aria-labelledby="docente-favoritos">
-      <h2 id="docente-favoritos">Ver mis favoritos</h2>
-      <span class="card-link-arrow" aria-hidden="true">→</span>
-      <p>Accedé a las referencias que guardaste para tus consultas académicas.</p>
-    </a>
+
+  @if (resumen()) {
+    <div class="cards">
+      <div class="card">
+        <h2>Estudiantes asignados</h2>
+        <p class="muted">{{ resumen()!.docentes }}</p>
+      </div>
+      <div class="card">
+        <h2>Pendientes</h2>
+        <p class="muted">{{ resumen()!.pendientes }}</p>
+      </div>
+      <div class="card">
+        <h2>Conformes</h2>
+        <p class="muted">{{ resumen()!.conformes }}</p>
+      </div>
+      <div class="card">
+        <h2>Con cambios</h2>
+        <p class="muted">{{ resumen()!.cambios }}</p>
+      </div>
+    </div>
+  }
+
+  <form class="panel" (ngSubmit)="buscar()" aria-label="Búsqueda de trabajos">
+    <label>
+      Buscar por título, autor o estudiante
+      <input type="search" [(ngModel)]="busqueda" name="busqueda" placeholder="Escribí para buscar…" />
+    </label>
+    <button data-icon="search" type="submit" [disabled]="cargando()">Buscar</button>
+  </form>
+
+  <div class="cards" role="group" aria-label="Filtros de revisión">
+    @for (f of ['todas', 'pendiente', 'conforme', 'cambios']; track f) {
+      <button
+        type="button"
+        [class.active]="estado() === f"
+        (click)="seleccionarFiltro(f)"
+      >
+        {{ f === 'todas' ? 'Todas' : f === 'pendiente' ? 'Pendientes' : f === 'conforme' ? 'Conformes' : 'Con cambios' }}
+      </button>
+    }
   </div>
-  <p class="notice">La revisión de formato, la asesoría y las observaciones del tribunal se gestionan por los canales institucionales.</p>
+
+  @if (mensaje()) {
+    <p class="notice" role="status">{{ mensaje() }}</p>
+  }
+  @if (error()) {
+    <p class="notice error" role="alert">{{ error() }}</p>
+  }
+  @if (cargando()) {
+    <p role="status">Cargando trabajos…</p>
+  } @else if (!items().length) {
+    <p class="muted">No hay trabajos asignados a tu revisión.</p>
+  }
+
+  @for (t of items(); track t.id) {
+    <section class="panel" aria-labelledby="trabajo-{{ t.id }}">
+      <h2 id="trabajo-{{ t.id }}">{{ t.titulo }}</h2>
+      <p class="muted">{{ formateAutores(t.autores) }} · {{ t.estudiante }} · {{ t.carrera }} · {{ t.anio }}</p>
+      <p class="muted">{{ t.tipo }} · Versión {{ t.version }} · Estado: {{ t.estado }}</p>
+      <p>
+        <span class="badge">{{ t.estado_revision === 'pendiente' ? 'Pendiente' : t.estado_revision === 'conforme' ? 'Conforme' : 'Con cambios' }}</span>
+      </p>
+
+      <div class="cards">
+        <a [href]="'/api/docente/trabajos/' + t.id + '/pdf'" target="_blank" rel="noopener noreferrer">
+          Abrir PDF
+        </a>
+        <button type="button" data-icon="edit" (click)="abrirRevision(t.id)" [disabled]="revisandoId() === t.id">
+          Revisar
+        </button>
+      </div>
+
+      @if (t.revision_docente) {
+        <p class="notice">
+          Última revisión: {{ t.revision_docente.resultado }} · {{ t.revision_docente.docente }} · {{ t.revision_docente.fecha | date: 'dd/MM/yyyy HH:mm' }}
+        </p>
+        <p>{{ t.revision_docente.observaciones }}</p>
+      }
+
+      @if (revisandoId() === t.id) {
+        <form class="panel" (ngSubmit)="enviarRevision(t.id)">
+          <h3>Registrar revisión</h3>
+          
+          <div class="contenedor-personalizado">
+            <label for="conforme">Conforme</label>
+            <input id="conforme" type="radio" name="resultado-{{ t.id }}" value="Conforme" [checked]="resultado() === 'Conforme'" (change)="resultado.set('Conforme')"/>
+          </div>
+          
+          <div class="contenedor-personalizado">
+            <label for="requiere">Requiere cambios</label>
+            <input id="requiere" type="radio" name="resultado-{{ t.id }}" value="Requiere cambios" [checked]="resultado() === 'Requiere cambios'" (change)="resultado.set('Requiere cambios')" />
+          </div>
+          
+          <label>
+            Observaciones (10 a 5000 caracteres)
+            <textarea [ngModel]="observaciones()" (ngModelChange)="observaciones.set($event)" name="observaciones-{{ t.id }}" minlength="10" maxlength="5000" rows="5"></textarea>
+          </label>
+          <p class="muted">{{ observaciones().length }} / 5000</p>
+          @if (mensaje()) {
+            <p class="notice" role="status">{{ mensaje() }}</p>
+          }
+          <div class="cards">
+            <button type="submit" data-icon="send" [disabled]="busy()">
+              {{ busy() ? 'Enviando…' : 'Registrar' }}
+            </button>
+            <button type="button" class="secondary" (click)="cancelarRevision()">Cancelar</button>
+          </div>
+        </form>
+      }
+
+      <details>
+        <summary>Historial de revisiones</summary>
+        @if (t.historial) {
+          <ul>
+            @for (h of t.historial; track h.fecha) {
+              <li>
+                <strong>{{ h.resultado }}</strong> · {{ h.docente }} · {{ h.fecha | date: 'dd/MM/yyyy HH:mm' }} · Versión {{ h.version }}
+                <p>{{ h.observaciones }}</p>
+              </li>
+            } @empty {
+              <li class="muted">Sin revisiones registradas.</li>
+            }
+          </ul>
+        }
+      </details>
+    </section>
+  }
 </section>

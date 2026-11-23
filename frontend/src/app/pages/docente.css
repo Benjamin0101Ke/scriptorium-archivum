@@ -1,0 +1,27 @@
+.active { background: var(--surface-3); font-weight: bold;}
+
+.card {
+  color: var(--navy) !important;
+  background: var(--surface);
+}
+.card h2,
+.card h3 {
+  color: var(--navy) !important;
+}
+.card p {
+  color: var(--navy) !important;
+}
+.card .muted {
+  color: var(--muted-text) !important;
+}
+.card .badge {
+  color: var(--navy) !important;
+}
+
+.panel{
+  margin-top: 1rem;
+  margin-bottom:1rem;
+}
+
+
+

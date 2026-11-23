@@ -339,6 +339,29 @@
               } @else {
                 <p class="muted">Este ejemplar tiene una decisión pendiente.</p>
               }
+              @if (t.revision_docente) {
+                <div class="panel">
+                  <p><strong>Revisión docente:</strong> {{ t.revision_docente.resultado }}</p>
+                  <p>{{ t.revision_docente.observaciones }}</p>
+                  <p class="muted">
+                    {{ t.revision_docente.docente }} ·
+                    {{ t.revision_docente.fecha | date:'dd/MM/yyyy HH:mm':'-0600' }} · Versión {{ t.revision_docente.version }}
+                  </p>
+                </div>
+              }
+              @if (t.historial_docente?.length) {
+                <details>
+                  <summary>Historial de revisiones docentes</summary>
+                  <ul>
+                    @for (h of t.historial_docente; track h.fecha) {
+                      <li>
+                        <strong>{{ h.resultado }}</strong> · {{ h.docente }} · {{ h.fecha | date:'dd/MM/yyyy HH:mm':'-0600' }} · Versión {{ h.version }}
+                        <p>{{ h.observaciones }}</p>
+                      </li>
+                    }
+                  </ul>
+                </details>
+              }
               <label class="check">
                 <input type="checkbox" name="registrarDecision" [(ngModel)]="control.registrar_decision">
                 Registrar una decisión nueva

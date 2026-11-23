@@ -46,8 +46,8 @@ namespace APIScriptoriumArchivum.Datos
         {
             await using NpgsqlConnection conexion = await baseDeDatos.OpenConnectionAsync(ct);
             string sql = "SELECT jsonb_build_object(" + DatosBasicos +
-                ", 'estado', replace(t.estado_publicacion, 'En revisión', 'En revision'))::text " +
-                RelacionesBasicas + " ORDER BY t.id_trabajo DESC";
+                ", 'estado', replace(t.estado_publicacion, 'En revisión', 'En revision'), 'revision_docente', CASE WHEN rd.id_revision IS NULL THEN null ELSE jsonb_build_object('resultado',rd.resultado,'observaciones',rd.motivo_decision,'fecha',rd.fecha_cierre,'docente',coalesce(ru.nombre_mostrar,concat_ws(' ',rp.nombres,rp.apellidos)),'version',rd.numero_version) END)::text " +
+                RelacionesBasicas + " LEFT JOIN LATERAL (SELECT r.*, e.numero_version FROM public.entregas e JOIN public.revisiones r ON r.id_entrega=e.id_entrega WHERE e.id_trabajo=t.id_trabajo AND r.ambito_revision='Revisión docente' AND r.fecha_cierre IS NOT NULL ORDER BY e.numero_version DESC, r.fecha_cierre DESC, r.id_revision DESC LIMIT 1) rd ON true LEFT JOIN public.usuarios ru ON ru.id_usuario=rd.id_usuario_revisor LEFT JOIN public.personas rp ON rp.id_persona=ru.id_persona ORDER BY t.id_trabajo DESC";
             return await Comandos.FilasJson(conexion, sql, ct);
         }
 

@@ -34,7 +34,7 @@
       <label
         >Departamento
         <select name="departamento" [(ngModel)]="idDepartamento" required>
-          <option [ngValue]="null">Seleccioná un departamento</option>
+          <option [ngValue]="null">Selecciona un departamento</option>
           @for (area of departamentos(); track area.id) {
             <option [ngValue]="area.id">{{ area.nombre }}</option>
           }
@@ -45,7 +45,7 @@
       <label
         >Carrera del plan
         <select name="carreraPlan" [(ngModel)]="idCarrera" required>
-          <option [ngValue]="null">Seleccioná la carrera</option>
+          <option [ngValue]="null">Selecciona la carrera</option>
           @for (carrera of carreras(); track carrera.id) {
             <option [ngValue]="carrera.id">{{ carrera.nombre }}</option>
           }

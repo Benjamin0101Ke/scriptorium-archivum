@@ -37,7 +37,7 @@ public static class PlantillaCorreo
               <h1 style="margin:0 0 20px;font-size:24px;line-height:1.3;color:#38236e">{{E(titulo)}}</h1>
               {{bloqueCodigo}}
               <div style="font-size:16px;line-height:1.8">{{E(texto).Replace("\n", "<br>")}}</div>
-              <p style="margin:26px 0 0;padding-top:20px;border-top:1px solid #e0e5f0;font-size:13px;line-height:1.6;color:#5b6783">Consultá los detalles ingresando al repositorio desde tu dirección habitual.</p>
+              <p style="margin:26px 0 0;padding-top:20px;border-top:1px solid #e0e5f0;font-size:13px;line-height:1.6;color:#5b6783">Consulta los detalles ingresando al repositorio desde tu dirección habitual.</p>
             </td></tr><tr><td style="padding:20px;background:#f8f6ff;border-top:3px solid #ffbf36;text-align:center;font-size:12px;color:#61708c">
               Universidad de El Salvador · Facultad Multidisciplinaria Oriental<br>Mensaje automático de Scriptorium Archivum.
             </td></tr></table></td></tr></table></body></html>

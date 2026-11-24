@@ -1,4 +1,6 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import {Actualizaciones} from '../core/actualizaciones';
+import {RevisionesDocentes} from '../shared/revisiones-docentes';
+import { Component, inject, signal, computed, DestroyRef } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Api } from '../core/api';
@@ -23,6 +25,8 @@ export interface TrabajoDocente {
   id_estudiante: string;
   version: number;
   id_entrega: string;
+  enlace_proyecto?: string|null;
+  pdf_disponible?: boolean;
   estado_revision: 'pendiente' | 'conforme' | 'cambios';
   revision_docente?: RevisionDocente | null;
   historial?: RevisionDocente[];
@@ -37,12 +41,20 @@ export interface ResumenDocente {
 
 @Component({
   selector: 'app-docente',
-  imports: [DatePipe, FormsModule],
+  imports: [DatePipe, FormsModule, RevisionesDocentes],
   templateUrl: './docente.html',
   styleUrl: './docente.css',
 })
 export class Docente {
   api = inject(Api);
+  private vivo=inject(Actualizaciones);
+  historialesAbiertos=signal(new Set<string>());
+  private entregaEditada:string|null=null;
+  private consulta=0;
+  constructor(){this.vivo.watch(['docente','asignacion'],()=>this.cargar(true),inject(DestroyRef));}
+  alternarHistorial(id:string,event:Event){const abierto=(event.target as HTMLDetailsElement).open;this.historialesAbiertos.update(actual=>{const siguiente=new Set(actual);if(abierto)siguiente.add(id);else siguiente.delete(id);return siguiente;});}
+  puedeRevisar(t:TrabajoDocente){return !!t.id_entrega&&!['Publicado','Retirado'].includes(t.estado);}
+
   items = signal<TrabajoDocente[]>([]);
   resumen = signal<ResumenDocente | null>(null);
   cargando = signal(true);
@@ -61,8 +73,10 @@ export class Docente {
     await this.cargar();
   }
 
-  async cargar() {
-    this.cargando.set(true);
+  async cargar(background=false) {
+    if(this.busy())return;
+    const consulta=++this.consulta;
+    if(!background)this.cargando.set(true);
     this.error.set('');
     try {
       const params = new URLSearchParams();
@@ -73,6 +87,9 @@ export class Docente {
         this.api.request<ResumenDocente>('/docente/resumen'),
         this.api.request<TrabajoDocente[]>(`/docente/trabajos${query ? '?' + query : ''}`),
       ]);
+      if(consulta!==this.consulta)return;
+      const actual=items.find(t=>t.id===this.revisandoId());
+      if(background&&this.revisandoId()&&actual?.id_entrega!==this.entregaEditada)this.mensaje.set('El ejemplar cambió. Cancela la revisión y abre la nueva versión antes de guardar.');
       this.resumen.set(resumen);
       this.items.set(items);
     } catch (e: any) {
@@ -98,13 +115,11 @@ export class Docente {
   }
 
   abrirRevision(id: string) {
-    console.log('🔧 abrirRevision called with id:', id);
     const trabajo = this.items().find((t) => t.id === id);
-    if (!trabajo) {
-      console.log('🔧 Trabajo no encontrado');
+    if (!trabajo || !this.puedeRevisar(trabajo)) {
       return;
     }
-    console.log('🔧 Trabajo encontrado:', trabajo);
+    this.entregaEditada=trabajo.id_entrega;
     this.revisandoId.set(id);
     this.resultado.set('Conforme');
     this.observaciones.set('');
@@ -112,6 +127,7 @@ export class Docente {
   }
 
   cancelarRevision() {
+    this.entregaEditada=null;
     this.revisandoId.set(null);
     this.mensaje.set('');
   }
@@ -124,6 +140,7 @@ export class Docente {
       return;
     }
     const trabajo = this.items().find((t) => t.id === id);
+    if(!trabajo||!this.puedeRevisar(trabajo)||trabajo.id_entrega!==this.entregaEditada){this.mensaje.set('El ejemplar cambió. Abre de nuevo la revisión.');return;}
     this.busy.set(true);
     try {
       await this.api.request(`/docente/trabajos/${id}/revisiones`, 'POST', {
@@ -133,6 +150,7 @@ export class Docente {
       });
       this.mensaje.set('Revisión registrada correctamente.');
       this.revisandoId.set(null);
+      this.busy.set(false);
       await this.cargar();
     } catch (e: any) {
       this.mensaje.set(e.message);

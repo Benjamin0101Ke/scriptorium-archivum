@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using APIScriptoriumArchivum.Dtos;
@@ -223,7 +223,7 @@ namespace APIScriptoriumArchivum.Datos
             }
             await avisos.Trabajo(conexion, tr, id, actor, nuevaDecision ? "DECISION_BIBLIOTECA" : "CONTROLES_ACTUALIZADOS",
                 nuevaDecision ? "Biblioteca registró una decisión" : "Revisión del trabajo actualizada",
-                nuevaDecision ? $"Resultado: {datos.Decision!.Resultado}\nMotivo: {datos.Decision.Motivo}" : "Biblioteca guardó una actualización de los controles del ejemplar. Consultá el estado de tu envío.", false, ct);
+                nuevaDecision ? $"Resultado: {datos.Decision!.Resultado}\nMotivo: {datos.Decision.Motivo}" : "Biblioteca guardó una actualización de los controles del ejemplar. Consulta el estado de tu envío.", false, ct);
             await tr.CommitAsync(ct);
         }
 

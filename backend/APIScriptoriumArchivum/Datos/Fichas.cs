@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using APIScriptoriumArchivum.Dtos;
@@ -93,7 +93,7 @@ namespace APIScriptoriumArchivum.Datos
             int ficha = await Guardar(conexion, tr, id, datos, ct);
             if (id.HasValue && actor.HasValue)
                 await avisos.Trabajo(conexion, tr, ficha, actor.Value, "METADATOS_ACTUALIZADOS", "Datos del trabajo actualizados",
-                    "Biblioteca guardó una corrección de los datos de la ficha. Consultá los datos actualizados en el repositorio.", false, ct);
+                    "Biblioteca guardó una corrección de los datos de la ficha. Consulta los datos actualizados en el repositorio.", false, ct);
             await tr.CommitAsync(ct);
             return ficha;
         }
@@ -142,7 +142,7 @@ namespace APIScriptoriumArchivum.Datos
             {
                 invalidos.Add("tipo");
             }
-            if (areas.Length == 0 || areas.Length != await Comandos.Valor<long>(conexion, tr,
+            if (areas.Length != await Comandos.Valor<long>(conexion, tr,
                 "SELECT count(*) FROM public.areas_tematicas WHERE activa AND id_area=ANY(@ids)", ct, ("ids", areas)))
             {
                 invalidos.Add("area");

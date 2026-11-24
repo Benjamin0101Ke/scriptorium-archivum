@@ -1,4 +1,4 @@
-﻿using Npgsql;
+using Npgsql;
 
 namespace APIScriptoriumArchivum.Datos
 {
@@ -13,21 +13,21 @@ namespace APIScriptoriumArchivum.Datos
             this.avisos = avisos;
         }
 
-        public async Task<Cuenta?> BuscarAsync(int? id, string? correo, CancellationToken ct)
+        public async Task<Cuenta?> BuscarAsync(int? id, string? correo, CancellationToken ct, bool incluirDeshabilitadas = false)
         {
             const string sql = """
                 SELECT u.id_usuario, coalesce(u.nombre_mostrar, concat_ws(' ', p.nombres, p.apellidos)),
                        u.correo_institucional, r.nombre, u.hash_contrasena, u.avatar, u.tema, u.version_rol,
-                       u.foto_version::text, u.id_carrera, u.id_plan
+                       u.foto_version::text, u.id_carrera, u.id_plan, u.estado = 'Habilitada'
                 FROM public.usuarios u
                 JOIN public.personas p ON p.id_persona = u.id_persona
                 JOIN public.roles r ON r.id_rol = u.id_rol
-                WHERE u.estado = 'Habilitada' AND r.activo
+                WHERE (@incluir OR u.estado = 'Habilitada') AND r.activo
                   AND ((@id::integer IS NOT NULL AND u.id_usuario = @id::integer)
                     OR (@correo::text IS NOT NULL AND u.correo_institucional = @correo::text))
                 """;
             await using NpgsqlConnection conexion = await baseDeDatos.OpenConnectionAsync(ct);
-            await using NpgsqlCommand comando = Comandos.Crear(conexion, null, sql, ("id", id), ("correo", correo));
+            await using NpgsqlCommand comando = Comandos.Crear(conexion, null, sql, ("id", id), ("correo", correo), ("incluir", incluirDeshabilitadas));
             await using NpgsqlDataReader lector = await comando.ExecuteReaderAsync(ct);
             if (!await lector.ReadAsync(ct))
             {
@@ -46,7 +46,8 @@ namespace APIScriptoriumArchivum.Datos
                 VersionRol = lector.GetInt32(7),
                 FotoVersion = lector.IsDBNull(8) ? null : lector.GetString(8),
                 IdCarrera = lector.IsDBNull(9) ? null : lector.GetInt32(9),
-                IdPlan = lector.IsDBNull(10) ? null : lector.GetInt32(10)
+                IdPlan = lector.IsDBNull(10) ? null : lector.GetInt32(10),
+                Habilitada = lector.GetBoolean(11)
             };
         }
 
@@ -83,17 +84,17 @@ namespace APIScriptoriumArchivum.Datos
             }
         }
 
-        private static async Task ValidarCarrera(NpgsqlConnection c, NpgsqlTransaction? tr, int? carrera, CancellationToken ct)
+        internal static async Task ValidarCarrera(NpgsqlConnection c, NpgsqlTransaction? tr, int? carrera, CancellationToken ct)
         {
             if (carrera is null) return;
             bool valida = await Comandos.Valor<bool>(c, tr, """
                 SELECT EXISTS(SELECT 1 FROM public.carreras c JOIN public.departamentos a USING(id_departamento)
                     WHERE c.id_carrera=@id AND c.activa AND a.activa)
                 """, ct, ("id", carrera));
-            if (!valida) throw new ErrorApi(400, "Seleccioná una carrera activa.");
+            if (!valida) throw new ErrorApi(400, "Selecciona una carrera activa.");
         }
 
-        private static async Task ValidarPlan(NpgsqlConnection c, NpgsqlTransaction? tr, int? carrera, int? plan, CancellationToken ct)
+        internal static async Task ValidarPlan(NpgsqlConnection c, NpgsqlTransaction? tr, int? carrera, int? plan, CancellationToken ct)
         {
             if (plan is null) return;
             bool valido = await Comandos.Valor<bool>(c, tr, """
@@ -153,12 +154,13 @@ namespace APIScriptoriumArchivum.Datos
                 WHERE id_usuario = @id AND hash_contrasena = @anterior AND estado = 'Habilitada'
                 """, ("nuevo", nuevo), ("id", id), ("anterior", anterior));
             if (await comando.ExecuteNonQueryAsync(ct) != 1)
-                throw new ErrorApi(409, "La cuenta cambió. Volvé a iniciar sesión.");
+                throw new ErrorApi(409, "La cuenta cambió. Vuelve a iniciar sesión.");
         }
     }
 
     public class Cuenta
     {
+        public bool Habilitada { get; init; }
         public int Id { get; init; }
         public string Nombre { get; init; } = "";
         public string Correo { get; init; } = "";

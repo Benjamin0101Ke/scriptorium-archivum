@@ -1,0 +1,149 @@
+{
+  "fecha": "2026-11-23",
+  "entorno": "local, datos ficticios",
+  "criterio": "solicitudes directas, permisos revocados y retiro; ningún PDF protegido entregado",
+  "control_positivo_previo": "PDF íntegro accesible antes de revocar o retirar",
+  "resultado": "APROBADO EN ENTORNO LOCAL",
+  "intentos": [
+    {
+      "numero": 1,
+      "categoria": "solicitud directa sin sesión",
+      "ruta": "/admin/trabajos/{ficha}/pdf",
+      "estado": 401,
+      "contenido_pdf_entregado": false
+    },
+    {
+      "numero": 2,
+      "categoria": "solicitud directa sin sesión",
+      "ruta": "/docente/trabajos/{ficha}/pdf?ejemplar=1019",
+      "estado": 401,
+      "contenido_pdf_entregado": false
+    },
+    {
+      "numero": 3,
+      "categoria": "solicitud directa sin sesión",
+      "ruta": "/admin/trabajos/{ficha}",
+      "estado": 401,
+      "contenido_pdf_entregado": false
+    },
+    {
+      "numero": 4,
+      "categoria": "solicitud directa sin sesión",
+      "ruta": "/admin/trabajos/{ficha}/enlaces",
+      "estado": 401,
+      "contenido_pdf_entregado": false
+    },
+    {
+      "numero": 5,
+      "categoria": "solicitud directa sin sesión",
+      "ruta": "/admin/roles",
+      "estado": 401,
+      "contenido_pdf_entregado": false
+    },
+    {
+      "numero": 6,
+      "categoria": "solicitud directa sin sesión",
+      "ruta": "/docente/trabajos/{ficha}/revisiones",
+      "estado": 401,
+      "contenido_pdf_entregado": false
+    },
+    {
+      "numero": 7,
+      "categoria": "solicitud directa sin sesión",
+      "ruta": "/admin/trabajos/{ficha}/revisiones",
+      "estado": 401,
+      "contenido_pdf_entregado": false
+    },
+    {
+      "numero": 8,
+      "categoria": "solicitud directa con rol no autorizado",
+      "ruta": "/admin/trabajos/{ficha}/pdf",
+      "estado": 403,
+      "contenido_pdf_entregado": false
+    },
+    {
+      "numero": 9,
+      "categoria": "solicitud directa con rol no autorizado",
+      "ruta": "/docente/trabajos/{ficha}/pdf?ejemplar=1019",
+      "estado": 403,
+      "contenido_pdf_entregado": false
+    },
+    {
+      "numero": 10,
+      "categoria": "solicitud directa con rol no autorizado",
+      "ruta": "/admin/trabajos/{ficha}",
+      "estado": 403,
+      "contenido_pdf_entregado": false
+    },
+    {
+      "numero": 11,
+      "categoria": "solicitud directa con rol no autorizado",
+      "ruta": "/admin/trabajos/{ficha}/enlaces",
+      "estado": 403,
+      "contenido_pdf_entregado": false
+    },
+    {
+      "numero": 12,
+      "categoria": "solicitud directa con rol no autorizado",
+      "ruta": "/admin/roles",
+      "estado": 403,
+      "contenido_pdf_entregado": false
+    },
+    {
+      "numero": 13,
+      "categoria": "solicitud directa con rol no autorizado",
+      "ruta": "/docente/trabajos/{ficha}/revisiones",
+      "estado": 403,
+      "contenido_pdf_entregado": false
+    },
+    {
+      "numero": 14,
+      "categoria": "solicitud directa con rol no autorizado",
+      "ruta": "/admin/trabajos/{ficha}/revisiones",
+      "estado": 403,
+      "contenido_pdf_entregado": false
+    },
+    {
+      "numero": 15,
+      "categoria": "permiso revocado",
+      "ruta": "/trabajos/{ficha}/pdf?operacion=lectura",
+      "estado": 403,
+      "contenido_pdf_entregado": false
+    },
+    {
+      "numero": 16,
+      "categoria": "permiso revocado",
+      "ruta": "/trabajos/{ficha}/pdf?operacion=descarga",
+      "estado": 403,
+      "contenido_pdf_entregado": false
+    },
+    {
+      "numero": 17,
+      "categoria": "permiso revocado con Range",
+      "ruta": "/trabajos/{ficha}/pdf?operacion=lectura",
+      "estado": 403,
+      "contenido_pdf_entregado": false
+    },
+    {
+      "numero": 18,
+      "categoria": "publicación retirada",
+      "ruta": "/trabajos/{ficha_retirada}/pdf?operacion=lectura",
+      "estado": 404,
+      "contenido_pdf_entregado": false
+    },
+    {
+      "numero": 19,
+      "categoria": "publicación retirada",
+      "ruta": "/trabajos/{ficha_retirada}/pdf?operacion=descarga",
+      "estado": 404,
+      "contenido_pdf_entregado": false
+    },
+    {
+      "numero": 20,
+      "categoria": "publicación retirada",
+      "ruta": "/trabajos/{ficha_retirada}",
+      "estado": 404,
+      "contenido_pdf_entregado": false
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using System.Net.Mail;
 using APIScriptoriumArchivum.Datos;
 using Microsoft.AspNetCore.Authentication;
@@ -35,12 +35,15 @@ namespace APIScriptoriumArchivum.Controllers
                 return Unauthorized(new { error = "Correo o contraseña incorrectos." });
             }
 
-            Cuenta? cuenta = await usuarios.BuscarAsync(null, correo, ct);
+            Cuenta? cuenta = await usuarios.BuscarAsync(null, correo, ct, incluirDeshabilitadas: true);
             if (cuenta is null ||
                 contrasenas.VerifyHashedPassword(cuenta, cuenta.Hash, solicitud.Password) == PasswordVerificationResult.Failed)
             {
                 return Unauthorized(new { error = "Correo o contraseña incorrectos." });
             }
+
+            if (!cuenta.Habilitada)
+                return StatusCode(403, new { error = "Tu cuenta está deshabilitada. Para solicitar su habilitación, escribe a scriptoriumarchivum@gmail.com.", codigo = "CUENTA_DESHABILITADA" });
 
             await avisos.Acceso(cuenta.Id, "INICIO_SESION", ct);
             await AbrirSesion(cuenta);
@@ -55,11 +58,11 @@ namespace APIScriptoriumArchivum.Controllers
             string correo = datos.Correo?.Trim().ToLowerInvariant() ?? "";
             if (nombres.Length is 0 or > 100 || apellidos.Length is 0 or > 100 ||
                 nombres.Any(char.IsControl) || apellidos.Any(char.IsControl))
-                return BadRequest(new { error = "Escribí tus nombres y apellidos." });
+                return BadRequest(new { error = "Escribe tus nombres y apellidos." });
             if (correo.Length > 150 || !MailAddress.TryCreate(correo, out var direccion) || direccion.Address != correo)
-                return BadRequest(new { error = "Ingresá un correo válido." });
+                return BadRequest(new { error = "Ingresa un correo válido." });
             if (datos.Password is not { Length: >= 8 and <= 512 })
-                return BadRequest(new { error = "Usá una contraseña de entre 8 y 512 caracteres." });
+                return BadRequest(new { error = "Usa una contraseña de entre 8 y 512 caracteres." });
 
             string hash = contrasenas.HashPassword(new Cuenta(), datos.Password);
             int id = await usuarios.RegistrarLectorAsync(nombres, apellidos, correo, hash, ct, datos.IdCarrera, datos.IdPlan);
@@ -78,10 +81,10 @@ namespace APIScriptoriumArchivum.Controllers
         {
             string? nombre = datos.Nombre?.Trim();
             if (nombre is not null && (nombre.Length is 0 or > 120 || nombre.Any(char.IsControl)))
-                return BadRequest(new { error = "Ingresá un nombre visible de hasta 120 caracteres." });
+                return BadRequest(new { error = "Ingresa un nombre visible de hasta 120 caracteres." });
             if (datos.Avatar is not null and not ("turquesa" or "violeta") ||
                 datos.Tema is not null and not ("sistema" or "claro" or "oscuro"))
-                return BadRequest(new { error = "Elegí un avatar y un tema disponibles." });
+                return BadRequest(new { error = "Elige un avatar y un tema disponibles." });
             int id = CuentaActual().Id;
             await usuarios.ActualizarPerfilAsync(id, nombre, datos.Avatar, datos.Tema, ct, datos.IdCarrera, datos.IdPlan);
             Cuenta actualizada = (await usuarios.BuscarAsync(id, null, ct))!;
@@ -95,7 +98,7 @@ namespace APIScriptoriumArchivum.Controllers
         public async Task<IActionResult> SubirFoto(IFormFile? archivo, CancellationToken ct)
         {
             if (archivo is null || archivo.Length < 12 || archivo.Length > 2L * 1024 * 1024)
-                return BadRequest(new { error = "Seleccioná una imagen JPG o PNG de hasta 2 MB." });
+                return BadRequest(new { error = "Selecciona una imagen JPG o PNG de hasta 2 MB." });
             using var memoria = new MemoryStream();
             await archivo.CopyToAsync(memoria, ct);
             byte[] datos = memoria.ToArray();
@@ -134,7 +137,7 @@ namespace APIScriptoriumArchivum.Controllers
                 contrasenas.VerifyHashedPassword(cuenta, cuenta.Hash, datos.Actual) == PasswordVerificationResult.Failed)
                 return BadRequest(new { error = "La contraseña actual es incorrecta." });
             if (datos.Nueva is not { Length: >= 8 and <= 512 } || datos.Nueva == datos.Actual)
-                return BadRequest(new { error = "Elegí una contraseña distinta de entre 8 y 512 caracteres." });
+                return BadRequest(new { error = "Elige una contraseña distinta de entre 8 y 512 caracteres." });
 
             string hash = contrasenas.HashPassword(cuenta, datos.Nueva);
             await usuarios.CambiarContrasenaAsync(cuenta.Id, cuenta.Hash, hash, ct);
@@ -146,7 +149,10 @@ namespace APIScriptoriumArchivum.Controllers
         public async Task<IActionResult> Salir(CancellationToken ct)
         {
             if (int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out int id))
+            {
                 await avisos.Acceso(id, "CIERRE_SESION", ct);
+                await HttpContext.RequestServices.GetRequiredService<Presencia>().Salir(id, ct);
+            }
             await HttpContext.SignOutAsync();
             return Ok(new { ok = true });
         }

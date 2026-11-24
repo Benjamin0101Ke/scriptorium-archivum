@@ -2,7 +2,7 @@
   <h1>Espacio docente revisor</h1>
 
   @if (resumen()) {
-    <div class="cards">
+    <div class="cards resumen-docente">
       <div class="card">
         <h2>Estudiantes asignados</h2>
         <p class="muted">{{ resumen()!.docentes }}</p>
@@ -25,12 +25,12 @@
   <form class="panel" (ngSubmit)="buscar()" aria-label="Búsqueda de trabajos">
     <label>
       Buscar por título, autor o estudiante
-      <input type="search" [(ngModel)]="busqueda" name="busqueda" placeholder="Escribí para buscar…" />
+      <input type="search" [(ngModel)]="busqueda" name="busqueda" placeholder="Escribe para buscar…" />
     </label>
     <button data-icon="search" type="submit" [disabled]="cargando()">Buscar</button>
   </form>
 
-  <div class="cards" role="group" aria-label="Filtros de revisión">
+  <div class="cards filtros-docente" role="group" aria-label="Filtros de revisión">
     @for (f of ['todas', 'pendiente', 'conforme', 'cambios']; track f) {
       <button
         type="button"
@@ -64,10 +64,10 @@
       </p>
 
       <div class="cards">
-        <a [href]="'/api/docente/trabajos/' + t.id + '/pdf'" target="_blank" rel="noopener noreferrer">
-          Abrir PDF
-        </a>
-        <button type="button" data-icon="edit" (click)="abrirRevision(t.id)" [disabled]="revisandoId() === t.id">
+        @if(t.pdf_disponible){<a [href]="'/api/docente/trabajos/' + t.id + '/pdf?ejemplar=' + t.id_entrega" target="_blank" rel="noopener noreferrer">Abrir PDF</a>}
+        @else if(t.enlace_proyecto){<a [href]="t.enlace_proyecto" target="_blank" rel="noopener noreferrer">Abrir proyecto de software</a>}
+        @else{<p class="muted">Este ejemplar no tiene un PDF ni un enlace disponible.</p>}
+        <button type="button" data-icon="pencil" (click)="abrirRevision(t.id)" [disabled]="revisandoId() === t.id || !puedeRevisar(t)">
           Revisar
         </button>
       </div>
@@ -110,20 +110,9 @@
         </form>
       }
 
-      <details>
+      <details (toggle)="alternarHistorial(t.id,$event)">
         <summary>Historial de revisiones</summary>
-        @if (t.historial) {
-          <ul>
-            @for (h of t.historial; track h.fecha) {
-              <li>
-                <strong>{{ h.resultado }}</strong> · {{ h.docente }} · {{ h.fecha | date: 'dd/MM/yyyy HH:mm' }} · Versión {{ h.version }}
-                <p>{{ h.observaciones }}</p>
-              </li>
-            } @empty {
-              <li class="muted">Sin revisiones registradas.</li>
-            }
-          </ul>
-        }
+        @if(historialesAbiertos().has(t.id)){<app-revisiones-docentes [path]="'/docente/trabajos/'+t.id+'/revisiones'" />}
       </details>
     </section>
   }

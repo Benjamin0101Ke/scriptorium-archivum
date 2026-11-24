@@ -1,16 +1,16 @@
 <section class="section login-layout">
   <div>
-    <h1>{{ registering() ? 'Creá tu cuenta' : 'Ingresá al repositorio' }}</h1>
+    <h1>{{ registering() ? 'Crea tu cuenta' : 'Ingresa al repositorio' }}</h1>
     @if (forSubmissions()) {
-      <p>Ingresá con tu cuenta lectora o creá una para enviar tu trabajo a Biblioteca.</p>
+      <p>Ingresa con tu cuenta lectora o crea una para enviar tu trabajo a Biblioteca.</p>
     } @else {
       <p>
-        Consultá el catálogo sin cuenta. Iniciá sesión para guardar tus favoritos o usar el panel de
+        Consulta el catálogo sin cuenta. Inicia sesión para guardar tus favoritos o usar el panel de
         Biblioteca.
       </p>
     }
   </div>
-  <form class="panel" (ngSubmit)="submit()" [attr.aria-busy]="busy()">
+  <form id="scriptorium-auth-form" class="panel" method="post" autocomplete="on" [attr.action]="registering() ? '/api/auth/registro' : '/api/auth/login'" (ngSubmit)="submit()" [attr.aria-busy]="busy()">
     <h2>{{ registering() ? 'Crear cuenta' : 'Iniciar sesión' }}</h2>
     @if (registering()) {
       @if (api.demo) {
@@ -43,7 +43,10 @@
     }
     <label
       >Correo<input
+        id="scriptorium-username"
         name="correo"
+        autocapitalize="none"
+        spellcheck="false"
         type="email"
         autocomplete="username"
         maxlength="150"
@@ -56,6 +59,7 @@
 
       <div class="password-container">
         <input
+          id="scriptorium-password"
           name="password"
           [type]="showPassword() ? 'text' : 'password'"
           [attr.autocomplete]="registering() ? 'new-password' : 'current-password'"
@@ -105,6 +109,8 @@
       {{ busy() ? 'Procesando…' : registering() ? 'Crear cuenta' : 'Ingresar' }}
     </button>
     @if (!registering() && !api.demo) {
+      <label class="check"><input type="checkbox" name="guardarAcceso" [(ngModel)]="guardarAcceso" />Ofrecer guardar correo y contraseña en este navegador</label>
+      <p class="muted">El navegador puede pedirte confirmar el guardado en su gestor de contraseñas.</p>
       <p><a routerLink="/recuperar-contrasena">Olvidé mi contraseña</a></p>
     }
     <button [attr.data-icon]="registering() ? 'arrow-left' : 'user-plus'" type="button" class="text-button" [disabled]="busy()" (click)="toggleRegistration()">

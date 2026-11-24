@@ -25,3 +25,10 @@
 
 
 
+
+.resumen-docente { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.resumen-docente .card h2 { font-size:18px; }
+.resumen-docente .card p { font-size:30px; font-weight:800; margin:12px 0 0; }
+.filtros-docente { grid-template-columns: repeat(4,minmax(0,1fr)); }
+@media(max-width:1000px){.resumen-docente,.filtros-docente{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:480px){.resumen-docente{grid-template-columns:minmax(0,1fr);}}

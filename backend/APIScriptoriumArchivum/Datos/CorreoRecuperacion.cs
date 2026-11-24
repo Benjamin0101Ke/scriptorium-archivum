@@ -1,9 +1,9 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Threading.Channels;
 
 namespace APIScriptoriumArchivum.Datos;
 
-public sealed class CorreoRecuperacion(IConfiguration config, ILogger<CorreoRecuperacion> log, RegistroCorreos registro) : BackgroundService
+public sealed class CorreoRecuperacion(IConfiguration config, ILogger<CorreoRecuperacion> log, RegistroCorreos registro, CambiosEnVivo cambios) : BackgroundService
 {
     private Channel<Mensaje> cola = Channel.CreateBounded<Mensaje>(new BoundedChannelOptions(64)
     {
@@ -37,8 +37,8 @@ public sealed class CorreoRecuperacion(IConfiguration config, ILogger<CorreoRecu
                         int minutos = Math.Max(1, (int)Math.Ceiling((item.Vence - DateTimeOffset.UtcNow).TotalMinutes));
                         using var mensaje = PlantillaCorreo.Crear(
                             config["Correo:Remitente"] ?? "no-responder@scriptorium.test", item.Destino,
-                            "Código de recuperación · Scriptorium Archivum", "Recuperá el acceso a tu cuenta",
-                            $"Este código vence en {minutos.ToString(CultureInfo.InvariantCulture)} minutos y se puede usar una sola vez.\nIngresalo en la pantalla de recuperación para elegir tu nueva contraseña.\n\nSi no solicitaste este cambio, ignorá este mensaje. No compartás el código con nadie.", item.Codigo);
+                            "Código de recuperación · Scriptorium Archivum", "Recupera el acceso a tu cuenta",
+                            $"Este código vence en {minutos.ToString(CultureInfo.InvariantCulture)} minutos y se puede usar una sola vez.\nIngresalo en la pantalla de recuperación para elegir tu nueva contraseña.\n\nSi no solicitaste este cambio, ignora este mensaje. No compartas el código con nadie.", item.Codigo);
                         await TransporteCorreo.Enviar(config, mensaje, stoppingToken);
                     }
                 }
@@ -55,6 +55,7 @@ public sealed class CorreoRecuperacion(IConfiguration config, ILogger<CorreoRecu
                 try
                 {
                     await registro.Recuperacion(item.Usuario, intento, resultado, error, stoppingToken);
+                    cambios.Publicar("correos");
                 }
                 catch (Exception e) when (!stoppingToken.IsCancellationRequested)
                 {

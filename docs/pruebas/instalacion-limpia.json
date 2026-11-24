@@ -1,0 +1,10 @@
+{
+  "fecha": "2026-11-23",
+  "entorno": "PostgreSQL y API nuevos; datos ficticios y contraseña de prueba aleatoria; sin usar volúmenes existentes",
+  "migraciones": "Todos los SQL ejecutados desde cero; migraciones repetibles de correo y compatibilidad de valoraciones comprobadas",
+  "catalogo_inicial": "HTTP 200 y lista vacía",
+  "registro_inicial": "HTTP 201, sesión de lector creada",
+  "segundos_arranque": 8.38,
+  "resultado": "APROBADO EN ENTORNO LOCAL",
+  "limite": "Arranque automatizado desde base vacía con imágenes compiladas. No sustituye una reinstalación completa por una persona externa en hasta cuatro horas."
+}

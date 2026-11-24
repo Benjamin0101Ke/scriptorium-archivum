@@ -1,4 +1,4 @@
-﻿using APIScriptoriumArchivum.Dtos;
+using APIScriptoriumArchivum.Dtos;
 using Npgsql;
 
 namespace APIScriptoriumArchivum.Datos

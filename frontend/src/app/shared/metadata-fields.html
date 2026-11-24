@@ -15,7 +15,7 @@
           [(selected)]="selection.autores"
         />
         @if (invalid) {
-          <span class="field-error" [id]="id + '-error'">Seleccioná al menos un autor.</span>
+          <span class="field-error" [id]="id + '-error'">Selecciona al menos un autor.</span>
         }
       </div>
     } @else {
@@ -25,7 +25,7 @@
           field.name === 'titulo' || field.name === 'autores' || field.name === 'resumen'
         "
       >
-        {{ catalog && field.name === 'area' ? 'Áreas temáticas' : field.label }}
+        {{ field.name === 'area' ? 'Áreas temáticas (opcional)' : field.label }}
         @switch (field.name) {
           @case ('anio') {
             <input
@@ -67,7 +67,8 @@
                   <option [ngValue]="option.id">{{ option.nombre }}</option>
                 }
               </select>
-              <span class="muted">Podés seleccionar más de un área.</span>
+              <span class="muted">Puedes seleccionar varias áreas o dejar este campo vacío.</span>
+              <button type="button" class="text-button" (click)="selection.area_ids = []">Quitar selección de áreas</button>
             } @else if (catalog && selection && field.name === 'carrera') {
               <select
                 [id]="id"
@@ -76,7 +77,7 @@
                 [attr.aria-invalid]="invalid"
                 [attr.aria-describedby]="invalid ? id + '-error' : null"
               >
-                <option [ngValue]="null">Seleccioná una carrera</option>
+                <option [ngValue]="null">Selecciona una carrera</option>
                 @for (option of catalog.carreras; track option.id) {
                   <option [ngValue]="option.id">{{ option.nombre }}</option>
                 }
@@ -89,7 +90,7 @@
                 [attr.aria-invalid]="invalid"
                 [attr.aria-describedby]="invalid ? id + '-error' : null"
               >
-                <option [ngValue]="null">Seleccioná un tipo</option>
+                <option [ngValue]="null">Selecciona un tipo</option>
                 @if (tipoFueraCatalogo()) {
                   <option [ngValue]="selection.id_tipo_trabajo">
                     {{ draft().tipo }} (inactivo)
@@ -104,7 +105,7 @@
                 [id]="id"
                 [attr.name]="field.name"
                 [(ngModel)]="draft()[field.name]"
-                required
+                [required]="field.name !== 'area'"
                 [attr.list]="field.name === 'tipo' ? 'tipos-trabajo' : null"
                 [attr.aria-invalid]="invalid"
                 [attr.aria-describedby]="invalid ? id + '-error' : null"
@@ -115,7 +116,7 @@
         @if (invalid) {
           <span class="field-error" [id]="id + '-error'">
             {{
-              field.name === 'anio' ? 'Ingresá un año de cuatro dígitos.' : 'Completá este campo.'
+              field.name === 'anio' ? 'Ingresa un año de cuatro dígitos.' : 'Completa este campo.'
             }}
           </span>
         }

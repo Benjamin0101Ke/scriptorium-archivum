@@ -1,4 +1,5 @@
-import { Component, effect, inject, input, signal } from '@angular/core';
+import { Actualizaciones } from '../core/actualizaciones';
+import { Component, effect, inject, input, signal, DestroyRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Api } from '../core/api';
 
@@ -18,11 +19,10 @@ interface ArchivoTrabajo {
       <h2>Archivos complementarios</h2>
       @if (editable()) {
         <label
-          >Archivo Word, Excel, PDF, ZIP, código o texto · máximo 25 MB
+          >Documento, código o proyecto comprimido · máximo 6 GB
           <input
             #archivo
             type="file"
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.txt,.csv,.md,.js,.ts,.html,.css,.json,.py,.java,.cs,.sql,.cpp,.c,.h"
             [disabled]="busy()"
           />
         </label>
@@ -85,9 +85,12 @@ interface ArchivoTrabajo {
   `,
 })
 export class ArchivosTrabajo {
+ vivo=inject(Actualizaciones);
   tamano(bytes: number) {
-    if (bytes < 1024) return bytes + ' B';
-    return (bytes / 1024).toFixed(1) + ' KB';
+    const unidades = ['B', 'KB', 'MB', 'GB'];
+    let unidad = 0;
+    while (bytes >= 1024 && unidad < unidades.length - 1) { bytes /= 1024; unidad++; }
+    return new Intl.NumberFormat('es', { maximumFractionDigits: 1 }).format(bytes) + ' ' + unidades[unidad];
   }
   private api = inject(Api);
   trabajo = input.required<string>();
@@ -99,16 +102,16 @@ export class ArchivosTrabajo {
   busy = signal(false);
   descripcion = '';
   constructor() {
+    this.vivo.watch(['ficha','envios','biblioteca'],()=>{if(!this.busy())return this.cargar(this.trabajo(),true);return undefined;},inject(DestroyRef));
     effect(() => {
       const id = this.trabajo();
       this.descripcion = '';
       this.cargar(id);
     });
   }
-  private async cargar(id: string) {
+  private async cargar(id: string,background=false) {
     this.error.set('');
-    this.message.set('');
-    this.archivos.set([]);
+    if(!background){this.message.set('');this.archivos.set([]);}
     try {
       const archivos = await this.api.request<ArchivoTrabajo[]>('/trabajos/' + id + '/archivos');
       if (id === this.trabajo()) this.archivos.set(archivos);
@@ -121,12 +124,12 @@ export class ArchivosTrabajo {
     this.error.set('');
     this.message.set('');
     const file = input.files?.[0];
-    if (!file || file.size > 25 * 1024 * 1024) {
-      this.error.set('Seleccioná un archivo de hasta 25 MB.');
+    if (!file || file.size === 0 || file.size > 6 * 1024 * 1024 * 1024) {
+      this.error.set('Selecciona un archivo con contenido de hasta 6 GB.');
       return;
     }
     if (!this.descripcion.trim()) {
-      this.error.set('Escribí la descripción del archivo.');
+      this.error.set('Escribe la descripción del archivo.');
       return;
     }
     const id = this.trabajo();

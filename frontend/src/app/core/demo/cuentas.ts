@@ -38,7 +38,7 @@ export function currentUser(accounts: LocalAccount[]): User | undefined {
 }
 
 export function requireUser(user: User | undefined): User {
-  return user ?? error('Iniciá sesión de demostración para continuar.', {}, 401);
+  return user ?? error('Inicia sesión de demostración para continuar.', {}, 401);
 }
 
 export async function handleAccount(
@@ -65,7 +65,7 @@ export async function handleAccount(
     const nombre = body.nombre?.trim() || [body.nombres?.trim(), body.apellidos?.trim()].filter(Boolean).join(' '),
       correo = body.correo.trim().toLowerCase();
     if (!nombre || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo) || body.password.length < 8)
-      error('Ingresá tu nombre, un correo válido y una contraseña de al menos 8 caracteres.');
+      error('Ingresa tu nombre, un correo válido y una contraseña de al menos 8 caracteres.');
     if (
       builtinUsers.some((person) => person.correo === correo) ||
       accounts.some((item) => item.user.correo === correo)
@@ -84,10 +84,10 @@ export async function handleAccount(
     const salt = crypto.randomUUID();
     if (path === '/auth/perfil') {
       if (body.nombre !== undefined && (!body.nombre.trim() || body.nombre.trim().length > 120))
-        error('Ingresá un nombre visible de hasta 120 caracteres.');
+        error('Ingresa un nombre visible de hasta 120 caracteres.');
       if (body.avatar && !['turquesa', 'violeta'].includes(body.avatar) ||
           body.tema && !['sistema', 'claro', 'oscuro'].includes(body.tema))
-        error('Elegí un avatar y un tema disponibles.');
+        error('Elige un avatar y un tema disponibles.');
       const updated = {
         ...user, nombre: body.nombre?.trim() ?? user.nombre,
         avatar: body.avatar ?? user.avatar, tema: body.tema ?? user.tema,
@@ -101,7 +101,7 @@ export async function handleAccount(
     const verified = local ? await verifier(actual, local.salt) === local.verifier : actual === 'demo1234';
     if (!verified) error('La contraseña actual es incorrecta.');
     if (!body.nueva || body.nueva.length < 8 || body.nueva.length > 512 || body.nueva === actual)
-      error('Elegí una contraseña distinta de entre 8 y 512 caracteres.');
+      error('Elige una contraseña distinta de entre 8 y 512 caracteres.');
     const replacement = { user, salt, verifier: await verifier(body.nueva, salt) };
     if (local) Object.assign(local, replacement);
     else accounts.push(replacement);

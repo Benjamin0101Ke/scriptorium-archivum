@@ -17,7 +17,7 @@ export async function handleLibrary(
   expectedExemplar: string | null = null,
 ) {
   if (user.rol !== 'Biblioteca')
-    error('Seleccioná la cuenta de Biblioteca de demostración.', {}, 403);
+    error('Selecciona la cuenta de Biblioteca de demostración.', {}, 403);
   const log = (t: any, evento: string, motivo?: string) => {
     logs.unshift({
       id: crypto.randomUUID(),
@@ -58,7 +58,7 @@ export async function handleLibrary(
   if (p === '/admin/trabajos' && method === 'GET') return copy(works);
   if (p === '/admin/trabajos' && method === 'POST') {
     const fields = validateMetadata(body);
-    if (fields.length) error('Revisá estos campos: ' + fields.join(', '), { fields });
+    if (fields.length) error('Revisa estos campos: ' + fields.join(', '), { fields });
     const authors = (v: any) => v.autores.map(norm).sort().join('|');
     if (
       !body.confirmarDuplicado &&
@@ -91,7 +91,7 @@ export async function handleLibrary(
   if (!action && method === 'GET') return { ...copy(t), controles: checks(t) };
   if (!action && method === 'PUT') {
     const fields = validateMetadata(body);
-    if (fields.length) error('Revisá estos campos: ' + fields.join(', '), { fields });
+    if (fields.length) error('Revisa estos campos: ' + fields.join(', '), { fields });
     const { confirmarDuplicado, ...metadata } = body;
     Object.assign(t, copy(metadata));
     log(t, 'METADATOS_CORREGIDOS_DEMO');
@@ -101,7 +101,7 @@ export async function handleLibrary(
   if (action === 'pdf' || action === 'referencia') {
     if (action === 'pdf' && method === 'GET') {
       if (expectedExemplar !== null && expectedExemplar !== t.ejemplar_actual)
-        error('El ejemplar cambió. Recargá la ficha.', {}, 404);
+        error('El ejemplar cambió. Recarga la ficha.', {}, 404);
       if (!t.ejemplar?.nombre_original) error('Esta ficha no tiene un PDF asociado.');
       return (await readPdf(t.ejemplar_actual)) ?? error('El PDF no está disponible en este navegador.');
     }
@@ -109,7 +109,7 @@ export async function handleLibrary(
     const f = action === 'pdf' ? await validatePdf(body.get('archivo')) : null;
     const referencia = action === 'referencia' ? body.referencia?.trim() : '';
     if (action === 'referencia' && !referencia)
-      error('Ingresá una referencia institucional verificable.');
+      error('Ingresa una referencia institucional verificable.');
     const previous = t.ejemplar_actual;
     const id = crypto.randomUUID();
     const ejemplar = f
@@ -133,10 +133,10 @@ export async function handleLibrary(
   }
   if (action === 'controles') {
     if (!t.ejemplar || body.ejemplar_id !== t.ejemplar_actual)
-      error('El ejemplar cambió. Recargá la ficha.', {}, 409);
+      error('El ejemplar cambió. Recarga la ficha.', {}, 409);
     const { verificar, conformidad_referencia, ejemplar_id, registrar_decision, decision, autorizacion, ...b } = copy(body);
     if (registrar_decision && (!decision?.motivo?.trim() || !['Favorable', 'Desfavorable'].includes(decision.resultado)))
-      error('Indicá el resultado y el motivo de la decisión de Biblioteca.');
+      error('Indica el resultado y el motivo de la decisión de Biblioteca.');
     if (verificar) {
       if (!conformidad_referencia?.trim()) error('Falta la referencia de conformidad.');
       Object.assign(t.ejemplar, {
@@ -187,11 +187,11 @@ const index = (t.enlaces || []).findIndex((l: any) => l.id === linkId);
     try {
       url = new URL(body.url);
     } catch {
-      error('Ingresá una URL válida.');
+      error('Ingresa una URL válida.');
       return;
     }
     if (url.protocol !== 'https:' || !body.tipo?.trim() || !body.descripcion?.trim())
-      error('Usá HTTPS e indicá tipo y descripción.');
+      error('Usa HTTPS e indica tipo y descripción.');
     t.enlaces.push({ ...copy(body), id: crypto.randomUUID(), habilitado: false });
     save();
     return { ok: true };

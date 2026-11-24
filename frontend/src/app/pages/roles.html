@@ -1,8 +1,20 @@
 <section class="section">
-  <h1>Administrar roles</h1>
-  <p><a data-icon="settings" class="button secondary" routerLink="/admin/catalogos">Gestionar catálogos</a></p>
+  <h1>Administrar cuentas</h1>
+  <section class="panel">
+    <h2>Usuarios conectados</h2>
+    <p>Actividad en una pestaña visible durante los últimos 2 minutos. Cada usuario se cuenta una sola vez.</p>
+    @if (conectados(); as estado) {
+      <p><strong>{{ estado.total }}</strong> {{ estado.total === 1 ? 'usuario con actividad reciente' : 'usuarios con actividad reciente' }}</p>
+      @for (usuario of estado.usuarios; track usuario.id) {
+        <p>{{ usuario.nombre }} · {{ etiqueta($any(usuario.rol)) }}</p>
+      }
+    }
+    @if (presenciaError()) { <p role="status">{{ presenciaError() }}</p> }
+    <button type="button" class="secondary small" (click)="actualizarConectados()">Actualizar conectados</button>
+  </section>
+  <p><a class="button secondary" routerLink="/admin/catalogos">Gestionar catálogos</a></p>
   <p>
-    Buscá una cuenta y elegí su rol. La persona deberá iniciar sesión de nuevo después del cambio.
+    Busca una cuenta y elige su rol. La persona deberá iniciar sesión de nuevo después del cambio.
   </p>
   <form class="panel" (ngSubmit)="buscar()">
     <label for="buscar-cuenta">Nombre o correo</label>
@@ -42,12 +54,23 @@
   @if (message()) {
     <p class="notice" role="status">{{ message() }}</p>
   }
+  @if (editando(); as cuenta) {
+    <form class="panel" (ngSubmit)="guardarPerfil()">
+      <h2>Corregir cuenta</h2>
+      <p>{{ cuenta.correo }} · {{ etiqueta(cuenta.rol) }}</p>
+      <label>Nombre <input name="nombreCorreccion" [(ngModel)]="nombreCorreccion" required maxlength="120" /></label>
+      <p>La carrera y el plan se corrigen en el perfil de la cuenta. Los trabajos ya publicados conservan sus datos.</p>
+      <app-carrera-selector [(seleccion)]="carreraCorreccion" [(plan)]="planCorreccion" [administracion]="true" />
+      <button [disabled]="busy()">Guardar corrección</button>
+      <button type="button" class="secondary" (click)="editando.set(null)" [disabled]="busy()">Cancelar</button>
+    </form>
+  }
   @if (!busy() && !usuarios().length && !error()) {
     <p class="empty">No hay cuentas que coincidan con la búsqueda.</p>
   }
   @if (usuarios().length) {
     <div class="panel table-scroll">
-      <table aria-label="Roles de las cuentas">
+      <table class="cuentas" aria-label="Roles de las cuentas">
         <thead>
           <tr>
             <th>Cuenta</th>
@@ -61,15 +84,15 @@
         <tbody>
           @for (cuenta of usuarios(); track cuenta.id) {
             <tr>
-              <td>
+              <td data-label="Cuenta">
                 <strong>{{ cuenta.nombre }}</strong><br />{{ cuenta.correo }}
               </td>
-              <td>{{ cuenta.estado }}</td>
-              @if (cuenta.id === api.user()?.id || cuenta.estado !== 'Habilitada') {
-                <td>{{ etiqueta(cuenta.rol) }}</td>
-                <td>{{ cuenta.id === api.user()?.id ? 'Tu cuenta' : 'Cuenta deshabilitada' }}</td>
+              <td data-label="Estado">{{ cuenta.estado }}</td>
+              @if (cuenta.id === api.user()?.id || cuenta.estado !== 'Habilitada' || !puedeGestionar(cuenta)) {
+                <td data-label="Rol">{{ etiqueta(cuenta.rol) }}</td>
+                <td data-label="Acción">{{ cuenta.id === api.user()?.id ? 'Tu cuenta' : 'Sin cambios de rol disponibles' }}</td>
               } @else {
-                <td>
+                <td data-label="Rol">
                   <select
                     [ngModel]="borradores[cuenta.id] ?? cuenta.rol"
                     (ngModelChange)="borradores[cuenta.id] = $event"
@@ -77,12 +100,14 @@
                     [disabled]="busy()"
                   >
                     @for (rol of roles(); track rol) {
-                      <option [value]="rol">{{ etiqueta(rol) }}</option>
+                      @if (rol !== 'Superadministrador' || api.user()?.rol === 'Superadministrador') {
+                        <option [value]="rol">{{ etiqueta(rol) }}</option>
+                      }
                     }
                   </select>
                 </td>
-                <td>
-                  <button data-icon="save"
+                <td data-label="Acción">
+                  <button
                     type="button"
                     class="small"
                     (click)="guardar(cuenta)"
@@ -94,9 +119,12 @@
                   </button>
                 </td>
               }
-              <td>
-                @if (cuenta.id !== api.user()?.id) {
-                  <button data-icon="power"
+              <td data-label="Gestión de cuenta">
+                @if (puedeGestionar(cuenta)) {
+                  <button type="button" class="secondary small" (click)="editar(cuenta)" [disabled]="busy()">Corregir perfil</button>
+                }
+                @if (cuenta.id !== api.user()?.id && puedeGestionar(cuenta)) {
+                  <button
                     type="button"
                     class="secondary small"
                     (click)="cambiarEstado(cuenta)"
@@ -115,8 +143,9 @@
                     </button>
                   }
                 }
+                @if(estadoConfirmacion();as aviso){@if(aviso.id===cuenta.id){<p class="notice" role="status" aria-live="polite">{{aviso.texto}}</p>}}
               </td>
-              <td>
+              <td data-label="Docente a cargo">
                 @if (cuenta.rol === 'Estudiante' && cuenta.estado === 'Habilitada') {
                   <select
                     [ngModel]="docenteElegido(cuenta)"

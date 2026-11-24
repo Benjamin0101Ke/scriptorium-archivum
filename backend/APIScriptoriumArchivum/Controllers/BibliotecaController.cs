@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using System.Text.Json;
 using APIScriptoriumArchivum.Datos;
 using APIScriptoriumArchivum.Dtos;
@@ -12,17 +12,20 @@ namespace APIScriptoriumArchivum.Controllers
     [Route("api/admin")]
     public class BibliotecaController : ControllerBase
     {
-        private Fichas fichas;
-        private Ejemplares ejemplares;
-        private ArchivoPdf archivos;
-        private Complementos complementos;
+        private readonly Fichas fichas;
+        private readonly Ejemplares ejemplares;
+        private readonly ArchivoPdf archivos;
+        private readonly Complementos complementos;
+        private readonly CargasArchivos cargas;
 
-        public BibliotecaController(Fichas fichas, Ejemplares ejemplares, ArchivoPdf archivos, Complementos complementos)
+        public BibliotecaController(Fichas fichas, Ejemplares ejemplares, ArchivoPdf archivos, Complementos complementos,
+            CargasArchivos cargas)
         {
             this.fichas = fichas;
             this.ejemplares = ejemplares;
             this.archivos = archivos;
             this.complementos = complementos;
+            this.cargas = cargas;
         }
 
         [HttpGet("personas")]
@@ -77,13 +80,17 @@ namespace APIScriptoriumArchivum.Controllers
         }
 
         [HttpPost("trabajos/{id:int}/pdf")]
-        [RequestSizeLimit(26L * 1024 * 1024)]
-        public async Task<IActionResult> SubirPdf(int id, [FromForm] IFormFile? archivo, CancellationToken ct)
+        [RequestSizeLimit(CargasArchivos.MaximoBytes + 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = CargasArchivos.MaximoBytes)]
+        public async Task<IActionResult> SubirPdf(int id, [FromForm] IFormFile? archivo,
+            [FromForm(Name = "carga_id")] string? cargaId, CancellationToken ct)
         {
-            if (archivo is null || archivo.Length < 5 || archivo.Length > 25L * 1024 * 1024 ||
+            await using var recibido = await cargas.Resolver(archivo, cargaId, Actor(), ct);
+            archivo = recibido.Archivo;
+            if (archivo is null || archivo.Length < 5 ||
                 !archivo.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
             {
-                return BadRequest(new { error = "Selecciona un PDF de hasta 25 MB." });
+                return BadRequest(new { error = "Selecciona un PDF válido." });
             }
 
             string clave;

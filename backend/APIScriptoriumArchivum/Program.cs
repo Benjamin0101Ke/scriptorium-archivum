@@ -38,6 +38,7 @@ builder.Services.AddScoped<Catalogos>();
 builder.Services.AddScoped<Usuarios>();
 builder.Services.AddSingleton<Avisos>();
 builder.Services.AddSingleton<RegistroCorreos>();
+builder.Services.AddSingleton<CambiosEnVivo>();
 builder.Services.AddScoped<AsignacionesDocentes>();
 builder.Services.AddScoped<RevisionesDocentes>();
 builder.Services.AddHostedService<CorreoEventos>();
@@ -46,6 +47,7 @@ builder.Services.AddScoped<Ejemplares>();
 builder.Services.AddScoped<Complementos>();
 builder.Services.AddScoped<ConsultaPublica>();
 builder.Services.AddScoped<GestionRoles>();
+builder.Services.AddScoped<Presencia>();
 builder.Services.AddScoped<Recuperacion>();
 builder.Services.AddSingleton<CorreoRecuperacion>();
 builder.Services.AddHostedService(servicios => servicios.GetRequiredService<CorreoRecuperacion>());
@@ -63,9 +65,11 @@ builder.Services.AddRateLimiter(opciones =>
             PermitLimit = 20, Window = TimeSpan.FromMinutes(1), QueueLimit = 0
         }));
     opciones.OnRejected = (contexto, ct) => new ValueTask(
-        contexto.HttpContext.Response.WriteAsJsonAsync(new { error = "Esperá un minuto antes de volver a intentar." }, ct));
+        contexto.HttpContext.Response.WriteAsJsonAsync(new { error = "Espera un minuto antes de volver a intentar." }, ct));
 });
 builder.Services.AddSingleton<ArchivoPdf>();
+builder.Services.AddSingleton<CargasArchivos>();
+builder.Services.AddHostedService(servicios => servicios.GetRequiredService<CargasArchivos>());
 builder.Services.AddScoped<IPasswordHasher<Cuenta>, PasswordHasher<Cuenta>>();
 
 builder.Services.AddAuthentication("Scriptorium").AddCookie("Scriptorium", opciones =>
@@ -105,6 +109,10 @@ builder.Services.AddAuthentication("Scriptorium").AddCookie("Scriptorium", opcio
             else
             {
                 contexto.HttpContext.Items[typeof(Cuenta)] = cuenta;
+                // El rol principal se conserva para validar la cookie y la versión de sesión.
+                if (cuenta.Rol == "Superadministrador" && contexto.Principal?.Identity is ClaimsIdentity identidad)
+                    foreach (string rol in new[] { "Administrador", "Biblioteca", "Docente revisor", "Estudiante", "Lector" })
+                        if (!contexto.Principal.IsInRole(rol)) identidad.AddClaim(new Claim(ClaimTypes.Role, rol));
             }
         }
     };
@@ -157,5 +165,11 @@ app.UseRouting();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+app.Use(async (contexto, continuar) =>
+{
+    await continuar();
+    if(contexto.Response.StatusCode is >=200 and <300 && contexto.Request.Method is "POST" or "PUT" or "PATCH" or "DELETE")
+        contexto.RequestServices.GetRequiredService<CambiosEnVivo>().Peticion(contexto.Request.Path.Value?.ToLowerInvariant()??"");
+});
 app.MapControllers();
 app.Run();

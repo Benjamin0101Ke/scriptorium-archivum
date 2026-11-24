@@ -4,11 +4,11 @@ import { error } from './datos';
 export async function validatePdf(value: FormDataEntryValue | null): Promise<File> {
   if (
     !(value instanceof File) ||
-    value.size > 25 * 1024 * 1024 ||
+    value.size > 6 * 1024 * 1024 * 1024 ||
     !value.name.toLowerCase().endsWith('.pdf') ||
     (await value.slice(0, 5).text()) !== '%PDF-'
   ) {
-    error('Seleccioná un PDF válido de hasta 25 MB.');
+    error('Selecciona un PDF válido de hasta 6 GB.');
   }
   return value;
 }

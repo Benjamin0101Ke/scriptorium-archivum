@@ -1,11 +1,11 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Npgsql;
 
 namespace APIScriptoriumArchivum.Datos;
 
 public sealed class GestionRoles(NpgsqlDataSource baseDeDatos)
 {
-    private static string[] Permitidos = ["Lector", "Estudiante", "Biblioteca", "Docente revisor", "Administrador"];
+    private static readonly string[] Permitidos = ["Lector", "Estudiante", "Biblioteca", "Docente revisor", "Administrador", "Superadministrador"];
 
     public async Task<string[]> RolesDisponibles(CancellationToken ct)
     {
@@ -21,7 +21,7 @@ public sealed class GestionRoles(NpgsqlDataSource baseDeDatos)
         await using var conexion = await baseDeDatos.OpenConnectionAsync(ct);
         return await Comandos.FilasJson(conexion, """
             SELECT jsonb_build_object('id', u.id_usuario::text, 'nombre', coalesce(u.nombre_mostrar, concat_ws(' ', p.nombres, p.apellidos)),
-                'correo', u.correo_institucional, 'rol', r.nombre, 'estado', u.estado, 'id_docente',u.id_docente)::text
+                'correo', u.correo_institucional, 'rol', r.nombre, 'estado', u.estado, 'id_docente',u.id_docente, 'id_carrera',u.id_carrera, 'id_plan',u.id_plan)::text
             FROM public.usuarios u JOIN public.personas p USING (id_persona) JOIN public.roles r USING (id_rol)
             WHERE (@q = '' OR strpos(lower(concat_ws(' ', u.nombre_mostrar, p.nombres, p.apellidos, u.correo_institucional)), lower(@q)) > 0)
               AND (@rol::text IS NULL OR r.nombre=@rol) AND (@estado::text IS NULL OR u.estado=@estado)
@@ -31,14 +31,10 @@ public sealed class GestionRoles(NpgsqlDataSource baseDeDatos)
 
     public async Task CambiarEstado(int actor, int id, bool habilitada, CancellationToken ct)
     {
-        if (actor == id) throw new ErrorApi(409, "Tu cuenta debe mantenerse habilitada mientras administrás el sistema.");
+        if (actor == id) throw new ErrorApi(409, "Tu cuenta debe mantenerse habilitada mientras administras el sistema.");
         await using var conexion = await baseDeDatos.OpenConnectionAsync(ct);
         await using var tr = await conexion.BeginTransactionAsync(ct);
-        int admin = await Comandos.Valor<int>(conexion, tr,
-            "SELECT id_rol FROM public.roles WHERE nombre='Administrador' AND activo FOR UPDATE", ct);
-        int actorRol = await Comandos.Valor<int>(conexion, tr,
-            "SELECT id_rol FROM public.usuarios WHERE id_usuario=@actor AND estado='Habilitada'", ct, ("actor", actor));
-        if (actorRol != admin || admin == 0) throw new ErrorApi(403, "Se requiere una cuenta administradora.");
+        await Autorizar(conexion, tr, actor, id, false, ct);
         string? anterior = await Comandos.Valor<string>(conexion, tr,
             "SELECT estado FROM public.usuarios WHERE id_usuario=@id FOR UPDATE", ct, ("id", id));
         if (anterior is null) throw new ErrorApi(404, "La cuenta no existe.");
@@ -62,18 +58,12 @@ public sealed class GestionRoles(NpgsqlDataSource baseDeDatos)
 
     public async Task Cambiar(int actor, int id, string rol, CancellationToken ct)
     {
-        if (!Permitidos.Contains(rol)) throw new ErrorApi(400, "Elegí un rol disponible.");
+        if (!Permitidos.Contains(rol)) throw new ErrorApi(400, "Elige un rol disponible.");
         if (actor == id) throw new ErrorApi(409, "Otra cuenta administradora debe cambiar el rol de tu cuenta.");
 
         await using var conexion = await baseDeDatos.OpenConnectionAsync(ct);
         await using var tr = await conexion.BeginTransactionAsync(ct);
-        // Las asignaciones se serializan para validar al administrador antes de aplicar otro cambio.
-        int admin = await Comandos.Valor<int>(conexion, tr,
-            "SELECT id_rol FROM public.roles WHERE nombre = 'Administrador' AND activo FOR UPDATE", ct);
-        int actorRol = await Comandos.Valor<int>(conexion, tr, """
-            SELECT id_rol FROM public.usuarios WHERE id_usuario = @actor AND estado = 'Habilitada'
-            """, ct, ("actor", actor));
-        if (admin == 0 || actorRol != admin) throw new ErrorApi(403, "Se requiere una cuenta administradora.");
+        await Autorizar(conexion, tr, actor, id, rol == "Superadministrador", ct);
 
         int proximo = await Comandos.Valor<int>(conexion, tr,
             "SELECT id_rol FROM public.roles WHERE nombre = @rol AND activo", ct, ("rol", rol));
@@ -92,4 +82,37 @@ public sealed class GestionRoles(NpgsqlDataSource baseDeDatos)
             """, ct, ("id", id), ("proximo", proximo), ("actor", actor), ("detalle", $"{previo} → {rol}"));
         await tr.CommitAsync(ct);
     }
+    private static async Task Autorizar(NpgsqlConnection c, NpgsqlTransaction tr, int actor, int id, bool asignaSuper, CancellationToken ct)
+    {
+        // Serializa cambios de privilegios entre administradores.
+        await Comandos.FilasJson(c, tr, "SELECT to_json(id_rol)::text FROM public.roles WHERE nombre IN ('Administrador','Superadministrador') ORDER BY id_rol FOR UPDATE", ct);
+        string? rolActor = await Comandos.Valor<string>(c, tr,
+            "SELECT r.nombre FROM public.usuarios u JOIN public.roles r USING(id_rol) WHERE u.id_usuario=@id AND u.estado='Habilitada' AND r.activo FOR UPDATE OF u", ct, ("id", actor));
+        if (rolActor is not ("Administrador" or "Superadministrador")) throw new ErrorApi(403, "Se requiere una cuenta administradora.");
+        string? rolDestino = await Comandos.Valor<string>(c, tr,
+            "SELECT r.nombre FROM public.usuarios u JOIN public.roles r USING(id_rol) WHERE u.id_usuario=@id FOR UPDATE OF u", ct, ("id", id));
+        if (rolDestino is null) throw new ErrorApi(404, "La cuenta no existe.");
+        if ((asignaSuper || rolDestino == "Superadministrador") && rolActor != "Superadministrador")
+            throw new ErrorApi(403, "Solo un superadministrador puede gestionar cuentas de superadministrador.");
+    }
+
+    public async Task Corregir(int actor, int id, string? nombre, int? carrera, int? plan, CancellationToken ct)
+    {
+        nombre = nombre?.Trim();
+        if (string.IsNullOrWhiteSpace(nombre) || nombre.Length > 120) throw new ErrorApi(400, "Escribe un nombre de entre 1 y 120 caracteres.");
+        await using var c = await baseDeDatos.OpenConnectionAsync(ct);
+        await using var tr = await c.BeginTransactionAsync(ct);
+        await Autorizar(c, tr, actor, id, false, ct);
+        await Usuarios.ValidarCarrera(c, tr, carrera, ct);
+        await Usuarios.ValidarPlan(c, tr, carrera, plan, ct);
+        string? antes = await Comandos.Valor<string>(c, tr, "SELECT jsonb_build_object('nombre',nombre_mostrar,'id_carrera',id_carrera,'id_plan',id_plan)::text FROM public.usuarios WHERE id_usuario=@id", ct, ("id", id));
+        string despues = JsonSerializer.Serialize(new { nombre, id_carrera = carrera, id_plan = plan });
+        await Comandos.Ejecutar(c, tr, """
+            UPDATE public.usuarios SET nombre_mostrar=@nombre,id_carrera=@carrera::int,id_plan=@plan::int WHERE id_usuario=@id;
+            INSERT INTO public.bitacora(id_usuario_actor,operacion,tabla_afectada,registro_afectado,detalle)
+            VALUES(@actor,'CORREGIR_PERFIL','usuarios',@id::text,@detalle);
+            """, ct, ("id", id), ("actor", actor), ("nombre", nombre), ("carrera", carrera), ("plan", plan), ("detalle", $"Antes: {antes}. Después: {despues}"));
+        await tr.CommitAsync(ct);
+    }
+
 }

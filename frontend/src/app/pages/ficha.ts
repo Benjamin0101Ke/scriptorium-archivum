@@ -1,9 +1,11 @@
+import { Actualizaciones } from '../core/actualizaciones';
 import {Component,DestroyRef,inject,signal} from '@angular/core';
 import {ActivatedRoute,RouterLink} from '@angular/router';import {Api,Trabajo} from '../core/api';
 import {DomSanitizer,SafeResourceUrl} from '@angular/platform-browser';
 import {ArchivosTrabajo} from '../shared/archivos-trabajo';
 @Component({selector:'app-ficha',imports:[RouterLink,ArchivosTrabajo],templateUrl:'./ficha.html'})
 export class Ficha {
+ vivo=inject(Actualizaciones);
  api=inject(Api);route=inject(ActivatedRoute);t=signal<Trabajo|null>(null);error=signal('');message=signal('');
  private sanitizer=inject(DomSanitizer);
  private destroyRef=inject(DestroyRef);
@@ -13,16 +15,19 @@ export class Ficha {
  favorito=signal(false);
  favoritoBusy=signal(false);
  constructor(){
+  this.vivo.watch(['ficha','catalogo'],async()=>{const id=this.route.snapshot.paramMap.get('id');if(!id)return;try{const data=await this.api.request<Trabajo>('/trabajos/'+id);if(this.route.snapshot.paramMap.get('id')===id)this.t.set(data);}catch(e:any){if(e.status===404||e.status===403){this.t.set(null);this.closePreview();this.error.set(e.message);}}},this.destroyRef);
+  this.vivo.watch(['favoritos'],async()=>{if(this.t())await this.cargarFavorito(this.t()!.id);},this.destroyRef);
   this.destroyRef.onDestroy(()=>this.closePreview());
   this.route.paramMap.subscribe(async params=>{
    this.closePreview();
    this.error.set('');
    this.message.set('');
    this.t.set(null);
+   this.favorito.set(false);
    const id=params.get('id');
    try{
     const work=await this.api.request<Trabajo>('/trabajos/'+id);
-    if(this.route.snapshot.paramMap.get('id')===id){this.t.set(work);this.cargarFavorito(id!);}
+    if(this.route.snapshot.paramMap.get('id')===id){this.t.set(work);void this.cargarFavorito(id!);}
    }catch(e:any){if(this.route.snapshot.paramMap.get('id')===id)this.error.set(e.message);}
   });
  }
@@ -37,9 +42,8 @@ export class Ficha {
   this.message.set('');
   this.pdfBusy.set(true);
   try{
-   const pdf=await this.api.pdf('/trabajos/'+work.id+'/pdf?operacion='+operation);
+   const url=await this.api.pdfUrl('/trabajos/'+work.id+'/pdf?operacion='+operation);
    if(this.destroyRef.destroyed||this.t()?.id!==work.id)return;
-   const url=URL.createObjectURL(pdf);
    if(operation==='lectura'){
     this.closePreview();
     this.objectUrl=url;
@@ -54,10 +58,11 @@ export class Ficha {
   }catch(e:any){this.message.set(e.message);}finally{this.pdfBusy.set(false);}
  }
  private async cargarFavorito(id:string){
+   await this.api.ready;
    if(!this.api.user()){this.favorito.set(false);return;}
    try{
      const lista=await this.api.request<Trabajo[]>('/favoritos');
-     if(this.t()?.id===id)this.favorito.set(lista.some((item)=>item.id===id));
+     if(!this.destroyRef.destroyed&&this.t()?.id===id)this.favorito.set(lista.some((item)=>item.id===id));
    }catch{/* Sin favoritos o sin sesión: se muestra la opción de guardar. */}
  }
  async toggleFavorite(){
@@ -80,5 +85,5 @@ export class Ficha {
    }catch(e:any){this.message.set(e.message);}
    finally{this.favoritoBusy.set(false);}
  }
- async share(){try{await navigator.clipboard.writeText(location.href);this.message.set('Enlace copiado.');}catch{this.message.set('Copiá el enlace de la barra de direcciones.');}}
+ async share(){try{await navigator.clipboard.writeText(location.href);this.message.set('Enlace copiado.');}catch{this.message.set('Copia el enlace de la barra de direcciones.');}}
 }

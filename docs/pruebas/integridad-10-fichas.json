@@ -1,0 +1,78 @@
+{
+  "fecha": "2026-11-23",
+  "entorno": "local, datos ficticios",
+  "criterio": "diez fichas con varios autores, eñes y tildes; edición y comparación campo a campo",
+  "fichas": [
+    {
+      "ficha": 1,
+      "autores": 2,
+      "campos_cotejados": 7,
+      "enes_tildes_y_saltos": "conservados",
+      "resultado": "APROBADO"
+    },
+    {
+      "ficha": 2,
+      "autores": 2,
+      "campos_cotejados": 7,
+      "enes_tildes_y_saltos": "conservados",
+      "resultado": "APROBADO"
+    },
+    {
+      "ficha": 3,
+      "autores": 2,
+      "campos_cotejados": 7,
+      "enes_tildes_y_saltos": "conservados",
+      "resultado": "APROBADO"
+    },
+    {
+      "ficha": 4,
+      "autores": 2,
+      "campos_cotejados": 7,
+      "enes_tildes_y_saltos": "conservados",
+      "resultado": "APROBADO"
+    },
+    {
+      "ficha": 5,
+      "autores": 2,
+      "campos_cotejados": 7,
+      "enes_tildes_y_saltos": "conservados",
+      "resultado": "APROBADO"
+    },
+    {
+      "ficha": 6,
+      "autores": 2,
+      "campos_cotejados": 7,
+      "enes_tildes_y_saltos": "conservados",
+      "resultado": "APROBADO"
+    },
+    {
+      "ficha": 7,
+      "autores": 2,
+      "campos_cotejados": 7,
+      "enes_tildes_y_saltos": "conservados",
+      "resultado": "APROBADO"
+    },
+    {
+      "ficha": 8,
+      "autores": 2,
+      "campos_cotejados": 7,
+      "enes_tildes_y_saltos": "conservados",
+      "resultado": "APROBADO"
+    },
+    {
+      "ficha": 9,
+      "autores": 2,
+      "campos_cotejados": 7,
+      "enes_tildes_y_saltos": "conservados",
+      "resultado": "APROBADO"
+    },
+    {
+      "ficha": 10,
+      "autores": 2,
+      "campos_cotejados": 7,
+      "enes_tildes_y_saltos": "conservados",
+      "resultado": "APROBADO"
+    }
+  ],
+  "resultado": "10/10 coincidencias completas"
+}

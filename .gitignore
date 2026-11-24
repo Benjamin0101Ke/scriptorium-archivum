@@ -455,3 +455,20 @@ appsettings.*.local.json
 **/dist/
 **/.angular/
 *.log
+
+# Configuración privada, datos de instalaciones y respaldos
+.env
+.env.*
+!.env.example
+!**/.env.example
+**/storage/
+**/DataProtection-Keys/
+*.dump
+*.backup
+*.pfx
+*.p12
+/servidor/
+/compose.server.yaml
+/ESTADO-SERVIDOR.md
+/CONEXION-DESDE-WINDOWS.md
+/GUIA-DEBIAN-PUTTY.md

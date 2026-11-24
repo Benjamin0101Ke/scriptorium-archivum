@@ -1,0 +1,119 @@
+{
+  "fecha": "2026-11-23",
+  "entorno": "local, datos ficticios",
+  "casos": [
+    {
+      "navegador": "Chrome",
+      "version": "158.0.8127.36",
+      "ancho": 360,
+      "resultado": "APROBADO",
+      "recorridos": [
+        "busqueda",
+        "selector con filtro",
+        "favoritos persistentes",
+        "ficha",
+        "entrega PDF con rango",
+        "seis espacios sin desbordamiento"
+      ]
+    },
+    {
+      "navegador": "Chrome",
+      "version": "158.0.8127.36",
+      "ancho": 390,
+      "resultado": "APROBADO",
+      "recorridos": [
+        "busqueda",
+        "selector con filtro",
+        "favoritos persistentes",
+        "ficha",
+        "entrega PDF con rango",
+        "seis espacios sin desbordamiento"
+      ]
+    },
+    {
+      "navegador": "Chrome",
+      "version": "158.0.8127.36",
+      "ancho": 768,
+      "resultado": "APROBADO",
+      "recorridos": [
+        "busqueda",
+        "selector con filtro",
+        "favoritos persistentes",
+        "ficha",
+        "entrega PDF con rango",
+        "seis espacios sin desbordamiento"
+      ]
+    },
+    {
+      "navegador": "Chrome",
+      "version": "158.0.8127.36",
+      "ancho": 1280,
+      "resultado": "APROBADO",
+      "recorridos": [
+        "busqueda",
+        "selector con filtro",
+        "favoritos persistentes",
+        "ficha",
+        "entrega PDF con rango",
+        "seis espacios sin desbordamiento"
+      ]
+    },
+    {
+      "navegador": "Edge",
+      "version": "158.0.4370.33",
+      "ancho": 360,
+      "resultado": "APROBADO",
+      "recorridos": [
+        "busqueda",
+        "selector con filtro",
+        "favoritos persistentes",
+        "ficha",
+        "entrega PDF con rango",
+        "seis espacios sin desbordamiento"
+      ]
+    },
+    {
+      "navegador": "Edge",
+      "version": "158.0.4370.33",
+      "ancho": 390,
+      "resultado": "APROBADO",
+      "recorridos": [
+        "busqueda",
+        "selector con filtro",
+        "favoritos persistentes",
+        "ficha",
+        "entrega PDF con rango",
+        "seis espacios sin desbordamiento"
+      ]
+    },
+    {
+      "navegador": "Edge",
+      "version": "158.0.4370.33",
+      "ancho": 768,
+      "resultado": "APROBADO",
+      "recorridos": [
+        "busqueda",
+        "selector con filtro",
+        "favoritos persistentes",
+        "ficha",
+        "entrega PDF con rango",
+        "seis espacios sin desbordamiento"
+      ]
+    },
+    {
+      "navegador": "Edge",
+      "version": "158.0.4370.33",
+      "ancho": 1280,
+      "resultado": "APROBADO",
+      "recorridos": [
+        "busqueda",
+        "selector con filtro",
+        "favoritos persistentes",
+        "ficha",
+        "entrega PDF con rango",
+        "seis espacios sin desbordamiento"
+      ]
+    }
+  ],
+  "limite": "Dos navegadores instalados en una version cada uno. No acredita dos versiones por navegador, Firefox ni dispositivos fisicos."
+}

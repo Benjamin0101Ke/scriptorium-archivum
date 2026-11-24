@@ -1,0 +1,91 @@
+{
+  "fecha": "2026-11-23",
+  "resultado": "12/12 consultas verificadas contra el modelo de coincidencia esperado; autor admite nombre o apellido parcial y la autorización final se conserva.",
+  "consultas": [
+    {
+      "consulta": {
+        "q": "RNF-0001"
+      },
+      "coincidencias": 1,
+      "equivalente": true
+    },
+    {
+      "consulta": {
+        "q": "RNF-9999"
+      },
+      "coincidencias": 0,
+      "equivalente": true
+    },
+    {
+      "consulta": {
+        "q": "documento sintetico"
+      },
+      "coincidencias": 996,
+      "equivalente": true
+    },
+    {
+      "consulta": {
+        "autor": "muñoz"
+      },
+      "coincidencias": 0,
+      "equivalente": true
+    },
+    {
+      "consulta": {
+        "q": "monitoreo"
+      },
+      "coincidencias": 0,
+      "equivalente": true
+    },
+    {
+      "consulta": {
+        "anio": "2026"
+      },
+      "coincidencias": 1001,
+      "equivalente": true
+    },
+    {
+      "consulta": {
+        "carrera": "Arquitectura"
+      },
+      "coincidencias": 1001,
+      "equivalente": true
+    },
+    {
+      "consulta": {
+        "area": "Gestion documental de prueba"
+      },
+      "coincidencias": 1,
+      "equivalente": true
+    },
+    {
+      "consulta": {
+        "tipo": "Informe técnico"
+      },
+      "coincidencias": 1000,
+      "equivalente": true
+    },
+    {
+      "consulta": {
+        "q": "¿inexistente-test?"
+      },
+      "coincidencias": 0,
+      "equivalente": true
+    },
+    {
+      "consulta": {
+        "autor": "Demostración"
+      },
+      "coincidencias": 997,
+      "equivalente": true
+    },
+    {
+      "consulta": {
+        "q": "prueba RNF",
+        "anio": "2026"
+      },
+      "coincidencias": 996,
+      "equivalente": true
+    }
+  ]
+}

@@ -1,4 +1,7 @@
-import { Component, computed, inject, signal, viewChild } from '@angular/core';
+import { Actualizaciones } from '../core/actualizaciones';
+import { Transiciones } from '../core/transiciones';
+import { MiDocente } from '../shared/mi-docente';
+import { Component, computed, inject, signal, viewChild, DestroyRef } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -6,15 +9,18 @@ import { Api } from '../core/api';
 import type { Envio } from '../core/demo/envios';
 import { createMetadataDraft, metadataFromDraft, validateMetadata } from '../core/metadata';
 import { MetadataFields } from '../shared/metadata-fields';
+import { RevisionesDocentes } from '../shared/revisiones-docentes';
 import { ArchivosTrabajo } from '../shared/archivos-trabajo';
 import { cargarCatalogos, CatalogosBiblioteca, nuevaSeleccion } from '../core/biblioteca-catalogos';
 
 @Component({
   selector: 'app-envios',
-  imports: [DatePipe, FormsModule, MetadataFields, ArchivosTrabajo, RouterLink],
+  imports: [DatePipe, FormsModule, MetadataFields, ArchivosTrabajo, RouterLink, RevisionesDocentes, MiDocente],
   templateUrl: './envios.html',
 })
 export class Envios {
+ transiciones=inject(Transiciones);
+ vivo=inject(Actualizaciones);
   api = inject(Api);
   private metadataFields = viewChild.required(MetadataFields);
   draft = createMetadataDraft(this.api.user()?.nombre);
@@ -42,6 +48,8 @@ get esProyectoSoftware(): boolean {
   );
 
   constructor() {
+    this.vivo.watch(['envios'],()=>this.load(true),inject(DestroyRef));
+    this.vivo.watch(['catalogos'],()=>this.loadCatalogos(),inject(DestroyRef));
     this.load();
     if (!this.api.demo) this.loadCatalogos();
   }
@@ -55,8 +63,8 @@ get esProyectoSoftware(): boolean {
     }
   }
 
-  async load() {
-    this.loading.set(true);
+  async load(background=false) {
+    if(!background)this.loading.set(true);
     this.listError.set('');
     try {
       this.items.set(await this.api.request<Envio[]>('/mis-envios'));
@@ -74,7 +82,7 @@ get esProyectoSoftware(): boolean {
     const catalogos = this.catalogos();
     if (!this.api.demo && !catalogos) return;
     if (!this.api.demo && !this.carreraPropia()) {
-      this.error.set('Completá tu carrera en Mi perfil antes de enviar el trabajo.');
+      this.error.set('Completa tu carrera en Mi perfil antes de enviar el trabajo.');
       return;
     }
     const { id_tipo_trabajo, area_ids } = this.seleccion;
@@ -94,7 +102,7 @@ get esProyectoSoftware(): boolean {
     const invalid = validateMetadata(metadata);
     this.invalid.set(invalid);
     if (invalid.length) {
-      this.error.set('Revisá los campos marcados.');
+      this.error.set('Revisa los campos marcados.');
       this.metadataFields().focusFirst(invalid);
       return;
     }
@@ -105,13 +113,13 @@ const enlace = this.enlaceProyecto.trim();
 if (esSoftware) {
   try {
     const url = new URL(enlace);
-    if (url.protocol !== 'https:') throw new Error();
+    if (url.protocol !== 'https:' || url.username || url.password) throw new Error();
   } catch {
-    this.error.set('Ingresá un enlace HTTPS válido para tu proyecto.');
+    this.error.set('Ingresa un enlace HTTPS válido para tu proyecto.');
     return;
   }
 } else if (!file) {
-  this.error.set('Seleccioná el PDF de tu trabajo.');
+  this.error.set('Selecciona el PDF de tu trabajo.');
   fileInput.focus();
   return;
 }
@@ -141,6 +149,7 @@ if (esSoftware) {
       this.enlaceProyecto = '';
       fileInput.value = '';
       this.message.set('Tu trabajo quedó en revisión en Biblioteca.');
+      this.transiciones.confirmar(titulo);
     } catch (e: any) {
       this.error.set(e.message);
       if (Array.isArray(e.details?.fields)) {

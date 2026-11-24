@@ -1,8 +1,10 @@
+import { Actualizaciones } from '../core/actualizaciones';
 import { DatePipe } from '@angular/common';
 import { hoyElSalvador } from '../core/fechas';
-import {Component,ElementRef,inject,signal,viewChild} from '@angular/core';import {FormsModule} from '@angular/forms';import {Api} from '../core/api';
+import {Component,ElementRef,computed,inject,signal,viewChild, DestroyRef } from '@angular/core';import {FormsModule} from '@angular/forms';import {Api} from '../core/api';
 import {createMetadataDraft,metadataFromDraft,validateMetadata} from '../core/metadata';
 import {MetadataFields} from '../shared/metadata-fields';
+import {RevisionesDocentes} from '../shared/revisiones-docentes';
 import {LocalPdfPreview} from '../shared/local-pdf-preview';
 import {PersonPicker} from '../shared/person-picker';
 import {ArchivosTrabajo} from '../shared/archivos-trabajo';
@@ -10,11 +12,26 @@ import {cargarCatalogos, CatalogosBiblioteca, nuevaSeleccion, OpcionCatalogo, pe
 const emptyControls=()=>({ejemplar_id:'',deposito_referencia:'',deposito_fecha:'',deposito_verificado:false,verificar:false,conformidad_referencia:'',ficha_publica:false,lectura:false,descarga:false,autorizacion:{referencia:'',otorgantes:'',fecha:hoyElSalvador(),vence:'',estado:'Vigente',ficha:false,lectura:false,descarga:false},registrar_decision:false,decision:{resultado:'Favorable',motivo:''}});
 @Component({
   selector: 'app-biblioteca',
-  imports: [DatePipe, FormsModule, MetadataFields, LocalPdfPreview, PersonPicker, ArchivosTrabajo],
+  imports: [DatePipe, FormsModule, MetadataFields, LocalPdfPreview, PersonPicker, ArchivosTrabajo, RevisionesDocentes],
   templateUrl: './biblioteca.html',
   styleUrl: './biblioteca.css'
 })export class Biblioteca {
+ vivo=inject(Actualizaciones);
  api=inject(Api);items=signal<any[]>([]);current=signal<any>(null);checks=signal<any[]>([]);logs=signal<any[]>([]);report=signal<any[]>([]);links=signal<any[]>([]);
+ filtroEstado=signal('');
+ normalizarEstado(estado:string){return (estado||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
+ fichasFiltradas=computed(()=>this.items().filter(t=>!this.filtroEstado()||this.normalizarEstado(t.estado)===this.filtroEstado()));
+ actualFueraFiltro=computed(()=>!!this.current()&&!!this.filtroEstado()&&this.normalizarEstado(this.current().estado)!==this.filtroEstado());
+ cambiosPendientes=signal(false);
+ private edicionGuardada='';
+ private edicionSnapshot(){return JSON.stringify({meta:this.meta,seleccion:this.seleccion,control:this.control,otorgantes:this.otorgantes,reference:this.reference,link:this.link,retireReason:this.retireReason});}
+ async sincronizarEnVivo(){
+  if(this.busy()){this.cambiosPendientes.set(true);return;}
+  await this.load();const t=this.current();if(!t)return;
+  const foco=document.activeElement;
+  if(this.file||this.edicionSnapshot()!==this.edicionGuardada||(foco&&this.element.nativeElement.contains(foco)&&['INPUT','SELECT','TEXTAREA'].includes(foco.tagName))){this.cambiosPendientes.set(true);return;}
+  await this.select(t.id,true);
+ }
  private element=inject<ElementRef<HTMLElement>>(ElementRef);
  private metadataFields=viewChild.required(MetadataFields);
  fields=signal<string[]>([]);
@@ -50,6 +67,8 @@ const emptyControls=()=>({ejemplar_id:'',deposito_referencia:'',deposito_fecha:'
  meta=createMetadataDraft();control=emptyControls();file:File|null=null;reference='';retireReason='';link={url:'',tipo:'',descripcion:''};
  private metaGuardada = this.metadataSnapshot();
  constructor(){
+  this.vivo.watch(['biblioteca'],()=>this.sincronizarEnVivo(),inject(DestroyRef));
+  this.vivo.watch(['catalogos'],()=>this.loadCatalogos(),inject(DestroyRef));
   this.load();
   if(!this.api.demo)this.loadCatalogos();
  }
@@ -109,12 +128,12 @@ newWork(dialog: HTMLDialogElement) {
     this.duplicate.set(false);
     this.fields.set([]);
     this.resetExampleInput();
-    this.message.set('Nueva ficha. Guardá los datos para agregar el PDF.');
+    this.message.set('Nueva ficha. Guarda los datos para agregar el PDF.');
     this.error.set('');
     this.metadataFields().focusFirst();
   }, dialog);
 }
- async select(id:string){const t=await this.api.request('/admin/trabajos/'+id);this.current.set(t);this.checks.set(t.controles);this.duplicate.set(false);
+ async select(id:string,soloSinCambios=false){const antes=this.edicionSnapshot();const t=await this.api.request('/admin/trabajos/'+id);if(soloSinCambios&&this.edicionSnapshot()!==antes){this.cambiosPendientes.set(true);return;}this.current.set(t);this.checks.set(t.controles);this.duplicate.set(false);
  this.meta={titulo:t.titulo,autores:t.autores.join('; '),anio:t.anio,carrera:t.carrera,area:t.area,tipo:t.tipo,resumen:t.resumen};
  this.seleccion={
   autores:personasSeleccionadas(t.autor_ids??[],t.autores),
@@ -127,7 +146,7 @@ newWork(dialog: HTMLDialogElement) {
  );
  this.metaGuardada = this.metadataSnapshot();
  this.control={...emptyControls(),ejemplar_id:t.ejemplar_actual||'',deposito_referencia:t.deposito_referencia||'',deposito_fecha:t.deposito_fecha||'',deposito_verificado:t.deposito_verificado,conformidad_referencia:t.ejemplar?.conformidad_referencia||'',ficha_publica:t.ficha_publica,lectura:t.lectura,descarga:t.descarga,autorizacion:t.autorizacion?{...t.autorizacion,vence:t.autorizacion.vence||''}:emptyControls().autorizacion,decision:t.decision?{resultado:t.decision.resultado,motivo:t.decision.motivo}:emptyControls().decision};
- this.links.set(await this.api.request('/admin/trabajos/'+id+'/enlaces'));}
+ this.edicionGuardada=this.edicionSnapshot();this.cambiosPendientes.set(false);const enlaces=await this.api.request('/admin/trabajos/'+id+'/enlaces');if(this.current()?.id===id)this.links.set(enlaces);}
  open(id: string, dialog: HTMLDialogElement) {
   this.solicitarConfirmacion(() => {
     this.run(async () => {
@@ -144,7 +163,7 @@ newWork(dialog: HTMLDialogElement) {
  save(confirmarDuplicado=false){this.run(async()=>{
   this.duplicate.set(false);
   const catalogos=this.catalogos();
-  if(!this.api.demo&&!catalogos)throw new Error('Cargá los catálogos antes de guardar la ficha.');
+  if(!this.api.demo&&!catalogos)throw new Error('Carga los catálogos antes de guardar la ficha.');
   const {autores,id_carrera,id_tipo_trabajo,area_ids}=this.seleccion;
   const tipoConservado=this.current()?.id_tipo_trabajo===id_tipo_trabajo?this.current()?.tipo:'';
   const data=catalogos?{
@@ -156,7 +175,7 @@ newWork(dialog: HTMLDialogElement) {
   }:metadataFromDraft(this.meta);
   const invalid=validateMetadata(data);
   this.showFields(invalid);
-  if(invalid.length)throw new Error('Revisá los campos marcados.');
+  if(invalid.length)throw new Error('Revisa los campos marcados.');
   const id=this.current()?.id;
   const {titulo,anio,resumen}=data;
   const payload=this.api.demo?data:{
@@ -181,21 +200,26 @@ newWork(dialog: HTMLDialogElement) {
  }
  choose(event:Event){this.file=(event.target as HTMLInputElement).files?.[0]||null;}
  upload(){this.run(async()=>{
-  if(!this.file)throw new Error('Seleccioná un PDF.');
+  if(!this.file)throw new Error('Selecciona un PDF.');
   const id=this.current().id;
   const data=new FormData();data.append('archivo',this.file);
   const uploaded=await this.api.request<{ejemplar_id:string}>('/admin/trabajos/'+id+'/pdf','POST',data);
   this.resetExampleInput();
   await this.select(id);await this.load();
   if(this.control.ejemplar_id!==uploaded.ejemplar_id)
-   throw new Error('El ejemplar cambió tras la carga. Revisá el ejemplar que figura ahora en la ficha.');
-  this.message.set('PDF asociado. Completá sus verificaciones y permisos antes de publicar.');
+   throw new Error('El ejemplar cambió tras la carga. Revisa el ejemplar que figura ahora en la ficha.');
+  this.message.set('PDF asociado. Completa sus verificaciones y permisos antes de publicar.');
  });}
+ requestReference(dialog:HTMLDialogElement){
+  if(this.busy()||!this.reference.trim())return;
+  if(this.current()?.ejemplar?.nombre_original){dialog.showModal();return;}
+  this.saveReference();
+ }
  saveReference(){this.run(async()=>{
   await this.api.request('/admin/trabajos/'+this.current().id+'/referencia','POST',{referencia:this.reference});
   this.resetExampleInput();
   await this.select(this.current().id);await this.load();
-  this.message.set('Referencia asociada. Registrá la conformidad del ejemplar.');
+  this.message.set('Referencia asociada. Registra la conformidad del ejemplar.');
  });}
  changeDepositReference(value:string){
   if(value.trim()!==this.control.deposito_referencia.trim())this.control.deposito_verificado=false;
@@ -204,11 +228,11 @@ newWork(dialog: HTMLDialogElement) {
  saveControls(){this.run(async()=>{
   const id=this.current().id;
   const {autorizacion,decision,registrar_decision,...controls}=this.control;
-  if(registrar_decision&&!decision.motivo.trim())throw new Error('Ingresá el motivo de la nueva decisión.');
+  if(registrar_decision&&!decision.motivo.trim())throw new Error('Ingresa el motivo de la nueva decisión.');
   const {otorgantes,...constancia}=autorizacion;
   const tieneOtorgantes=this.api.demo?!!otorgantes.trim():this.otorgantes.length>0;
   const registrarConstancia=!!constancia.referencia.trim()||tieneOtorgantes||constancia.estado==='Revocada';
-  if(registrarConstancia&&!constancia.fecha)throw new Error('Indicá la fecha de otorgamiento de la constancia.');
+  if(registrarConstancia&&!constancia.fecha)throw new Error('Indica la fecha de otorgamiento de la constancia.');
   if(registrarConstancia&&constancia.vence&&constancia.vence<constancia.fecha)throw new Error('La fecha de vencimiento no puede ser anterior a la fecha de otorgamiento.');
   const payload={
    ...controls,

@@ -1,4 +1,5 @@
-import { Component, computed, effect, inject, model, signal } from '@angular/core';
+import { Actualizaciones } from '../core/actualizaciones';
+import { Component, computed, effect, inject, input, model, signal, DestroyRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Api } from '../core/api';
 
@@ -28,10 +29,17 @@ export interface OfertaAcademica {
   imports: [FormsModule],
   template: `
     <fieldset>
-      <legend>Departamento y carrera</legend>
+      <legend>Departamento, carrera y pénsum</legend>
+      @if(mostrarResumen()){<dl class="metadata" aria-label="Información académica seleccionada"><div><dt>Departamento</dt><dd>{{departamentoSeleccionado()?.nombre || 'Sin seleccionar'}}</dd></div><div><dt>Carrera</dt><dd>{{carreraSeleccionada()?.nombre || 'Sin seleccionar'}}</dd></div><div><dt>Pénsum</dt><dd>{{planSeleccionado()?.nombre || 'Sin seleccionar'}}</dd></div></dl>}
       <p>
-        Si sos estudiante, elegí tu carrera para registrar tu cuenta como Estudiante. Podés
+        @if (administracion()) {
+          Selecciona el departamento, la carrera y la versión del plan que corresponden a esta cuenta. Su rol se conserva.
+        } @else if(conservarRol()) {
+          Selecciona tu departamento, carrera y pénsum. Al guardar se conserva tu rol actual.
+        } @else {
+        Si eres estudiante, elige tu carrera para registrar tu cuenta como Estudiante. Puedes
         continuar como lector dejando la carrera vacía.
+        }
       </p>
       @if (error()) {
         <p class="notice error" role="alert">
@@ -59,7 +67,7 @@ export interface OfertaAcademica {
           [ngModel]="busqueda()"
           (ngModelChange)="busqueda.set($event)"
           [ngModelOptions]="{ standalone: true }"
-          placeholder="Escribí el nombre de la carrera"
+          placeholder="Escribe el nombre de la carrera"
         />
       </label>
       <label
@@ -77,7 +85,7 @@ export interface OfertaAcademica {
       </label>
       @if (seleccion()) {
         <label
-          >Versión del plan de estudios
+          >Pénsum o plan de estudios
           <select
             [ngModel]="plan()"
             (ngModelChange)="plan.set($event)"
@@ -110,6 +118,10 @@ export interface OfertaAcademica {
   `,
 })
 export class CarreraSelector {
+ vivo=inject(Actualizaciones);
+  administracion = input(false);
+  conservarRol = input(false);
+  mostrarResumen = input(false);
   private api = inject(Api);
   seleccion = model<number | null>(null);
   plan = model<number | null>(null);
@@ -117,6 +129,8 @@ export class CarreraSelector {
   busqueda = signal('');
   error = signal('');
   oferta = signal<OfertaAcademica>({ departamentos: [], carreras: [], planes: [] });
+  carreraSeleccionada = computed(() => this.oferta().carreras.find(c => c.id === this.seleccion()));
+  departamentoSeleccionado = computed(() => this.oferta().departamentos.find(d => d.id === this.carreraSeleccionada()?.id_departamento));
   planes = computed(() => this.oferta().planes.filter((p) => p.id_carrera === this.seleccion()));
   planSeleccionado = computed(() => this.planes().find((p) => p.id === this.plan()));
   carreras = computed(() => {
@@ -128,6 +142,7 @@ export class CarreraSelector {
     );
   });
   constructor() {
+    this.vivo.watch(['catalogos'],()=>this.cargar(),inject(DestroyRef));
     this.cargar();
     effect(() => {
       const elegida = this.oferta().carreras.find((c) => c.id === this.seleccion());

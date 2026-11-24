@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.DataProtection;
@@ -9,15 +9,15 @@ namespace APIScriptoriumArchivum.Datos;
 
 public sealed class Recuperacion(
     NpgsqlDataSource baseDeDatos, Usuarios usuarios, IDataProtectionProvider proteccion,
-    IPasswordHasher<Cuenta> contrasenas, CorreoRecuperacion correo)
+    IPasswordHasher<Cuenta> contrasenas, CorreoRecuperacion correo, ILogger<Recuperacion> log)
 {
     private const int Minutos = 10;
     private IDataProtector protector = proteccion.CreateProtector("Scriptorium.Recuperacion.v1");
 
-    public async Task Solicitar(string direccion, CancellationToken ct)
+    public async Task Solicitar(string direccion, CancellationToken ct, string? solicitudId = null)
     {
         Cuenta? cuenta = await usuarios.BuscarAsync(null, direccion, ct);
-        if (cuenta is null) return;
+        if (cuenta is null){log.LogInformation("Solicitud de recuperación {Solicitud}: sin cuenta habilitada",solicitudId);return;}
         string codigo = RandomNumberGenerator.GetInt32(1_000_000).ToString("D6", CultureInfo.InvariantCulture);
         string protegido = protector.Protect(cuenta.VersionSesion + ":" + codigo);
         await using var conexion = await baseDeDatos.OpenConnectionAsync(ct);
@@ -38,7 +38,9 @@ public sealed class Recuperacion(
         if (await comando.ExecuteNonQueryAsync(ct) == 1)
         {
             correo.Encolar(cuenta.Id, cuenta.Correo, codigo, Minutos);
+            log.LogInformation("Solicitud de recuperación {Solicitud}: encolada para usuario {Usuario}",solicitudId,cuenta.Id);
         }
+        else log.LogInformation("Solicitud de recuperación {Solicitud}: limitada para usuario {Usuario}",solicitudId,cuenta.Id);
     }
 
     public async Task<bool> Confirmar(string direccion, string codigo, string nueva, CancellationToken ct)

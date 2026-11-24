@@ -435,6 +435,36 @@ main > router-outlet + * { display: block; animation: page-enter 240ms ease-out;
 [data-icon="power"] { --ico: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M12%202v10M18.4%206.6a9%209%200%201%201-12.8%200'/%3E%3C/svg%3E"); }
 [data-icon="shield-check"] { --ico: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M20%2013c0%205-3.5%207.5-7.7%208.9a1%201%200%200%201-.6%200C7.5%2020.5%204%2018%204%2013V6a1%201%200%200%201%201-1c2%200%204.5-1.2%206.2-2.7a1.2%201.2%200%200%201%201.6%200C14.5%203.8%2017%205%2019%205a1%201%200%200%201%201%201z'/%3E%3Cpath%20d='m9%2012%202%202%204-4'/%3E%3C/svg%3E"); }
 
+/* Native file controls use a readable button in both themes. */
+input[type="file"]::file-selector-button {
+  background: #6144d6;
+  color: #fff;
+  border: 1px solid #6144d6;
+  border-radius: 8px;
+  padding: 9px 14px;
+  margin-inline-end: 12px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+input[type="file"]:not(:disabled)::file-selector-button:hover {
+  background: #4c32b8;
+  border-color: #4c32b8;
+}
+input[type="file"]:disabled::file-selector-button { opacity: .6; cursor: default; }
+
+.favorite-remove { margin-top: 16px; width: 100%; }
+.catalog-section .search-row { align-items: flex-end; }
+.catalog-section .search-row label { min-width: 0; margin: 0; font-size: 13px; }
+.catalog-section .busqueda-titulo { flex: 1.7 1 0; }
+.catalog-section .busqueda-autor { flex: 1 1 0; }
+.catalog-section .search-row label input { width: 100%; margin-top: 8px; }
+.catalog-section .search-row > button { min-height: 54px; }
+@media (max-width: 700px) {
+ .catalog-section .search-row { flex-direction: column; align-items: stretch; }
+ .catalog-section .search-row label { flex: auto; width: 100%; }
+}
+
 .contenedor-personalizado label{
   all: revert;
   margin-left: 5px;
@@ -452,4 +482,3 @@ main > router-outlet + * { display: block; animation: page-enter 240ms ease-out;
   margin-bottom: 3%;
   justify-content: space-between;
 }
-

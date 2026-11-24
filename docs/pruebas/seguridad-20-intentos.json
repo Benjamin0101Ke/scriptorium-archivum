@@ -1,0 +1,187 @@
+{
+  "entorno": "local, datos ficticios",
+  "fecha": "2026-11-23",
+  "resultado": "20 rechazos correctos de 20 intentos",
+  "intentos": [
+    {
+      "numero": 1,
+      "metodo": "GET",
+      "ruta": "/admin/roles",
+      "esperado": [
+        401
+      ],
+      "obtenido": 401
+    },
+    {
+      "numero": 2,
+      "metodo": "GET",
+      "ruta": "/admin/trabajos",
+      "esperado": [
+        401
+      ],
+      "obtenido": 401
+    },
+    {
+      "numero": 3,
+      "metodo": "GET",
+      "ruta": "/admin/trabajos/{trabajo}",
+      "esperado": [
+        401
+      ],
+      "obtenido": 401
+    },
+    {
+      "numero": 4,
+      "metodo": "GET",
+      "ruta": "/admin/trabajos/{trabajo}/pdf",
+      "esperado": [
+        401
+      ],
+      "obtenido": 401
+    },
+    {
+      "numero": 5,
+      "metodo": "GET",
+      "ruta": "/admin/trabajos/{trabajo}/enlaces",
+      "esperado": [
+        401
+      ],
+      "obtenido": 401
+    },
+    {
+      "numero": 6,
+      "metodo": "GET",
+      "ruta": "/docente/resumen",
+      "esperado": [
+        401
+      ],
+      "obtenido": 401
+    },
+    {
+      "numero": 7,
+      "metodo": "GET",
+      "ruta": "/docente/trabajos",
+      "esperado": [
+        401
+      ],
+      "obtenido": 401
+    },
+    {
+      "numero": 8,
+      "metodo": "GET",
+      "ruta": "/docente/trabajos/{trabajo}",
+      "esperado": [
+        401
+      ],
+      "obtenido": 401
+    },
+    {
+      "numero": 9,
+      "metodo": "GET",
+      "ruta": "/docente/trabajos/{trabajo}/pdf",
+      "esperado": [
+        401
+      ],
+      "obtenido": 401
+    },
+    {
+      "numero": 10,
+      "metodo": "GET",
+      "ruta": "/mis-envios",
+      "esperado": [
+        401
+      ],
+      "obtenido": 401
+    },
+    {
+      "numero": 11,
+      "metodo": "GET",
+      "ruta": "/mis-envios/{trabajo}/revisiones",
+      "esperado": [
+        401
+      ],
+      "obtenido": 401
+    },
+    {
+      "numero": 12,
+      "metodo": "GET",
+      "ruta": "/mi-docente",
+      "esperado": [
+        401
+      ],
+      "obtenido": 401
+    },
+    {
+      "numero": 13,
+      "metodo": "GET",
+      "ruta": "/admin/roles",
+      "esperado": [
+        403
+      ],
+      "obtenido": 403
+    },
+    {
+      "numero": 14,
+      "metodo": "GET",
+      "ruta": "/admin/trabajos",
+      "esperado": [
+        403
+      ],
+      "obtenido": 403
+    },
+    {
+      "numero": 15,
+      "metodo": "GET",
+      "ruta": "/admin/trabajos/{trabajo}",
+      "esperado": [
+        403
+      ],
+      "obtenido": 403
+    },
+    {
+      "numero": 16,
+      "metodo": "GET",
+      "ruta": "/admin/trabajos/{trabajo}/pdf",
+      "esperado": [
+        403
+      ],
+      "obtenido": 403
+    },
+    {
+      "numero": 17,
+      "metodo": "GET",
+      "ruta": "/admin/trabajos/{trabajo}/enlaces",
+      "esperado": [
+        403
+      ],
+      "obtenido": 403
+    },
+    {
+      "numero": 18,
+      "metodo": "GET",
+      "ruta": "/docente/resumen",
+      "esperado": [
+        403
+      ],
+      "obtenido": 403
+    },
+    {
+      "numero": 19,
+      "metodo": "GET",
+      "ruta": "/docente/trabajos",
+      "esperado": [
+        403
+      ],
+      "obtenido": 403
+    },
+    {
+      "numero": 20,
+      "metodo": "PUT",
+      "ruta": "/admin/roles/80/estado",
+      "esperado": [
+        403
+      ],
+      "obtenido": 403
+    }
+  ]
+}

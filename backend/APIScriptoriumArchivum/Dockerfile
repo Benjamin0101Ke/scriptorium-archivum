@@ -10,7 +10,8 @@ RUN dotnet publish APIScriptoriumArchivum.csproj --configuration Release --no-re
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --from=build /publish ./
-RUN install -d -m 700 -o "$APP_UID" /home/app/.aspnet/DataProtection-Keys
+RUN install -d -m 700 -o "$APP_UID" /home/app/.aspnet/DataProtection-Keys \
+    && install -d -m 750 -o "$APP_UID" /app/storage/trabajos
 USER $APP_UID
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "APIScriptoriumArchivum.dll"]

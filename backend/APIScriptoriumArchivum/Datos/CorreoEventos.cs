@@ -2,7 +2,7 @@ using Npgsql;
 
 namespace APIScriptoriumArchivum.Datos;
 
-public sealed class CorreoEventos(NpgsqlDataSource db, IConfiguration config, ILogger<CorreoEventos> log) : BackgroundService
+public sealed class CorreoEventos(NpgsqlDataSource db, IConfiguration config, ILogger<CorreoEventos> log, CambiosEnVivo cambios) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
@@ -104,6 +104,7 @@ public sealed class CorreoEventos(NpgsqlDataSource db, IConfiguration config, IL
                 """, ct, ("id", id), ("ciclo", ciclo), ("numero", numero),
                 ("resultado", resultado), ("error", error));
             await tr.CommitAsync(ct);
+        cambios.Publicar("correos");
         }
         return true;
     }

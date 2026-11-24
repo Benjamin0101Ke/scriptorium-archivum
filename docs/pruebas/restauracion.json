@@ -1,0 +1,28 @@
+{
+  "fecha": "2026-11-23",
+  "entorno": "Docker local; solo datos ficticios",
+  "copias": [
+    {
+      "instante": 1795458181.7597024,
+      "sha256": "5c3e8d56a0e6271da30863e08ee7c9a0724c9d004c680ff9194e4052e9f9fce4",
+      "bytes": 255989
+    },
+    {
+      "instante": 1795458184.131457,
+      "sha256": "f46744c7aac4aeaf482b57a5332e9ee06ec62ebba0fc1a66c6c1a106abfec9e7",
+      "bytes": 255989
+    }
+  ],
+  "separacion_segundos": 2.37,
+  "restauracion": "base distinta, sin sustituir la base de la aplicación",
+  "zona_horaria_restaurada": "America/El_Salvador",
+  "fichas_comparadas": 10,
+  "tablas_cotejadas": 10,
+  "recursos_asociados_verificados": 11,
+  "archivos_y_claves_cotejados": 26,
+  "comparacion_registros": "100 % idénticos en el inventario de diez fichas",
+  "comparacion_archivos": "100 % de hashes idénticos al extraer",
+  "migracion_historial_repetida": "sin duplicación",
+  "resultado": "APROBADO EN ENTORNO LOCAL",
+  "limite": "Dos copias manuales sucesivas y restauración técnica. No acredita la ejecución semanal ni la recuperación del servidor Debian apagado."
+}

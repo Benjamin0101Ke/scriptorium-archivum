@@ -7,6 +7,8 @@
       <p>{{ api.user()?.correo }} · {{ api.user()?.rol }}</p>
     </div>
   </div>
+  <app-mi-docente />
+  @if(cambiosPendientes()){<p class="notice">Tu perfil cambió en otra sesión. Se conservan los campos que estás editando.</p>}
   @if (error()) {
     <p class="notice error" role="alert">{{ error() }}</p>
   }
@@ -58,8 +60,8 @@
         <option value="oscuro">Oscuro</option>
       </select>
     </label>
-    @if (!api.demo && (api.user()?.rol === 'Lector' || api.user()?.rol === 'Estudiante')) {
-      <app-carrera-selector [(seleccion)]="carrera" [(plan)]="plan" />
+    @if (!api.demo) {
+      <app-carrera-selector [(seleccion)]="carrera" [(plan)]="plan" [conservarRol]="api.user()?.rol !== 'Lector'" [mostrarResumen]="true" />
     }
     <button data-icon="save" [disabled]="busy()">Guardar perfil</button>
   </form>

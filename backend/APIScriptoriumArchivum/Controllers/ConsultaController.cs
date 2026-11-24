@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using APIScriptoriumArchivum.Datos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -32,7 +32,7 @@ namespace APIScriptoriumArchivum.Controllers
                 }
                 anioFiltro = valor;
             }
-            if (q?.Length > 500 || (!string.IsNullOrEmpty(orden) && orden is not ("coincidencia" or "anio" or "titulo" or "estrellas")))
+            if (q?.Length > 500 || (!string.IsNullOrEmpty(orden) && orden is not ("coincidencia" or "anio" or "titulo" or "valoracion" or "estrellas")))
             {
                 return BadRequest(new { error = "Revisa el texto y el orden de búsqueda." });
             }

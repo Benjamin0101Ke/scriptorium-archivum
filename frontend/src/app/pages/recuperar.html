@@ -9,11 +9,14 @@
     }
     @switch (paso()) {
       @case ('correo') {
-        <form (ngSubmit)="solicitar()" #correoForm="ngForm">
+        <form (ngSubmit)="solicitar(correoInput)" #correoForm="ngForm">
           <label
             >Correo registrado
             <input
+              #correoInput
               type="email"
+              autocapitalize="none"
+              spellcheck="false"
               name="correo"
               autocomplete="email"
               required
@@ -22,14 +25,15 @@
               [(ngModel)]="correo"
             />
           </label>
-          <button data-icon="send" [disabled]="busy() || correoForm.invalid">Enviar código</button>
+          <button data-icon="send" [disabled]="busy()">Enviar código</button>
         </form>
       }
       @case ('codigo') {
         <p>
-          Ingresá el código de seis dígitos enviado a <strong>{{ correo }}</strong>. Vence en 10
-          minutos.
+          La solicitud se hizo para <strong>{{ correo }}</strong>. Vence en 10
+          minutos. Ingresa el código de seis dígitos cuando llegue.
         </p>
+        <p class="muted">El envío puede tardar unos segundos. Revisa Recibidos y correo no deseado. Se permite un código cada 60 segundos y hasta 5 por hora.</p>
         <form (ngSubmit)="recuperar()" #codigoForm="ngForm">
           <label
             >Código de recuperación
@@ -47,7 +51,7 @@
           <label
             >Nueva contraseña
             <input
-              type="password"
+              [type]="mostrarContrasenas ? 'text' : 'password'"
               name="nueva"
               autocomplete="new-password"
               required
@@ -59,7 +63,7 @@
           <label
             >Confirmar contraseña
             <input
-              type="password"
+              [type]="mostrarContrasenas ? 'text' : 'password'"
               name="confirmar"
               autocomplete="new-password"
               required
@@ -67,11 +71,12 @@
               [(ngModel)]="confirmar"
             />
           </label>
+          <label class="check"><input type="checkbox" name="mostrarContrasenas" [(ngModel)]="mostrarContrasenas" />Mostrar contraseñas</label>
           <button data-icon="key" [disabled]="busy() || codigoForm.invalid">Restablecer contraseña</button>
         </form>
         <div class="actions">
-          <button data-icon="refresh" type="button" class="secondary small" (click)="solicitar()" [disabled]="busy()">
-            Pedir otro código
+          <button data-icon="refresh" type="button" class="secondary small" (click)="solicitar()" [disabled]="busy() || espera()>0">
+            {{espera()>0 ? 'Puedes pedir otro código en ' + espera() + ' s' : 'Pedir otro código'}}
           </button>
           <button data-icon="mail" type="button" class="secondary small" (click)="volver()" [disabled]="busy()">
             Cambiar correo
@@ -79,7 +84,7 @@
         </div>
       }
       @case ('listo') {
-        <p role="status">Contraseña restablecida. Ya podés entrar con tu nueva contraseña.</p>
+        <p role="status">Contraseña restablecida. Ya puedes entrar con tu nueva contraseña.</p>
         <a data-icon="log-in" class="button" routerLink="/ingresar">Iniciar sesión</a>
       }
     }

@@ -14,7 +14,7 @@ const paraRol = (rol: Rol): CanActivateFn => async () => {
   await api.ready;
   const user = api.user();
   if (!user) return router.parseUrl('/ingresar');
-  return user.rol === rol ? true : router.parseUrl('/' + espaciosPorRol[user.rol].ruta);
+  return user.rol === rol || user.rol === 'Superadministrador' ? true : router.parseUrl('/' + espaciosPorRol[user.rol].ruta);
 };
 const submissions: CanActivateFn = async () => {
   const api = inject(Api),
@@ -26,6 +26,8 @@ const submissions: CanActivateFn = async () => {
   return puedeEnviar(user.rol) ? true : router.parseUrl('/');
 };
 export const routes: Routes = [
+  { path: 'superadmin', canActivate: [paraRol('Superadministrador')],
+    loadComponent: () => import('./pages/superadmin').then(m => m.Superadmin) },
   {
     path: 'admin/catalogos',
     canActivate: [paraRol('Administrador')],

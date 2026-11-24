@@ -30,11 +30,13 @@ export async function handleCatalog(
   user: User | undefined,
   save: () => void,
 ) {
+  const totalFavoritos = (t: any) => Object.values(favorites).filter(ids => ids.includes(t.id)).length;
+  const toPublic = (t: any) => ({ ...publicWork(t), estrellas: totalFavoritos(t) });
   const p = url.pathname;
   if (p.startsWith('/favoritos')) {
     const { id: account } = requireUser(user);
     const list = new Set(favorites[account] || []);
-    if (method === 'GET') return works.filter((t) => list.has(t.id) && isPublic(t)).map(publicWork);
+    if (method === 'GET') return works.filter((t) => list.has(t.id) && isPublic(t)).map(toPublic);
     const id = p.split('/')[2];
     if (method === 'PUT') {
       if (!works.some((t) => t.id === id && isPublic(t))) error('Ficha no disponible.');
@@ -68,13 +70,14 @@ export async function handleCatalog(
           ),
       )
       .sort((a, b) => {
+        if (q.get('orden') === 'estrellas') return totalFavoritos(b) - totalFavoritos(a) || title(a, b);
         if (q.get('orden') === 'anio') return b.anio - a.anio || title(a, b);
         if (q.get('orden') === 'titulo') return title(a, b);
         const x = score(a),
           y = score(b);
         return y[0] - x[0] || y[1] - x[1] || y[2] - x[2] || title(a, b);
       })
-      .map(publicWork);
+      .map(toPublic);
   }
 
   const [, resource, id, action] = p.split('/');
@@ -89,5 +92,5 @@ export async function handleCatalog(
       error('El PDF ya no está disponible en este navegador.')
     );
   }
-  return publicWork(work);
+  return toPublic(work);
 }

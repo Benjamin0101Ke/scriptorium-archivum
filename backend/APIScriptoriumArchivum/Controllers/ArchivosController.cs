@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using APIScriptoriumArchivum.Datos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,15 +10,10 @@ namespace APIScriptoriumArchivum.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 [Route("api/trabajos/{id:int}/[controller]")]
 public sealed class ArchivosController(NpgsqlDataSource db, ConsultaPublica consulta, Avisos avisos,
-    IConfiguration configuracion, IWebHostEnvironment entorno) : ControllerBase
+    IConfiguration configuracion, IWebHostEnvironment entorno, CargasArchivos cargas) : ControllerBase
 {
     private string carpeta = Path.GetFullPath(configuracion["Storage:Ruta"] ??
         Path.Combine(entorno.ContentRootPath, "storage", "trabajos"));
-    private static HashSet<string> Extensiones = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip", ".txt", ".csv", ".md",
-        ".js", ".ts", ".html", ".css", ".json", ".py", ".java", ".cs", ".sql", ".cpp", ".c", ".h"
-    };
 
     private async Task<bool> PuedeGestionar(int id, CancellationToken ct)
     {
@@ -56,20 +51,23 @@ public sealed class ArchivosController(NpgsqlDataSource db, ConsultaPublica cons
 
     [Authorize(Roles = "Biblioteca,Lector,Estudiante")]
     [HttpPost]
-    [RequestSizeLimit(26L * 1024 * 1024)]
-    public async Task<IActionResult> Subir(int id, IFormFile? archivo, [FromForm] string? descripcion, CancellationToken ct)
+    [RequestSizeLimit(CargasArchivos.MaximoBytes + 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = CargasArchivos.MaximoBytes)]
+    public async Task<IActionResult> Subir(int id, IFormFile? archivo, [FromForm] string? descripcion,
+        [FromForm(Name = "carga_id")] string? cargaId, CancellationToken ct)
     {
-        if (!await PuedeGestionar(id, ct)) throw new ErrorApi(403, "Solo podés adjuntar archivos a tus propios envíos.");
-        if (archivo is null || archivo.Length == 0 || archivo.Length > 25L * 1024 * 1024)
-            throw new ErrorApi(400, "Seleccioná un archivo de hasta 25 MB.");
+        if (!await PuedeGestionar(id, ct)) throw new ErrorApi(403, "Solo puedes adjuntar archivos a tus propios envíos.");
+        await using var recibido = await cargas.Resolver(archivo, cargaId, int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!), ct);
+        archivo = recibido.Archivo;
+        if (archivo is null || archivo.Length == 0)
+            throw new ErrorApi(400, "Selecciona un archivo con contenido.");
         string nombre = Path.GetFileName(archivo.FileName.Replace('\\', '/'));
-        string extension = Path.GetExtension(nombre).ToLowerInvariant();
         string detalle = descripcion?.Trim() ?? "";
-        if (!Extensiones.Contains(extension) || nombre.Length > 255 || nombre.Any(char.IsControl))
-            throw new ErrorApi(400, "Usá PDF, Word, Excel, ZIP o un archivo de código o texto permitido.");
-        if (detalle.Length is 0 or > 1500) throw new ErrorApi(400, "Escribí una descripción de hasta 1500 caracteres.");
+        if (string.IsNullOrWhiteSpace(nombre) || nombre is "." or ".." || nombre.Length > 255 || nombre.Any(char.IsControl))
+            throw new ErrorApi(400, "El nombre del archivo no es válido.");
+        if (detalle.Length is 0 or > 1500) throw new ErrorApi(400, "Escribe una descripción de hasta 1500 caracteres.");
         Directory.CreateDirectory(carpeta);
-        string clave = Guid.NewGuid().ToString("N") + extension;
+        string clave = Guid.NewGuid().ToString("N") + ".bin";
         string ruta = Path.Combine(carpeta, clave);
         try
         {
@@ -103,7 +101,7 @@ public sealed class ArchivosController(NpgsqlDataSource db, ConsultaPublica cons
     [HttpPatch("{archivo:long}")]
     public async Task<IActionResult> Habilitar(int id, long archivo, EstadoArchivo datos, CancellationToken ct)
     {
-        if (!datos.Habilitado.HasValue) throw new ErrorApi(400, "Indicá si se permite difundir el archivo.");
+        if (!datos.Habilitado.HasValue) throw new ErrorApi(400, "Indica si se permite difundir el archivo.");
         await using var c = await db.OpenConnectionAsync(ct);
         await using var tr = await c.BeginTransactionAsync(ct);
         await Fichas.Bloquear(c, tr, id, ct);
@@ -139,7 +137,7 @@ public sealed class ArchivosController(NpgsqlDataSource db, ConsultaPublica cons
         string ruta = Path.Combine(carpeta, clave);
         if (!System.IO.File.Exists(ruta)) throw new ErrorApi(404, "El archivo no está disponible.");
         Response.Headers.XContentTypeOptions = "nosniff";
-        return PhysicalFile(ruta, "application/octet-stream", lector.GetString(1));
+        return PhysicalFile(ruta, "application/octet-stream", lector.GetString(1), enableRangeProcessing: true);
     }
 
     public record EstadoArchivo(bool? Habilitado);

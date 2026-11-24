@@ -47,7 +47,7 @@ public sealed class Avisos(NpgsqlDataSource db, IConfiguration config)
                 ? config["Correo:Remitente"] ?? "no-responder@scriptorium.test" : config["Correo:Avisos"]!, titulo, texto, ct);
         if (registro)
             await Encolar(c, tr, evento, correo, "Tu cuenta está registrada",
-                $"Hola, {nombre}.\nTu cuenta de {rol} se registró correctamente. Ya podés ingresar a Scriptorium Archivum.\nFecha: {FechaLocal()}", ct);
+                $"Hola, {nombre}.\nTu cuenta de {rol} se registró correctamente. Ya puedes ingresar a Scriptorium Archivum.\nFecha: {FechaLocal()}", ct);
     }
 
     public async Task Acceso(int id, string tipo, CancellationToken ct)
@@ -78,7 +78,7 @@ public sealed class Avisos(NpgsqlDataSource db, IConfiguration config)
               u.id_usuario IN (SELECT id_usuario_envio FROM public.trabajos WHERE id_trabajo=@id)
               OR (r.nombre IN ('Lector','Estudiante') AND u.id_persona IN (
                 SELECT id_persona FROM public.participaciones WHERE id_trabajo=@id AND calidad_participacion='Autor'))
-              OR (r.nombre='Docente revisor' AND u.id_usuario IN (
+              OR (r.nombre IN ('Docente revisor','Superadministrador') AND u.id_usuario IN (
                 SELECT a.id_docente FROM public.usuarios a WHERE a.id_usuario IN (
                     SELECT id_usuario_envio FROM public.trabajos WHERE id_trabajo=@id)
                   OR a.id_persona IN (SELECT id_persona FROM public.participaciones
@@ -109,8 +109,9 @@ public sealed class Avisos(NpgsqlDataSource db, IConfiguration config)
             """, ct, ("alumno", alumno), ("docente", docente));
         string nombreAlumno = cuentas[0].GetProperty("nombre").GetString()!;
         string nombreDocente = cuentas.Count > 1 ? cuentas[1].GetProperty("nombre").GetString()! : "Sin docente asignado";
+        string contactoDocente = cuentas.Count > 1 ? "\nCorreo del docente: " + cuentas[1].GetProperty("correo").GetString() : "";
         foreach (var cuenta in cuentas)
             await Encolar(c, tr, evento, cuenta.GetProperty("correo").GetString()!, "Asignación de docente actualizada",
-                $"Alumno: {nombreAlumno}\nDocente: {nombreDocente}\nAdministración actualizó la asignación. Los próximos avisos del trabajo se enviarán a las personas responsables.\nFecha: {FechaLocal()}", ct);
+                $"Alumno: {nombreAlumno}\nDocente: {nombreDocente}{contactoDocente}\nAdministración actualizó la asignación. Los próximos avisos del trabajo se enviarán a las personas responsables.\nFecha: {FechaLocal()}", ct);
     }
 }

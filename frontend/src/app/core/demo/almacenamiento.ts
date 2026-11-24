@@ -15,7 +15,7 @@ export function saveDemoData(data: unknown): void {
     localStorage.setItem(storageKey, JSON.stringify(data));
   } catch {
     throw new Error(
-      'No se pudieron guardar los cambios. Revisá el espacio y los permisos del navegador.',
+      'No se pudieron guardar los cambios. Revisa el espacio y los permisos del navegador.',
     );
   }
 }

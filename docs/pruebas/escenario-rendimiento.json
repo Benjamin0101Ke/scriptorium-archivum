@@ -1,0 +1,8 @@
+{
+  "fecha": "2026-11-23",
+  "entorno": "Docker local, datos sintéticos",
+  "fichas_publicas": 1000,
+  "sesiones_preparadas": 20,
+  "consultas_previstas": 100,
+  "criterio": "Desde enviar búsqueda hasta mostrar resultado: al menos 95 de 100 en 3000 ms o menos."
+}

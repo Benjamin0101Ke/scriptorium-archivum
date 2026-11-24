@@ -3,7 +3,7 @@
     <p class="hero-institution">Universidad de El Salvador · FMO</p>
     <h1 id="catalog-title">Proyectos y <span>trabajos de grado</span></h1>
     <p class="hero-description">
-      Buscá trabajos de la facultad, consultá sus fichas y accedé a los recursos autorizados.
+      Busca trabajos de la facultad, consulta sus fichas y accede a los recursos autorizados.
     </p>
     <div class="hero-actions">
       <a data-icon="arrow-down" data-icon-pos="end" class="button hero-button" href="#catalogo"
@@ -31,14 +31,14 @@
     <span class="badge">{{ all().length }} fichas públicas</span>
   </div>
   <form class="search-box" (ngSubmit)="load()">
-    <label for="busqueda">Buscar por título, tema o resumen</label>
+
     <div class="search-row">
-      <input
+      <label class="busqueda-titulo">Buscar por título, tema o resumen<input
         id="busqueda"
         name="q"
         [(ngModel)]="q"
         placeholder="¿Qué te gustaría investigar?"
-      /><button data-icon="search" type="submit">Buscar trabajos</button>
+      /></label><label class="busqueda-autor">Autor<input name="autor" [(ngModel)]="autor" placeholder="Nombre o apellido" autocomplete="off" /></label><button data-icon="search" type="submit">Buscar trabajos</button>
     </div>
     <div class="filters">
       @if (!api.demo) {
@@ -52,44 +52,9 @@
           </select>
         </label>
       }
-      <label
-        >Autor<select name="autor" [(ngModel)]="autor">
-          <option value="">Todos</option>
-          @for (v of options('autores'); track v) {
-            <option>{{ v }}</option>
-          }
-        </select></label
-      >
-      <label
-        >Año<select name="anio" [(ngModel)]="anio">
-          <option value="">Todos</option>
-          @for (v of options('anio'); track v) {
-            <option>{{ v }}</option>
-          }
-        </select></label
-      >
-      <label
-        >Carrera<select name="carrera" [(ngModel)]="carrera">
-          <option value="">Todas</option>
-          @if (api.demo) {
-            @for (v of options('carrera'); track v) {
-              <option>{{ v }}</option>
-            }
-          } @else {
-            @for (opcion of carrerasAcademicas(); track opcion.id) {
-              <option>{{ opcion.nombre }}</option>
-            }
-          }
-        </select></label
-      >
-      <label
-        >Área temática<select name="area" [(ngModel)]="area">
-          <option value="">Todas</option>
-          @for (v of options('area'); track v) {
-            <option>{{ v }}</option>
-          }
-        </select></label
-      >
+      <app-selector-buscable etiqueta="Año" [opciones]="options('anio')" [(valor)]="anio" todas="Todos" />
+      <app-selector-buscable etiqueta="Carrera" [opciones]="opcionesCarrera()" [(valor)]="carrera" />
+      <app-selector-buscable etiqueta="Área temática" [opciones]="areasFiltro()" [(valor)]="area" />
       <label
         >Tipo<select name="tipo" [(ngModel)]="tipo">
           <option value="">Todos</option>
@@ -100,7 +65,7 @@
       >
       <label
         >Orden<select name="orden" [(ngModel)]="orden">
-          <option value="estrellas">Más favoritos</option>
+          <option value="estrellas">Más guardados en favoritos</option>
           <option value="coincidencia">Coincidencia</option>
           <option value="anio">Más recientes</option>
           <option value="titulo">Título A–Z</option>
@@ -134,7 +99,7 @@
       @for (t of trabajosPagina(); track t.id) {
         <a
           class="card catalog-card-link"
-          [routerLink]="['/trabajos', t.id]"
+          [abrirConEfecto]="'/trabajos/' + t.id" [efectoTitulo]="t.titulo"
           [attr.aria-labelledby]="'catalogo-trabajo-' + t.id"
         >
           <div class="card-top">
@@ -142,7 +107,7 @@
           </div>
           <h3 [id]="'catalogo-trabajo-' + t.id">{{ t.titulo }}</h3>
           <p class="authors">{{ t.autores.join(' · ') }}</p>
-          <span class="muted">★ {{ t.estrellas ?? 0 }} favoritos</span>
+          <p class="muted">★ {{ t.estrellas ?? 0 }} {{ t.estrellas === 1 ? 'favorito' : 'favoritos' }}</p>
           <p class="summary">{{ t.resumen }}</p>
           <div class="card-bottom">
             <span>{{ t.area }}</span><span class="catalog-card-action">Ver ficha ↗</span>
@@ -192,7 +157,7 @@
       <div class="empty">
         <h3>No hay fichas para mostrar</h3>
         <p>
-          Probá otra búsqueda. Las nuevas fichas aparecen después de la verificación y publicación
+          Prueba otra búsqueda. Las nuevas fichas aparecen después de la verificación y publicación
           de Biblioteca.
         </p>
       </div>

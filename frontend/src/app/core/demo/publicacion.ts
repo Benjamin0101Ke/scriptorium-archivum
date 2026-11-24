@@ -13,7 +13,7 @@ export function checks(t: any) {
     a?.fecha &&
     (!a.vence || a.vence >= hoyElSalvador());
   return [
-    [validateMetadata(t).length === 0, '01 · Siete metadatos completos'],
+    [validateMetadata(t).length === 0, '01 · Metadatos obligatorios completos'],
     [t.deposito_verificado && t.deposito_referencia, '02 · Depósito UES verificado'],
     [e?.conformidad_referencia && e?.verificador, '03 · Ejemplar final verificado'],
     [valid, '04 · Autorización vigente para este ejemplar'],

@@ -19,6 +19,7 @@ export class Login {
   apellidos = '';
   correo = '';
   password = '';
+  guardarAcceso = true;
   carrera: number | null = null;
   plan: number | null = null;
   registering = signal(false);
@@ -36,6 +37,18 @@ export class Login {
     this.registering.update((value) => !value);
     this.password = '';
     this.error.set('');
+  }
+
+  private async ofrecerGuardarAcceso() {
+    const browser = window as Window & {
+      PasswordCredential?: new (data: { id: string; password: string; name?: string }) => Credential;
+    };
+    if (!browser.PasswordCredential || !navigator.credentials?.store) return;
+    try {
+      await navigator.credentials.store(new browser.PasswordCredential({
+        id: this.correo.trim(), password: this.password, name: this.api.user()?.nombre,
+      }));
+    } catch { /* El navegador decide si permite o rechaza guardar el acceso. */ }
   }
 
   async submit() {
@@ -61,6 +74,7 @@ export class Login {
       else await this.api.login(this.correo, this.password);
       if (!this.registering() && this.carrera && puedeEnviar(this.api.user()?.rol))
         await this.api.updateProfile({ id_carrera: this.carrera, id_plan: this.plan });
+      if (!this.registering() && !this.api.demo && this.guardarAcceso) void this.ofrecerGuardarAcceso();
       const rol = this.api.user()?.rol;
       if (this.forSubmissions() && puedeEnviar(rol)) {
         await this.router.navigateByUrl('/mis-envios');

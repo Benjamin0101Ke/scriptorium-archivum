@@ -1,13 +1,14 @@
 <section class="section narrow">
+  <app-mi-docente />
   <h1>Mis envíos</h1>
  <p>
-  Enviá tu tesis, trabajo de grado o proyecto. Según el tipo de trabajo, adjuntá el PDF o proporcioná el enlace del proyecto. Biblioteca lo revisará antes de decidir su publicación.
+  Envía tu tesis, trabajo de grado o proyecto. Según el tipo de trabajo, adjunta el PDF o proporciona el enlace del proyecto. Biblioteca lo revisará antes de decidir su publicación.
 </p>
   <form class="panel" (ngSubmit)="submit(pdfInput)" [attr.aria-busy]="busy()">
     <h2>Agregar tesis o proyecto</h2>
     @if (!api.demo && catalogos() && !carreraPropia()) {
       <p class="notice">
-        Completá tu carrera en <a routerLink="/perfil">Mi perfil</a> antes de enviar un trabajo.
+        Completa tu carrera en <a routerLink="/perfil">Mi perfil</a> antes de enviar un trabajo.
       </p>
     }
     @if (catalogosError()) {
@@ -23,11 +24,11 @@
       [seleccion]="seleccion"
       [autorPropio]="api.demo ? null : (api.user()?.nombre ?? null)"
       [carreraPropia]="
-        api.demo ? null : (carreraPropia()?.nombre ?? 'Completá tu carrera en Mi perfil')
+        api.demo ? null : (carreraPropia()?.nombre ?? 'Completa tu carrera en Mi perfil')
       "
     />
  <label [style.display]="esProyectoSoftware ? 'none' : 'grid'">
-  PDF del trabajo · máximo 25 MB
+  PDF del trabajo · máximo 6 GB
   <input
     #pdfInput
     type="file"
@@ -77,6 +78,7 @@
               <strong>{{ item.titulo }}</strong>
               <p>{{ item.tipo }} · {{ item.fecha | date: 'dd/MM/yyyy' }}</p>
               @if (!api.demo) {
+                <details><summary>Ver observaciones del docente</summary><app-revisiones-docentes [path]="'/mis-envios/'+item.id+'/revisiones'" /></details>
                 <details>
                   <summary>Adjuntar o consultar archivos complementarios</summary>
                   <app-archivos-trabajo [trabajo]="item.id" [editable]="true" />

@@ -1,4 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
+import { Actualizaciones } from '../core/actualizaciones';
+import { Component, inject, signal, DestroyRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Api } from '../core/api';
@@ -18,6 +19,7 @@ interface RegistroCatalogo {
   templateUrl: './catalogos-admin.html',
 })
 export class CatalogosAdmin {
+ vivo=inject(Actualizaciones);
   private api = inject(Api);
   tipo = 'carreras';
   registros = signal<RegistroCatalogo[]>([]);
@@ -34,6 +36,7 @@ export class CatalogosAdmin {
   error = signal('');
   message = signal('');
   constructor() {
+    this.vivo.watch(['catalogos'],()=>{if(!this.busy())return this.cargar(true);return undefined;},inject(DestroyRef));
     this.cargar();
   }
   filtrados() {
@@ -65,11 +68,10 @@ export class CatalogosAdmin {
     this.idCarrera = registro.id_carrera ?? null;
     this.url = registro.url ?? '';
   }
-  async cargar() {
+  async cargar(background=false) {
     this.busy.set(true);
     this.error.set('');
-    this.nuevo();
-    this.busqueda = '';
+    if(!background){this.nuevo();this.busqueda='';}
     try {
       const [registros, departamentos, carreras] = await Promise.all([
         this.api.request<RegistroCatalogo[]>('/admin/catalogos/' + this.tipo),

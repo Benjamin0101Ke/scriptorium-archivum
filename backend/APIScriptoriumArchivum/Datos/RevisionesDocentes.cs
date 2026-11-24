@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using APIScriptoriumArchivum.Dtos;
 using Npgsql;
 
@@ -17,7 +18,30 @@ namespace APIScriptoriumArchivum.Datos
             this.avisos = avisos;
         }
 
-        public async Task<JsonElement> Resumen(int docente, CancellationToken ct)
+        // Keep existing installed clients working while the repository panel uses the new routes.
+        public async Task<object> Panel(int docente,bool super,CancellationToken ct)
+        {
+            var filas=await Listar(docente,null,"todas",null,ct,super);
+            var trabajos=filas.Select(f=>{
+                var t=JsonNode.Parse(f.GetRawText())!.AsObject();
+                t["ejemplar_id"]=int.TryParse(t["id_entrega"]?.GetValue<string>(),out int id)?JsonValue.Create(id):null;
+                t["resultado"]=t["revision_docente"]?["resultado"]?.DeepClone();
+                t["pdf"]=t["pdf_disponible"]?.GetValue<bool>()==true?JsonValue.Create("PDF actual"):null;
+                return t;
+            }).ToList();
+            await using var c=await baseDeDatos.OpenConnectionAsync(ct);
+            var alumnos=await Comandos.FilasJson(c,"""
+                SELECT jsonb_build_object('id',u.id_usuario,'nombre',coalesce(u.nombre_mostrar,concat_ws(' ',p.nombres,p.apellidos)),
+                  'carrera',ca.nombre,'plan',pl.nombre)::text
+                FROM public.usuarios u JOIN public.personas p USING(id_persona) JOIN public.roles r USING(id_rol)
+                LEFT JOIN public.carreras ca USING(id_carrera) LEFT JOIN public.planes_estudio pl USING(id_plan)
+                WHERE u.estado='Habilitada' AND r.activo AND r.nombre='Estudiante' AND (@super OR u.id_docente=@docente)
+                ORDER BY p.apellidos,p.nombres
+                """,ct,("docente",docente),("super",super));
+            return new {alumnos,trabajos};
+        }
+
+        public async Task<JsonElement> Resumen(int docente, CancellationToken ct, bool super = false)
         {
             await using NpgsqlConnection conexion = await baseDeDatos.OpenConnectionAsync(ct);
             List<JsonElement> filas = await Comandos.FilasJson(conexion, """
@@ -25,7 +49,7 @@ namespace APIScriptoriumArchivum.Datos
                     SELECT u.id_usuario, u.id_persona
                     FROM public.usuarios u
                     JOIN public.roles r USING (id_rol)
-                    WHERE u.id_docente = @docente AND u.estado = 'Habilitada'
+                    WHERE (@super OR u.id_docente = @docente) AND u.estado = 'Habilitada'
                       AND r.nombre = 'Estudiante' AND r.activo
                 ),
                 base AS (
@@ -57,13 +81,11 @@ namespace APIScriptoriumArchivum.Datos
                     'conformes', (SELECT count(*) FROM base WHERE base.id_revision IS NOT NULL AND base.resultado_docente = 'Conforme'),
                     'cambios', (SELECT count(*) FROM base WHERE base.id_revision IS NOT NULL AND base.resultado_docente = 'Requiere cambios')
                 )::text AS datos
-                FROM base
-                LIMIT 1
-                """, ct, ("docente", docente));
+                """, ct, ("docente", docente), ("super", super));
             return filas[0];
         }
 
-        public async Task<List<JsonElement>> Listar(int docente, string? busqueda, string? estado, int? estudiante, CancellationToken ct)
+        public async Task<List<JsonElement>> Listar(int docente, string? busqueda, string? estado, int? estudiante, CancellationToken ct, bool super = false)
         {
             await using NpgsqlConnection conexion = await baseDeDatos.OpenConnectionAsync(ct);
             List<JsonElement> filas = await Comandos.FilasJson(conexion, """
@@ -71,7 +93,7 @@ namespace APIScriptoriumArchivum.Datos
                     SELECT u.id_usuario, u.id_persona
                     FROM public.usuarios u
                     JOIN public.roles r USING (id_rol)
-                    WHERE u.id_docente = @docente AND u.estado = 'Habilitada'
+                    WHERE (@super OR u.id_docente = @docente) AND u.estado = 'Habilitada'
                       AND r.nombre = 'Estudiante' AND r.activo
                 ),
                 base AS (
@@ -99,7 +121,7 @@ namespace APIScriptoriumArchivum.Datos
                         FROM public.usuarios u
                         JOIN public.personas p ON p.id_persona = u.id_persona
                         JOIN public.roles r ON r.id_rol = u.id_rol
-                        WHERE u.id_docente = @docente AND u.estado = 'Habilitada' AND r.nombre = 'Estudiante' AND r.activo
+                        WHERE (@super OR u.id_docente = @docente) AND u.estado = 'Habilitada' AND r.nombre = 'Estudiante' AND r.activo
                           AND (u.id_usuario = t.id_usuario_envio OR u.id_persona IN (
                                 SELECT ap.id_persona FROM public.participaciones ap
                                 WHERE ap.id_trabajo = t.id_trabajo AND ap.calidad_participacion = 'Autor'))
@@ -125,7 +147,7 @@ namespace APIScriptoriumArchivum.Datos
                 SELECT jsonb_build_object(
                     'id', base.id_trabajo::text,
                     'titulo', base.titulo,
-                    'autores', base.autores,
+                    'autores', coalesce(to_jsonb(string_to_array(base.autores, '; ')), '[]'::jsonb),
                     'anio', base.anio,
                     'carrera', base.carrera,
                     'tipo', base.tipo,
@@ -134,6 +156,8 @@ namespace APIScriptoriumArchivum.Datos
                     'id_estudiante', base.id_estudiante::text,
                     'version', base.numero_version,
                     'id_entrega', base.id_entrega::text,
+                    'enlace_proyecto', (SELECT ubicacion FROM public.recursos_digitales WHERE id_entrega=base.id_entrega AND clase='ENLACE' ORDER BY id_recurso LIMIT 1),
+                    'pdf_disponible', EXISTS(SELECT 1 FROM public.recursos_digitales WHERE id_entrega=base.id_entrega AND clase='PDF' AND estado_carga='Disponible'),
                     'estado_revision', CASE WHEN base.id_revision IS NULL THEN 'pendiente' WHEN base.resultado_docente = 'Conforme' THEN 'conforme' ELSE 'cambios' END,
                     'revision_docente', CASE WHEN base.id_revision IS NULL THEN null ELSE jsonb_build_object(
                         'resultado', base.resultado_docente,
@@ -147,13 +171,14 @@ namespace APIScriptoriumArchivum.Datos
                   AND (@estado = 'todas' OR (@estado = 'pendiente' AND base.id_revision IS NULL) OR (@estado = 'conforme' AND base.resultado_docente = 'Conforme') OR (@estado = 'cambios' AND base.resultado_docente = 'Requiere cambios'))
                   AND (@estudiante::int IS NULL OR base.id_estudiante = @estudiante::int)
                 ORDER BY base.fecha_registro DESC
-                """, ct, ("docente", docente), ("q", busqueda ?? ""), ("estado", estado ?? "todas"), ("estudiante", estudiante));
+                """, ct, ("docente", docente), ("super", super), ("q", busqueda ?? ""), ("estado", estado ?? "todas"), ("estudiante", estudiante));
             return filas;
         }
 
-        public async Task<JsonElement> Detalle(int docente, int trabajo, CancellationToken ct)
+        public async Task<JsonElement> Detalle(int docente, int trabajo, CancellationToken ct, bool super = false)
         {
             await using NpgsqlConnection conexion = await baseDeDatos.OpenConnectionAsync(ct);
+            if (!await Asignado(conexion, null, docente, trabajo, ct, super)) throw new ErrorApi(404, "El trabajo no está asignado a tu cuenta.");
             List<JsonElement> filas = await Comandos.FilasJson(conexion, """
                 WITH base AS (
                     SELECT t.id_trabajo, t.titulo, t.anio, t.estado_publicacion, t.fecha_registro,
@@ -180,7 +205,7 @@ namespace APIScriptoriumArchivum.Datos
                         FROM public.usuarios u
                         JOIN public.personas p ON p.id_persona = u.id_persona
                         JOIN public.roles r ON r.id_rol = u.id_rol
-                        WHERE u.id_docente = @docente AND u.estado = 'Habilitada' AND r.nombre = 'Estudiante' AND r.activo
+                        WHERE (@super OR u.id_docente = @docente) AND u.estado = 'Habilitada' AND r.nombre = 'Estudiante' AND r.activo
                           AND (u.id_usuario = t.id_usuario_envio OR u.id_persona IN (
                                 SELECT ap.id_persona FROM public.participaciones ap
                                 WHERE ap.id_trabajo = t.id_trabajo AND ap.calidad_participacion = 'Autor'))
@@ -202,7 +227,7 @@ namespace APIScriptoriumArchivum.Datos
                 SELECT jsonb_build_object(
                     'id', base.id_trabajo::text,
                     'titulo', base.titulo,
-                    'autores', base.autores,
+                    'autores', coalesce(to_jsonb(string_to_array(base.autores, '; ')), '[]'::jsonb),
                     'anio', base.anio,
                     'carrera', base.carrera,
                     'tipo', base.tipo,
@@ -211,6 +236,8 @@ namespace APIScriptoriumArchivum.Datos
                     'id_estudiante', base.id_estudiante::text,
                     'version', base.numero_version,
                     'id_entrega', base.id_entrega::text,
+                    'enlace_proyecto', (SELECT ubicacion FROM public.recursos_digitales WHERE id_entrega=base.id_entrega AND clase='ENLACE' ORDER BY id_recurso LIMIT 1),
+                    'pdf_disponible', EXISTS(SELECT 1 FROM public.recursos_digitales WHERE id_entrega=base.id_entrega AND clase='PDF' AND estado_carga='Disponible'),
                     'estado_revision', CASE WHEN base.id_revision IS NULL THEN 'pendiente' WHEN base.resultado_docente = 'Conforme' THEN 'conforme' ELSE 'cambios' END,
                     'revision_docente', CASE WHEN base.id_revision IS NULL THEN null ELSE jsonb_build_object(
                         'resultado', base.resultado_docente,
@@ -232,11 +259,11 @@ namespace APIScriptoriumArchivum.Datos
                           AND r.ambito_revision = 'Revisión docente' AND r.fecha_cierre IS NOT NULL)
                 )::text AS datos
                 FROM base
-                """, ct, ("docente", docente), ("id", trabajo));
+                """, ct, ("docente", docente), ("super", super), ("id", trabajo));
             return filas[0];
         }
 
-        public async Task<JsonElement> Registrar(int docente, int trabajo, RevisionDocenteDatos datos, CancellationToken ct)
+        public async Task<JsonElement> Registrar(int docente, int trabajo, RevisionDocenteDatos datos, CancellationToken ct, bool super = false)
         {
             if (datos.Resultado is not ("Conforme" or "Requiere cambios"))
             {
@@ -249,7 +276,16 @@ namespace APIScriptoriumArchivum.Datos
             }
             await using NpgsqlConnection conexion = await baseDeDatos.OpenConnectionAsync(ct);
             await using NpgsqlTransaction tr = await conexion.BeginTransactionAsync(ct);
-            if (!await Asignado(conexion, tr, docente, trabajo, ct))
+            await Fichas.Bloquear(conexion, tr, trabajo, ct);
+            string? estado = await Comandos.Valor<string>(conexion, tr, "SELECT estado_publicacion FROM public.trabajos WHERE id_trabajo=@id", ct, ("id",trabajo));
+            if (estado is "Publicado" or "Retirado") throw new ErrorApi(409, "Este trabajo solo permite consultar su historial.");
+            await using (var bloqueo = Comandos.Crear(conexion,tr,"""
+                SELECT u.id_usuario FROM public.usuarios u WHERE (@super OR u.id_docente=@docente)
+                AND (u.id_usuario=(SELECT id_usuario_envio FROM public.trabajos WHERE id_trabajo=@id)
+                  OR u.id_persona IN (SELECT id_persona FROM public.participaciones WHERE id_trabajo=@id AND calidad_participacion='Autor')) FOR SHARE
+                """, ("super",super),("docente",docente),("id",trabajo))) await bloqueo.ExecuteNonQueryAsync(ct);
+
+            if (!await Asignado(conexion, tr, docente, trabajo, ct, super))
             {
                 await tr.RollbackAsync(CancellationToken.None);
                 throw new ErrorApi(404, "El trabajo no existe o no está asignado a tus estudiantes.");
@@ -266,14 +302,16 @@ namespace APIScriptoriumArchivum.Datos
                 throw new ErrorApi(409, "El trabajo no tiene una entrega para revisar.");
             }
             int entrega = actual ?? 0;
-            if (datos.EntregaId is not null && int.TryParse(datos.EntregaId.Trim(), out int entregado) && entregado > 0)
+            string? entregaRecibida=datos.EntregaId ?? datos.EjemplarId?.ToString();
+            if (entregaRecibida is not null)
             {
-                entrega = entregado;
+                if (!int.TryParse(entregaRecibida, out int entregado) || entregado<=0) throw new ErrorApi(400,"Indica un ejemplar válido.");
+                entrega=entregado;
             }
             if (entrega != actual)
             {
                 await tr.RollbackAsync(CancellationToken.None);
-                throw new ErrorApi(409, "La versión del trabajo cambió. Recargá la revisión.");
+                throw new ErrorApi(409, "La versión del trabajo cambió. Recarga la revisión.");
             }
 
             List<JsonElement> creadas = await Comandos.FilasJson(conexion, tr, """
@@ -302,10 +340,10 @@ namespace APIScriptoriumArchivum.Datos
             return revision;
         }
 
-        public async Task<string> Pdf(int docente, int trabajo, CancellationToken ct)
+        public async Task<string> Pdf(int docente, int trabajo, CancellationToken ct, bool super = false, int? ejemplar = null)
         {
             await using NpgsqlConnection conexion = await baseDeDatos.OpenConnectionAsync(ct);
-            if (!await Asignado(conexion, null, docente, trabajo, ct))
+            if (!await Asignado(conexion, null, docente, trabajo, ct, super))
             {
                 throw new ErrorApi(404, "El trabajo no existe o no está asignado a tus estudiantes.");
             }
@@ -315,7 +353,8 @@ namespace APIScriptoriumArchivum.Datos
                 WHERE e.id_trabajo = @id
                   AND e.numero_version = (SELECT max(numero_version) FROM public.entregas WHERE id_trabajo = @id)
                   AND r.clase = 'PDF' AND r.estado_carga = 'Disponible'
-                """, ct, ("id", trabajo));
+                  AND (@ejemplar::int IS NULL OR e.id_entrega=@ejemplar::int)
+                """, ct, ("id", trabajo),("ejemplar",ejemplar));
             if (clave is null)
             {
                 throw new ErrorApi(404, "El ejemplar no tiene un PDF disponible.");
@@ -328,13 +367,33 @@ namespace APIScriptoriumArchivum.Datos
             return ruta;
         }
 
-        public static async Task<bool> Asignado(NpgsqlConnection conexion, NpgsqlTransaction? transaccion, int docente, int trabajo, CancellationToken ct)
+        public async Task Autorizar(int trabajo,int docente,bool super,CancellationToken ct)
+        {
+            await using var c=await baseDeDatos.OpenConnectionAsync(ct);
+            if(!await Asignado(c,null,docente,trabajo,ct,super))throw new ErrorApi(404,"El trabajo no está asignado a tu cuenta.");
+        }
+        public async Task<List<JsonElement>> Historial(int trabajo,CancellationToken ct)
+        {
+            await using var c=await baseDeDatos.OpenConnectionAsync(ct);
+            return await Comandos.FilasJson(c,"""
+                SELECT jsonb_build_object('id',r.id_revision::text,'ejemplar_id',r.id_entrega,'version',e.numero_version,
+                  'vigente',r.id_entrega=(SELECT id_entrega FROM public.entregas WHERE id_trabajo=@id ORDER BY numero_version DESC LIMIT 1),
+                  'docente',coalesce(u.nombre_mostrar,concat_ws(' ',p.nombres,p.apellidos)),
+                  'resultado',r.resultado,'observaciones',r.motivo_decision,'fecha',r.fecha_cierre)::text
+                FROM public.revisiones r JOIN public.entregas e USING(id_entrega)
+                JOIN public.usuarios u ON u.id_usuario=r.id_usuario_revisor JOIN public.personas p USING(id_persona)
+                WHERE e.id_trabajo=@id AND r.ambito_revision='Revisión docente' AND r.fecha_cierre IS NOT NULL
+                ORDER BY r.fecha_cierre DESC,r.id_revision DESC
+                """,ct,("id",trabajo));
+        }
+
+        public static async Task<bool> Asignado(NpgsqlConnection conexion, NpgsqlTransaction? transaccion, int docente, int trabajo, CancellationToken ct, bool super = false)
         {
             await using NpgsqlCommand comando = Comandos.Crear(conexion, transaccion, """
                 SELECT EXISTS(
                     SELECT 1 FROM public.usuarios u
                     JOIN public.roles r ON r.id_rol = u.id_rol
-                    WHERE u.id_docente = @docente AND u.estado = 'Habilitada'
+                    WHERE (@super OR u.id_docente = @docente) AND u.estado = 'Habilitada'
                       AND r.nombre = 'Estudiante' AND r.activo
                       AND (
                         u.id_usuario = (SELECT id_usuario_envio FROM public.trabajos WHERE id_trabajo = @id)
@@ -343,7 +402,7 @@ namespace APIScriptoriumArchivum.Datos
                             WHERE ap.id_trabajo = @id AND ap.calidad_participacion = 'Autor')
                       )
                 )
-                """, ("docente", docente), ("id", trabajo));
+                """, ("docente", docente), ("super", super), ("id", trabajo));
             await using NpgsqlDataReader lector = await comando.ExecuteReaderAsync(ct);
             return await lector.ReadAsync(ct) && lector.GetFieldValue<bool>(0);
         }

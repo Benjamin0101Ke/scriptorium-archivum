@@ -1,0 +1,716 @@
+{
+  "fecha": "2026-11-23",
+  "entorno": "Windows, Docker local y Chromium headless; 20 contextos autenticados independientes; datos sintéticos; sin conexión al servidor Debian",
+  "medicion": "Desde el evento real de clic en Buscar trabajos hasta recibir HTTP 200, mostrar la ficha filtrada y completar dos cuadros de renderizado; reloj monotónico del navegador; no incluye esperas previas de automatización",
+  "fichas_publicas": 1000,
+  "sesiones_concurrentes": 20,
+  "consultas": 100,
+  "criterio": "Al menos 95/100 consultas en 3000 ms o menos",
+  "aprobadas": 79,
+  "percentil_95_ms": 3156.1,
+  "mediana_ms": 2724.2,
+  "maximo_ms": 3604.9,
+  "resultado": "NO APROBADO",
+  "mediciones": [
+    {
+      "sesion": 1,
+      "consulta": 1,
+      "ms": 2502.7,
+      "http_ms": 2436.1,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 1,
+      "consulta": 2,
+      "ms": 3101.7,
+      "http_ms": 3052.3,
+      "cumple_3000_ms": false
+    },
+    {
+      "sesion": 1,
+      "consulta": 3,
+      "ms": 2957.4,
+      "http_ms": 2935.3,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 1,
+      "consulta": 4,
+      "ms": 2452.9,
+      "http_ms": 2421,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 1,
+      "consulta": 5,
+      "ms": 2656.5,
+      "http_ms": 2630.4,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 2,
+      "consulta": 6,
+      "ms": 2455.1,
+      "http_ms": 2387.1,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 2,
+      "consulta": 7,
+      "ms": 2588.5,
+      "http_ms": 2551.2,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 2,
+      "consulta": 8,
+      "ms": 2690.3,
+      "http_ms": 2645.7,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 2,
+      "consulta": 9,
+      "ms": 3554.6,
+      "http_ms": 3531.7,
+      "cumple_3000_ms": false
+    },
+    {
+      "sesion": 2,
+      "consulta": 10,
+      "ms": 2672.9,
+      "http_ms": 2651.1,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 3,
+      "consulta": 11,
+      "ms": 2447.8,
+      "http_ms": 2387.6,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 3,
+      "consulta": 12,
+      "ms": 2505.4,
+      "http_ms": 2483.6,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 3,
+      "consulta": 13,
+      "ms": 2724.2,
+      "http_ms": 2699.9,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 3,
+      "consulta": 14,
+      "ms": 2640.3,
+      "http_ms": 2618.8,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 3,
+      "consulta": 15,
+      "ms": 2825.5,
+      "http_ms": 2803.8,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 4,
+      "consulta": 16,
+      "ms": 2592.9,
+      "http_ms": 2504,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 4,
+      "consulta": 17,
+      "ms": 3029.6,
+      "http_ms": 2977.4,
+      "cumple_3000_ms": false
+    },
+    {
+      "sesion": 4,
+      "consulta": 18,
+      "ms": 3423.6,
+      "http_ms": 3391.4,
+      "cumple_3000_ms": false
+    },
+    {
+      "sesion": 4,
+      "consulta": 19,
+      "ms": 3141.5,
+      "http_ms": 3110,
+      "cumple_3000_ms": false
+    },
+    {
+      "sesion": 4,
+      "consulta": 20,
+      "ms": 2257,
+      "http_ms": 2228.1,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 5,
+      "consulta": 21,
+      "ms": 3053.7,
+      "http_ms": 3023.5,
+      "cumple_3000_ms": false
+    },
+    {
+      "sesion": 5,
+      "consulta": 22,
+      "ms": 2906,
+      "http_ms": 2868.9,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 5,
+      "consulta": 23,
+      "ms": 2675.6,
+      "http_ms": 2640.2,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 5,
+      "consulta": 24,
+      "ms": 3156.1,
+      "http_ms": 3132.8,
+      "cumple_3000_ms": false
+    },
+    {
+      "sesion": 5,
+      "consulta": 25,
+      "ms": 2457.5,
+      "http_ms": 2419.2,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 6,
+      "consulta": 26,
+      "ms": 2952.3,
+      "http_ms": 2918.1,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 6,
+      "consulta": 27,
+      "ms": 2557.3,
+      "http_ms": 2513,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 6,
+      "consulta": 28,
+      "ms": 3604.9,
+      "http_ms": 3569.4,
+      "cumple_3000_ms": false
+    },
+    {
+      "sesion": 6,
+      "consulta": 29,
+      "ms": 2742,
+      "http_ms": 2704.3,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 6,
+      "consulta": 30,
+      "ms": 2342.2,
+      "http_ms": 2311.5,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 7,
+      "consulta": 31,
+      "ms": 2456.3,
+      "http_ms": 2396.8,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 7,
+      "consulta": 32,
+      "ms": 2885.7,
+      "http_ms": 2857.8,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 7,
+      "consulta": 33,
+      "ms": 2787.7,
+      "http_ms": 2755.9,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 7,
+      "consulta": 34,
+      "ms": 3323.4,
+      "http_ms": 3300.2,
+      "cumple_3000_ms": false
+    },
+    {
+      "sesion": 7,
+      "consulta": 35,
+      "ms": 2339,
+      "http_ms": 2303.9,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 8,
+      "consulta": 36,
+      "ms": 2925.4,
+      "http_ms": 2892,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 8,
+      "consulta": 37,
+      "ms": 2472.8,
+      "http_ms": 2445.9,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 8,
+      "consulta": 38,
+      "ms": 3025.3,
+      "http_ms": 2991.3,
+      "cumple_3000_ms": false
+    },
+    {
+      "sesion": 8,
+      "consulta": 39,
+      "ms": 2475.3,
+      "http_ms": 2453.9,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 8,
+      "consulta": 40,
+      "ms": 2792.8,
+      "http_ms": 2770.8,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 9,
+      "consulta": 41,
+      "ms": 2436.1,
+      "http_ms": 2384.3,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 9,
+      "consulta": 42,
+      "ms": 3118.1,
+      "http_ms": 3077,
+      "cumple_3000_ms": false
+    },
+    {
+      "sesion": 9,
+      "consulta": 43,
+      "ms": 3032.9,
+      "http_ms": 2993.7,
+      "cumple_3000_ms": false
+    },
+    {
+      "sesion": 9,
+      "consulta": 44,
+      "ms": 2941.3,
+      "http_ms": 2910.5,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 9,
+      "consulta": 45,
+      "ms": 2441.2,
+      "http_ms": 2412,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 10,
+      "consulta": 46,
+      "ms": 2886,
+      "http_ms": 2845.6,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 10,
+      "consulta": 47,
+      "ms": 2691.7,
+      "http_ms": 2652.1,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 10,
+      "consulta": 48,
+      "ms": 2958.1,
+      "http_ms": 2935.1,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 10,
+      "consulta": 49,
+      "ms": 2988.2,
+      "http_ms": 2951.3,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 10,
+      "consulta": 50,
+      "ms": 2458.1,
+      "http_ms": 2425.4,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 11,
+      "consulta": 51,
+      "ms": 2425.5,
+      "http_ms": 2382.4,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 11,
+      "consulta": 52,
+      "ms": 2609.3,
+      "http_ms": 2566.9,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 11,
+      "consulta": 53,
+      "ms": 2688.7,
+      "http_ms": 2660.5,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 11,
+      "consulta": 54,
+      "ms": 2725.4,
+      "http_ms": 2702.1,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 11,
+      "consulta": 55,
+      "ms": 2889.7,
+      "http_ms": 2866.6,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 12,
+      "consulta": 56,
+      "ms": 2771.9,
+      "http_ms": 2742.2,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 12,
+      "consulta": 57,
+      "ms": 2641.8,
+      "http_ms": 2603.9,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 12,
+      "consulta": 58,
+      "ms": 2792.5,
+      "http_ms": 2761.7,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 12,
+      "consulta": 59,
+      "ms": 2858.5,
+      "http_ms": 2826.8,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 12,
+      "consulta": 60,
+      "ms": 2640.9,
+      "http_ms": 2614.4,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 13,
+      "consulta": 61,
+      "ms": 2389.8,
+      "http_ms": 2353.5,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 13,
+      "consulta": 62,
+      "ms": 2538.4,
+      "http_ms": 2502,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 13,
+      "consulta": 63,
+      "ms": 2745.4,
+      "http_ms": 2712.9,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 13,
+      "consulta": 64,
+      "ms": 2774.3,
+      "http_ms": 2753.7,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 13,
+      "consulta": 65,
+      "ms": 2724.7,
+      "http_ms": 2689.7,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 14,
+      "consulta": 66,
+      "ms": 2429.6,
+      "http_ms": 2380.2,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 14,
+      "consulta": 67,
+      "ms": 3119.4,
+      "http_ms": 3077.7,
+      "cumple_3000_ms": false
+    },
+    {
+      "sesion": 14,
+      "consulta": 68,
+      "ms": 2592,
+      "http_ms": 2570.2,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 14,
+      "consulta": 69,
+      "ms": 2841.1,
+      "http_ms": 2808.7,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 14,
+      "consulta": 70,
+      "ms": 2674.3,
+      "http_ms": 2649.1,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 15,
+      "consulta": 71,
+      "ms": 2467.1,
+      "http_ms": 2407.8,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 15,
+      "consulta": 72,
+      "ms": 3073,
+      "http_ms": 3032.5,
+      "cumple_3000_ms": false
+    },
+    {
+      "sesion": 15,
+      "consulta": 73,
+      "ms": 2849.8,
+      "http_ms": 2818.9,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 15,
+      "consulta": 74,
+      "ms": 3108.6,
+      "http_ms": 3080.9,
+      "cumple_3000_ms": false
+    },
+    {
+      "sesion": 15,
+      "consulta": 75,
+      "ms": 2574.9,
+      "http_ms": 2535.4,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 16,
+      "consulta": 76,
+      "ms": 2511.2,
+      "http_ms": 2430.2,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 16,
+      "consulta": 77,
+      "ms": 2925.9,
+      "http_ms": 2899.5,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 16,
+      "consulta": 78,
+      "ms": 3188.6,
+      "http_ms": 3146.4,
+      "cumple_3000_ms": false
+    },
+    {
+      "sesion": 16,
+      "consulta": 79,
+      "ms": 3139.4,
+      "http_ms": 3109.7,
+      "cumple_3000_ms": false
+    },
+    {
+      "sesion": 16,
+      "consulta": 80,
+      "ms": 2441.7,
+      "http_ms": 2413.9,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 17,
+      "consulta": 81,
+      "ms": 2496.7,
+      "http_ms": 2422.6,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 17,
+      "consulta": 82,
+      "ms": 2540.9,
+      "http_ms": 2486.8,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 17,
+      "consulta": 83,
+      "ms": 2488.4,
+      "http_ms": 2455.1,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 17,
+      "consulta": 84,
+      "ms": 2642.1,
+      "http_ms": 2604.9,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 17,
+      "consulta": 85,
+      "ms": 2658.8,
+      "http_ms": 2637.4,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 18,
+      "consulta": 86,
+      "ms": 2746.8,
+      "http_ms": 2711.4,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 18,
+      "consulta": 87,
+      "ms": 2825.5,
+      "http_ms": 2789.3,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 18,
+      "consulta": 88,
+      "ms": 2441.4,
+      "http_ms": 2416,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 18,
+      "consulta": 89,
+      "ms": 3025.6,
+      "http_ms": 2975.2,
+      "cumple_3000_ms": false
+    },
+    {
+      "sesion": 18,
+      "consulta": 90,
+      "ms": 2724.2,
+      "http_ms": 2697.9,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 19,
+      "consulta": 91,
+      "ms": 2886,
+      "http_ms": 2862.6,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 19,
+      "consulta": 92,
+      "ms": 3141.9,
+      "http_ms": 3115.4,
+      "cumple_3000_ms": false
+    },
+    {
+      "sesion": 19,
+      "consulta": 93,
+      "ms": 2691.5,
+      "http_ms": 2667.9,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 19,
+      "consulta": 94,
+      "ms": 2825.1,
+      "http_ms": 2795.9,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 19,
+      "consulta": 95,
+      "ms": 2675.1,
+      "http_ms": 2643.3,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 20,
+      "consulta": 96,
+      "ms": 2362.6,
+      "http_ms": 2325.4,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 20,
+      "consulta": 97,
+      "ms": 2624.8,
+      "http_ms": 2581.7,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 20,
+      "consulta": 98,
+      "ms": 2470.4,
+      "http_ms": 2443.5,
+      "cumple_3000_ms": true
+    },
+    {
+      "sesion": 20,
+      "consulta": 99,
+      "ms": 3008.9,
+      "http_ms": 2983.1,
+      "cumple_3000_ms": false
+    },
+    {
+      "sesion": 20,
+      "consulta": 100,
+      "ms": 3141.8,
+      "http_ms": 3110.3,
+      "cumple_3000_ms": false
+    }
+  ]
+}

@@ -67,30 +67,30 @@ public sealed class CatalogosAdminController(NpgsqlDataSource db) : ControllerBa
         var (tabla, columna, maximo) = Catalogo(tipo);
         string nombre = datos.Nombre?.Trim() ?? "";
         if (nombre.Length == 0 || nombre.Length > maximo || nombre.Any(char.IsControl))
-            throw new ErrorApi(400, $"Escribí un nombre de hasta {maximo} caracteres.");
+            throw new ErrorApi(400, $"Escribe un nombre de hasta {maximo} caracteres.");
         await using var c = await db.OpenConnectionAsync(ct);
         await using var tr = await c.BeginTransactionAsync(ct);
         int? departamento = datos.IdDepartamento ?? datos.IdArea;
         string? documento = string.IsNullOrWhiteSpace(datos.Url) ? null : datos.Url.Trim();
         if (documento is not null && (!Uri.TryCreate(documento, UriKind.Absolute, out var url) ||
             url.Scheme != "https" || !string.IsNullOrEmpty(url.UserInfo) || documento.Length > 2000))
-            throw new ErrorApi(400, "Ingresá un enlace HTTPS válido al documento del plan.");
+            throw new ErrorApi(400, "Ingresa un enlace HTTPS válido al documento del plan.");
         if (tipo == "planes")
         {
             bool existeCarrera = await Comandos.Valor<bool>(c, tr,
                 "SELECT EXISTS(SELECT 1 FROM public.carreras WHERE id_carrera=@carrera)", ct, ("carrera", datos.IdCarrera));
-            if (!existeCarrera) throw new ErrorApi(400, "Seleccioná la carrera del plan.");
+            if (!existeCarrera) throw new ErrorApi(400, "Selecciona la carrera del plan.");
             bool incompatible = await Comandos.Valor<bool>(c, tr, """
                 SELECT EXISTS(SELECT 1 FROM public.usuarios WHERE id_plan=@id AND id_carrera<>@carrera)
                 """, ct, ("id", id), ("carrera", datos.IdCarrera));
-            if (incompatible) throw new ErrorApi(409, "Este plan ya tiene estudiantes de otra carrera. Creá un plan para la nueva carrera.");
+            if (incompatible) throw new ErrorApi(409, "Este plan ya tiene estudiantes de otra carrera. Crea un plan para la nueva carrera.");
         }
         if (tipo == "carreras")
         {
             bool existe = await Comandos.Valor<bool>(c, tr,
                 "SELECT EXISTS(SELECT 1 FROM public.departamentos WHERE id_departamento=@area)",
                 ct, ("area", departamento));
-            if (!existe) throw new ErrorApi(400, "Seleccioná un departamento.");
+            if (!existe) throw new ErrorApi(400, "Selecciona un departamento.");
         }
         string sql;
         if (id.HasValue)

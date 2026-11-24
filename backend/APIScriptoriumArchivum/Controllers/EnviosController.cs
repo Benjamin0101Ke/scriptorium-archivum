@@ -11,7 +11,7 @@ namespace APIScriptoriumArchivum.Controllers;
 [Authorize(Roles = "Lector,Estudiante")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 [Route("api/mis-envios")]
-public class EnviosController(NpgsqlDataSource baseDeDatos, Fichas fichas, ArchivoPdf archivos, Avisos avisos)
+public class EnviosController(NpgsqlDataSource baseDeDatos, Fichas fichas, ArchivoPdf archivos, Avisos avisos, CargasArchivos cargas)
     : ControllerBase
 {
     [HttpGet]
@@ -51,10 +51,12 @@ public class EnviosController(NpgsqlDataSource baseDeDatos, Fichas fichas, Archi
     }
 
     [HttpPost]
-    [RequestSizeLimit(26L * 1024 * 1024)]
+    [RequestSizeLimit(CargasArchivos.MaximoBytes + 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = CargasArchivos.MaximoBytes)]
     public async Task<IActionResult> Enviar([FromForm] EnvioLector datos, CancellationToken ct)
     {
-        IFormFile? archivo = datos.Archivo;
+        await using var recibido = await cargas.Resolver(datos.Archivo, datos.CargaId, Actor(), ct);
+        IFormFile? archivo = recibido.Archivo;
         string? tipo;
 
         await using (var consultaTipo = await baseDeDatos.OpenConnectionAsync(ct))
@@ -68,7 +70,7 @@ public class EnviosController(NpgsqlDataSource baseDeDatos, Fichas fichas, Archi
         }
 
         if (tipo is null)
-            return BadRequest(new { error = "Seleccioná un tipo de trabajo válido." });
+            return BadRequest(new { error = "Selecciona un tipo de trabajo válido." });
 
         bool esSoftware = tipo.Trim().Equals(
             "Proyecto de software",
@@ -85,8 +87,8 @@ public class EnviosController(NpgsqlDataSource baseDeDatos, Fichas fichas, Archi
                 enlace.Length > 2048 ||
                 !Uri.TryCreate(enlace, UriKind.Absolute, out Uri? url) ||
                 url.Scheme != Uri.UriSchemeHttps ||
-                string.IsNullOrWhiteSpace(url.Host))
-                return BadRequest(new { error = "Ingresá un enlace HTTPS válido para tu proyecto." });
+                (string.IsNullOrWhiteSpace(url.Host) || !string.IsNullOrEmpty(url.UserInfo)))
+                return BadRequest(new { error = "Ingresa un enlace HTTPS válido para tu proyecto." });
         }
         else
         {
@@ -95,9 +97,9 @@ public class EnviosController(NpgsqlDataSource baseDeDatos, Fichas fichas, Archi
 
             if (archivo is null ||
                 archivo.Length < 5 ||
-                archivo.Length > 25L * 1024 * 1024 ||
+                archivo.Length > CargasArchivos.MaximoBytes ||
                 !archivo.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
-                return BadRequest(new { error = "Seleccioná un PDF de hasta 25 MB." });
+                return BadRequest(new { error = "Selecciona un PDF de hasta 6 GB." });
         }
 
         string? clave = null;
@@ -110,7 +112,7 @@ public class EnviosController(NpgsqlDataSource baseDeDatos, Fichas fichas, Archi
             }
             catch (InvalidDataException)
             {
-                return BadRequest(new { error = "Seleccioná un PDF válido." });
+                return BadRequest(new { error = "Selecciona un PDF válido." });
             }
         }
 
@@ -140,13 +142,13 @@ public class EnviosController(NpgsqlDataSource baseDeDatos, Fichas fichas, Archi
                 persona = lector.GetInt32(0);
 
                 if (lector.IsDBNull(1))
-                    throw new ErrorApi(409, "Completá tu carrera en Mi perfil antes de enviar el trabajo.");
+                    throw new ErrorApi(409, "Completa tu carrera en Mi perfil antes de enviar el trabajo.");
 
                 carrera = lector.GetInt32(1);
             }
 
             if (datos.IdCarrera != 0 && datos.IdCarrera != carrera)
-                throw new ErrorApi(409, "La carrera del envío debe coincidir con tu perfil. Recargá la página.");
+                throw new ErrorApi(409, "La carrera del envío debe coincidir con tu perfil. Recarga la página.");
 
             var metadata = new MetadatosFicha
             {
@@ -223,6 +225,8 @@ public sealed class EnvioLector
     public int[] Areas { get; init; } = [];
 
     public IFormFile? Archivo { get; init; }
+    [FromForm(Name = "carga_id")]
+    public string? CargaId { get; init; }
 
     [FromForm(Name = "enlace")]
     public string? Enlace { get; init; }

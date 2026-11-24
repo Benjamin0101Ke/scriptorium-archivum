@@ -1,27 +1,29 @@
 <a class="skip-link" href="#contenido">Saltar al contenido</a>
 <header class="site-header">
-  <a class="brand" routerLink="/" aria-label="Scriptorium Archivum, inicio">
+  <a class="brand" abrirConEfecto="/" efectoTipo="catalogo" efectoTitulo="Catálogo académico" aria-label="Scriptorium Archivum, inicio">
     <img src="/logo.jpeg" alt="" width="48" height="48" />
     <span>Scriptorium <small>Archivum</small></span>
   </a>
   <nav aria-label="Navegación principal">
     <a
-      routerLink="/"
-      routerLinkActive="active"
-      ariaCurrentWhenActive="page"
-      [routerLinkActiveOptions]="{ exact: true }"
+      abrirConEfecto="/" efectoTipo="catalogo" efectoTitulo="Catálogo académico"
+      [class.active]="enRuta('/')" [attr.aria-current]="enRuta('/')?'page':null"
       >Catálogo</a
     >
     @if (api.user(); as user) {
-      <a routerLink="/favoritos" routerLinkActive="active" ariaCurrentWhenActive="page"
+      <a abrirConEfecto="/favoritos" efectoTipo="favoritos" efectoTitulo="Tus favoritos" [class.active]="enRuta('/favoritos')" [attr.aria-current]="enRuta('/favoritos')?'page':null"
         >Favoritos</a
       >
       @let espacio = espaciosPorRol[user.rol];
+      @if(user.rol==='Superadministrador'){
+      <a abrirConEfecto="/superadmin" efectoTipo="portal" efectoTitulo="Superadministración" efectoSimbolo="superadmin" [class.active]="enSuperadmin()" [attr.aria-current]="enSuperadmin()?'page':null">Superadministración</a>
+      }@else{
       <a [routerLink]="'/' + espacio.ruta" routerLinkActive="active" ariaCurrentWhenActive="page"
         >{{ espacio.enlace }}</a
       >
+      }
       @if (puedeEnviar(user.rol)) {
-        <a routerLink="/mis-envios" routerLinkActive="active" ariaCurrentWhenActive="page"
+        <a abrirConEfecto="/mis-envios" efectoTipo="envios" efectoTitulo="Mis envíos" [class.active]="enRuta('/mis-envios')" [attr.aria-current]="enRuta('/mis-envios')?'page':null"
           >Mis envíos</a
         >
       }
@@ -45,6 +47,17 @@
             <small>{{ user.correo }}</small>
           </div>
           <a routerLink="/perfil" (click)="closeMenu()">Mi perfil</a>
+          @if (user.rol === 'Administrador' || user.rol === 'Superadministrador') {
+            <a routerLink="/admin/roles" (click)="closeMenu()">Espacio administrador</a>
+          }
+          @if (user.rol === 'Superadministrador') {
+            <a abrirConEfecto="/superadmin" efectoTipo="portal" efectoTitulo="Superadministración" (click)="closeMenu()">Espacio superadministrador</a>
+            <a routerLink="/biblioteca" (click)="closeMenu()">Biblioteca</a>
+            <a routerLink="/docente" (click)="closeMenu()">Espacio docente</a>
+            <a routerLink="/estudiante" (click)="closeMenu()">Espacio estudiante</a>
+            <a routerLink="/lector" (click)="closeMenu()">Espacio lector</a>
+            <a routerLink="/admin/catalogos" (click)="closeMenu()">Catálogos académicos</a>
+          }
           <button [attr.data-icon]="tema.oscuro() ? 'sun' : 'moon'"
             type="button"
             (click)="toggleTheme()"
@@ -78,12 +91,22 @@
   </p>
 }
 <main id="contenido"><router-outlet /></main>
+<app-transicion-visual />
+@if (api.cargaProgreso(); as carga) {
+  <section class="panel carga-progreso" role="status" aria-live="polite">
+    <strong>{{ carga.procesando ? 'Guardando archivo…' : 'Subiendo archivo…' }}</strong>
+    <p>{{ carga.nombre }}</p>
+    <progress [value]="carga.porcentaje" max="100" aria-label="Progreso de la carga"></progress>
+    <span>{{ carga.porcentaje }} %</span>
+    <button type="button" class="secondary small" (click)="api.cancelarCarga()" [disabled]="carga.procesando">Cancelar carga</button>
+  </section>
+}
 <footer class="site-footer">
   <div class="footer-content">
     <div class="brand-text">
       Scriptorium Archivum<span>Repositorio digital de proyectos y trabajos de grado</span>
     </div>
     <p>Universidad de El Salvador<br />Facultad Multidisciplinaria Oriental</p>
-    <a routerLink="/">Volver al catálogo ↑</a>
+    <a abrirConEfecto="/" efectoTipo="catalogo" efectoTitulo="Catálogo académico">Volver al catálogo ↑</a>
   </div>
 </footer>

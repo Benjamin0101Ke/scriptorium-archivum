@@ -12,7 +12,7 @@ public sealed class AsignacionesDocentes(NpgsqlDataSource db, Avisos avisos)
             SELECT jsonb_build_object('id',u.id_usuario,'nombre',coalesce(u.nombre_mostrar,concat_ws(' ',p.nombres,p.apellidos)),
                 'correo',u.correo_institucional)::text FROM public.usuarios u
             JOIN public.personas p USING(id_persona) JOIN public.roles r USING(id_rol)
-            WHERE r.nombre='Docente revisor' AND r.activo AND u.estado='Habilitada'
+            WHERE r.nombre IN ('Docente revisor','Superadministrador') AND r.activo AND u.estado='Habilitada'
             ORDER BY p.apellidos,p.nombres,u.id_usuario
             """, ct);
     }
@@ -28,15 +28,15 @@ public sealed class AsignacionesDocentes(NpgsqlDataSource db, Avisos avisos)
             """, ("id", alumno)))
         await using (var lector = await comando.ExecuteReaderAsync(ct))
         {
-            if (!await lector.ReadAsync(ct)) throw new ErrorApi(409, "Seleccioná una cuenta estudiantil habilitada.");
+            if (!await lector.ReadAsync(ct)) throw new ErrorApi(409, "Selecciona una cuenta estudiantil habilitada.");
             int? actual = lector.IsDBNull(0) ? null : lector.GetInt32(0);
             if (actual == docente) return;
         }
         if (docente.HasValue && !await Comandos.Valor<bool>(c, tr, """
             SELECT EXISTS(SELECT 1 FROM public.usuarios u JOIN public.roles r USING(id_rol)
-                WHERE u.id_usuario=@id AND u.estado='Habilitada' AND r.nombre='Docente revisor' AND r.activo)
+                WHERE u.id_usuario=@id AND u.estado='Habilitada' AND r.nombre IN ('Docente revisor','Superadministrador') AND r.activo)
             """, ct, ("id", docente.Value)))
-            throw new ErrorApi(400, "Seleccioná un docente revisor habilitado.");
+            throw new ErrorApi(400, "Selecciona un docente revisor habilitado.");
         await Comandos.Ejecutar(c, tr, "UPDATE public.usuarios SET id_docente=@docente::int WHERE id_usuario=@alumno",
             ct, ("docente", docente), ("alumno", alumno));
         await avisos.Asignacion(c, tr, alumno, docente, actor, ct);

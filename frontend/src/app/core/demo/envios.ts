@@ -26,7 +26,7 @@ export async function handleSubmissions(
   save: () => void,
 ) {
   if (user.rol !== 'Lector')
-    error('Ingresá con una cuenta lectora para enviar tu trabajo.', {}, 403);
+    error('Ingresa con una cuenta lectora para enviar tu trabajo.', {}, 403);
   const summary = (work: any): Envio => ({
     id: work.id,
     titulo: work.titulo,
@@ -53,7 +53,7 @@ export async function handleSubmissions(
     resumen: text('resumen'),
   };
   const fields = validateMetadata(metadata);
-  if (fields.length) error('Revisá los campos marcados.', { fields });
+  if (fields.length) error('Revisa los campos marcados.', { fields });
 
   const file = await validatePdf(body.get('archivo'));
   const id = crypto.randomUUID();

@@ -1,4 +1,4 @@
-﻿using APIScriptoriumArchivum.Datos;
+using APIScriptoriumArchivum.Datos;
 using APIScriptoriumArchivum.Dtos;
 using Microsoft.AspNetCore.Mvc;
 

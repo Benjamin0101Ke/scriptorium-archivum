@@ -22,4 +22,19 @@
   .account-trigger { min-height: 48px; width: 100%; }
   .account-trigger-name { min-width: 0; max-width: none; flex: 1; }
 }
+.carga-progreso {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 1000;
+  width: min(28rem, calc(100vw - 2rem));
+  padding: 1rem;
+  box-shadow: 0 8px 32px #0004;
+}
+.carga-progreso p { overflow-wrap: anywhere; margin-block: .5rem; }
+.carga-progreso progress { width: 100%; accent-color: var(--accent, #6241c9); }
+.carga-progreso button { margin-inline-start: 1rem; }
 @media (prefers-reduced-motion: reduce) { .account-options { animation: none; } }
+
+.account-options { max-height: min(70dvh, 600px); overflow-y: auto; overscroll-behavior: contain; }
+@media (max-width: 650px) { .account-options { max-height: 45dvh; } }

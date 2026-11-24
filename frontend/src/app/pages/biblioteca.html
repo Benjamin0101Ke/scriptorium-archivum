@@ -73,6 +73,10 @@
   </div>
 </dialog>
 
+  <p class="muted" role="status">{{vivo.conectado()?'Actualización en vivo activa':'Reconectando actualizaciones…'}}</p>
+  @if(cambiosPendientes()){
+    <p class="notice">Hay cambios nuevos en la ficha abierta. Se conservan tus campos mientras editas. Guarda tus cambios o vuelve a abrir la ficha para actualizarla.</p>
+  }
   @if(error()){
     <p class="notice error" role="alert">{{error()}}</p>
   }
@@ -110,10 +114,17 @@
           <span class="eyebrow">ADMINISTRACIÓN</span>
           <h2>Fichas registradas</h2>
         </div>
-        <span class="biblioteca-count" aria-label="Cantidad de fichas">{{items().length}}</span>
+        <span class="biblioteca-count" aria-label="Cantidad de fichas">{{fichasFiltradas().length}} / {{items().length}}</span>
       </div>
 
-      @for(t of items(); track t.id){
+      <label>Filtrar fichas por estado
+        <select [ngModel]="filtroEstado()" (ngModelChange)="filtroEstado.set($event)" [ngModelOptions]="{standalone:true}" [disabled]="busy()">
+          <option value="">Todos</option><option value="en revision">En revisión</option><option value="publicado">Publicados</option><option value="borrador">Borradores</option><option value="retirado">Retirados</option>
+        </select>
+      </label>
+      <p class="muted" role="status">{{fichasFiltradas().length}} de {{items().length}} fichas</p>
+      @if(actualFueraFiltro()){<p class="notice">La ficha abierta no coincide con el filtro. Se mantiene abierta para conservar tu edición.</p>}
+      @for(t of fichasFiltradas(); track t.id){
         <button
           class="work-choice"
           [class.selected]="current()?.id===t.id"
@@ -124,8 +135,8 @@
         </button>
       }
 
-      @if(!items().length){
-        <p class="muted">Todavía no hay fichas registradas.</p>
+      @if(!fichasFiltradas().length){
+        <p class="muted">{{items().length?'No hay fichas con este estado.':'Todavía no hay fichas registradas.'}}</p>
       }
 
       <div class="actions">
@@ -147,7 +158,7 @@
         <h2>{{current()?'Corregir metadatos':'Registrar ficha'}}</h2>
 
         @if(!current()){
-          <p class="muted">Guardá los datos del trabajo para habilitar la carga del PDF.</p>
+          <p class="muted">Guarda los datos del trabajo para habilitar la carga del PDF.</p>
         }
 
         @if(current()?.envio; as envio){
@@ -166,7 +177,7 @@
 
         @if(duplicate()){
           <div class="notice">
-            <p>Se encontró un posible duplicado. Revisá las fichas existentes antes de continuar.</p>
+            <p>Se encontró un posible duplicado. Revisa las fichas existentes antes de continuar.</p>
             <button data-icon="check" type="button" class="secondary" (click)="save(true)" [disabled]="busy()">
               Confirmar alta de todas formas
             </button>
@@ -222,23 +233,36 @@
           }
 
           <label>
-            Archivo PDF · máximo 25 MB
+            {{t.ejemplar?.nombre_original ? 'Archivo PDF para reemplazar el actual' : 'Archivo PDF para adjuntar'}} · máximo 6 GB
             <input id="pdf-file" type="file" accept=".pdf,application/pdf"
               (change)="choose($event)" [disabled]="busy()">
           </label>
           <button data-icon="upload" type="button" (click)="upload()" [disabled]="busy()||!file">
-            Asociar PDF
+            {{t.ejemplar?.nombre_original ? 'Reemplazar PDF' : 'Subir PDF'}}
           </button>
 
-          <form class="reference-form" (ngSubmit)="saveReference()">
+          <form class="reference-form" (ngSubmit)="requestReference(referenceDialog)">
+            <p class="muted" id="referencia-ayuda">
+              Alternativa al PDF: utiliza esta opción cuando el ejemplar solo está disponible mediante una referencia institucional.
+              Si el PDF ya está adjunto, no necesitas completarla. Para agregar un enlace sin sustituirlo, utiliza Material complementario.
+            </p>
             <label>
-              Referencia institucional del ejemplar
-              <input name="referenciaEjemplar" [(ngModel)]="reference" required>
+              Referencia institucional en lugar del PDF (opcional)
+              <input name="referenciaEjemplar" [(ngModel)]="reference" aria-describedby="referencia-ayuda" required>
             </label>
             <button data-icon="link" class="secondary" [disabled]="busy()||!reference.trim()">
-              Asociar referencia
+              {{t.ejemplar?.nombre_original ? 'Reemplazar PDF por referencia' : 'Guardar ejemplar por referencia'}}
             </button>
           </form>
+          <dialog #referenceDialog aria-labelledby="referencia-reemplazo-titulo">
+            <h2 id="referencia-reemplazo-titulo">¿Reemplazar el PDF por una referencia?</h2>
+            <p>El PDF dejará de ser el ejemplar activo y su vista previa no aparecerá en esta ficha.
+              El archivo anterior se conservará en el historial. La referencia necesitará nuevas verificaciones y permisos.</p>
+            <div class="actions">
+              <button type="button" class="secondary" (click)="referenceDialog.close()">Conservar PDF</button>
+              <button type="button" [disabled]="busy()" (click)="referenceDialog.close(); saveReference()">Confirmar reemplazo por referencia</button>
+            </div>
+          </dialog>
         </div>
 
         @if(t.ejemplar){
@@ -394,7 +418,7 @@
         <div class="panel biblioteca-card biblioteca-step-card biblioteca-publish-card" id="biblioteca-publicacion">
           <span class="eyebrow biblioteca-step-label">ETAPA 04 · CIERRE</span>
           <h2>Revisar y publicar</h2>
-          <p class="muted">Esta lista muestra los controles guardados del ejemplar actual. Guardá los cambios del paso 03 antes de publicar.</p>
+          <p class="muted">Esta lista muestra los controles guardados del ejemplar actual. Guarda los cambios del paso 03 antes de publicar.</p>
           <ul class="checklist">
             @for(c of checks(); track c.label){
               <li [class.ok]="c.ok || (t.estado==='Publicado' && c.label==='Cuenta de Biblioteca y estado válido')">
@@ -513,6 +537,8 @@
       <p class="muted">El estado administrativo no sustituye la comprobación de elegibilidad pública vigente.</p>
     </section>
   }
+
+  @if(current();as t){<section class="panel"><app-revisiones-docentes [path]="'/admin/trabajos/'+t.id+'/revisiones'" /></section>}
 
   @if(logs().length){
     <section class="panel biblioteca-card biblioteca-report-card">

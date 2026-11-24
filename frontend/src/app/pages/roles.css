@@ -1,0 +1,14 @@
+.section { max-width: 1800px; padding-inline: clamp(16px, 3vw, 40px); }
+.cuentas { min-width: 1050px; }
+.cuentas button { white-space: nowrap; margin-block: .25rem; }
+.cuentas select { min-width: 210px; }
+.cuentas td:first-child { max-width: 340px; overflow-wrap: anywhere; }
+@media (max-width: 1100px) {
+  .cuentas, .cuentas tbody { display: block; width: 100%; min-width: 0; }
+  .cuentas thead { display: none; }
+  .cuentas tr { display: block; border-bottom: 1px solid var(--line); padding-block: 1rem; }
+  .cuentas td { display: block; width: auto; padding: .5rem; border: 0; text-align: left; overflow-wrap: anywhere; white-space: normal; }
+  .cuentas td::before { content: attr(data-label); display: block; font-weight: 700; margin-bottom: .3rem; }
+  .cuentas select { width: 100%; min-width: 0; }
+  .cuentas button { width: 100%; white-space: normal; }
+}

@@ -11,7 +11,7 @@ export const metadataFromDraft = (draft: MetadataDraft): Metadata => ({
 
 export function validateMetadata(value:Metadata):string[] {
  const missing:string[]=[];
- for(const field of ['titulo','carrera','area','tipo','resumen'] as const)if(!value[field]?.trim())missing.push(field);
+ for(const field of ['titulo','carrera','tipo','resumen'] as const)if(!value[field]?.trim())missing.push(field);
  if(!value.autores.length||value.autores.some(a=>!a.trim()))missing.push('autores');
  if(!/^\d{4}$/.test(String(value.anio)))missing.push('anio');
  return missing;

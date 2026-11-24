@@ -7,7 +7,9 @@ import { Api } from '../core/api';
   template: `
     <div class="pdf-preview">
       @if (visiblePreview(); as current) {
-        <button type="button" class="secondary" (click)="close()">Cerrar vista previa</button>
+        <div class="actions"><button type="button" class="secondary" (click)="close()">Cerrar vista previa</button>
+        <a class="button secondary" [href]="current.url" target="_blank" rel="noopener">Abrir PDF completo ↗</a></div>
+        <p>Si no puedes avanzar de página, abre el PDF completo en una pestaña nueva.</p>
         <iframe [src]="current.safeUrl" title="PDF para revisión"></iframe>
       } @else {
         <button type="button" class="secondary" (click)="open()" [disabled]="busy()">
@@ -49,10 +51,9 @@ export class LocalPdfPreview {
     this.error.set('');
     this.busy.set(true);
     try {
-      const file = await this.api.pdf(path);
+      const url = await this.api.pdfUrl(path);
       if (this.destroyRef.destroyed || path !== this.path()) return;
       this.close();
-      const url = URL.createObjectURL(file);
       this.preview.set({ path, url, safeUrl: this.sanitizer.bypassSecurityTrustResourceUrl(url) });
     } catch (e: any) {
       this.error.set(e.message);

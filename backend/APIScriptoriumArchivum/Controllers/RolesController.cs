@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using APIScriptoriumArchivum.Datos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,15 +15,23 @@ public sealed class RolesController(GestionRoles gestion, Complementos complemen
     public async Task<IActionResult> Listar([FromQuery] string? q, [FromQuery] string? rol, [FromQuery] string? estado, CancellationToken ct)
     {
         string busqueda = q?.Trim() ?? "";
-        if (busqueda.Length > 150) return BadRequest(new { error = "Acortá el texto de búsqueda." });
+        if (busqueda.Length > 150) return BadRequest(new { error = "Acorta el texto de búsqueda." });
         return Ok(new { roles = await gestion.RolesDisponibles(ct), usuarios = await gestion.Listar(busqueda, ct, rol, estado), docentes = await asignaciones.Docentes(ct) });
     }
 
     [HttpPut("{id:int}/estado")]
     public async Task<IActionResult> Estado(int id, EstadoCuenta datos, CancellationToken ct)
     {
-        if (!datos.Habilitada.HasValue) return BadRequest(new { error = "Indicá el estado de la cuenta." });
+        if (!datos.Habilitada.HasValue) return BadRequest(new { error = "Indica el estado de la cuenta." });
         await gestion.CambiarEstado(int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!), id, datos.Habilitada.Value, ct);
+        return Ok(new { ok = true });
+    }
+
+    [HttpPut("{id:int}/perfil")]
+    public async Task<IActionResult> Perfil(int id, CorreccionPerfil datos, CancellationToken ct)
+    {
+        await gestion.Corregir(int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!), id,
+            datos.Nombre, datos.IdCarrera, datos.IdPlan, ct);
         return Ok(new { ok = true });
     }
 
@@ -78,4 +86,5 @@ public sealed class RolesController(GestionRoles gestion, Complementos complemen
     public record CambioRol(string? Rol);
     public record AsignarDocente(int? IdDocente);
     public record EstadoCuenta(bool? Habilitada);
+    public record CorreccionPerfil(string? Nombre, int? IdCarrera, int? IdPlan);
 }

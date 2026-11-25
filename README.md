@@ -79,6 +79,26 @@ Las tarjetas mantienen la presentación del catálogo y permiten abrir la ficha 
 
 <p align="center"><img src="docs/imagenes/movil.png" width="280" alt="Favoritos en una pantalla de 390 píxeles"></p>
 
+## Diagramas de Roberto
+
+Diagramas de datos elaborados por **Roberto**. Las imágenes permiten consultar el diseño desde el README; al pulsarlas puedes abrir el PDF completo para ampliar los detalles.
+
+### Diagrama entidad-relación (DER)
+
+[![Diagrama entidad-relación elaborado por Roberto](docs/diagramas/der-roberto.png)](backend/documentacion/DER%20revisado%20-%20Scriptorium_archivum.pdf)
+
+[Abrir PDF del DER](backend/documentacion/DER%20revisado%20-%20Scriptorium_archivum.pdf) · [Archivo editable de Draw.io](backend/documentacion/DER%20actualizado%20-%20Scriptorium_archivum.drawio)
+
+### Modelo relacional
+
+[![Modelo relacional elaborado por Roberto](docs/diagramas/modelo-relacional-roberto.png)](backend/documentacion/Modelo%20relacional%20corregido%20-%20Scriptorium_archivum.pdf)
+
+[Abrir PDF del modelo relacional](backend/documentacion/Modelo%20relacional%20corregido%20-%20Scriptorium_archivum.pdf) · [Archivo editable de Draw.io](backend/documentacion/Modelo%20relacional%20actualizado%20-%20Scriptorium_archivum.drawio)
+
+También está disponible el [diccionario de datos de Roberto](backend/documentacion/Diccionario%20de%20datos%20actualizado%20-%20Scriptorium_archivum.pdf).
+
+Se conservan sus documentos originales del modelo base. Las ampliaciones posteriores del esquema están registradas en las [migraciones de la base de datos](backend/sql-init).
+
 ## Ejecutar en desarrollo
 
 Necesitas Git, Docker Desktop y Node.js compatible con `frontend/package.json`. La guía de base de datos, API, correo de prueba y usuarios ficticios está en [backend/README.md](backend/README.md).

@@ -24,6 +24,8 @@ export class App {
   enRuta(ruta:string){return this.router.url.split(/[?#]/)[0]===ruta;}
   tema = inject(PreferenciaTema);
   private menu = viewChild<ElementRef<HTMLDetailsElement>>('accountMenu');
+  private navigationToggle = viewChild<ElementRef<HTMLButtonElement>>('navigationToggle');
+  navigationOpen = signal(false);
   error = signal('');
   cambiandoTema = signal(false);
   private sesionPresencia = crypto.randomUUID();
@@ -49,6 +51,7 @@ export class App {
 
   @HostListener('document:click', ['$event'])
   closeOnOutsideClick(event: MouseEvent) {
+    if (event.target instanceof Element && !event.target.closest('.site-header')) this.closeNavigation();
     const menu = this.menu()?.nativeElement;
     if (menu?.open && event.target instanceof Node && !menu.contains(event.target))
       menu.open = false;
@@ -59,6 +62,17 @@ export class App {
     if (!menu?.open) return;
     menu.open = false;
     if (restoreFocus) menu.querySelector('summary')?.focus();
+  }
+
+  closeNavigation(restoreFocus = false) {
+    if (!this.navigationOpen()) return;
+    this.navigationOpen.set(false);
+    this.closeMenu();
+    if (restoreFocus) this.navigationToggle()?.nativeElement.focus();
+  }
+
+  closeNavigationOnLink(event: MouseEvent) {
+    if (event.target instanceof Element && event.target.closest('a')) this.closeNavigation();
   }
 
   async toggleTheme() {

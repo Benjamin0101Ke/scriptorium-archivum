@@ -25,6 +25,7 @@ Repositorio digital de proyectos y trabajos de grado de la **Universidad de El S
 - Lista de fichas de Biblioteca con desplazamiento interno y filtro visible.
 - Copia institucional de los eventos registrados en bitácora, con responsable, motivo y destinatarios. Consulta la [configuración y validación](docs/COPIAS-INTERNAS-20261125.md).
 - Modo claro u oscuro, adaptación a móvil, iconos originales y transiciones que se pueden omitir y respetan la preferencia de reducir movimiento.
+- Navegación compacta con botón Menú en móvil y tableta; tarjetas de roles con iconos y títulos separados. [Validación del diseño](docs/MOVIL-20261125.md).
 
 ## Búsqueda dentro de los desplegables
 

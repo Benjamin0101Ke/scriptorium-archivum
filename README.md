@@ -148,6 +148,13 @@ La compilación y las pruebas automatizadas se documentan en [el informe de veri
 
 Un resultado local no acredita por sí solo disponibilidad de una instalación real ni usabilidad con estudiantes. Los requisitos diferidos conservan ese estado hasta ampliar formalmente su alcance.
 
+## Material de defensa y cambios recientes
+
+- [Guía de estudio de la defensa (PDF, 16 páginas)](docs/defensa/Guia-defensa-Scriptorium-Archivum.pdf): guion, preguntas por asignatura, demostración y diferencias pendientes frente a la rúbrica. Incluye la diferencia entre el consumo actual con `fetch` y el criterio que solicita `HttpClient`.
+- [Versiones corregidas](docs/VERSIONES-CORREGIDAS-20261126.md): nueva entrega con historial, comprobación de propiedad y sin heredar autorización ni permisos.
+- [Aviso explícito de revocación](docs/AVISO-REVOCACION-20261126.md): notificación a responsables, copia institucional y siete comprobaciones de integración aisladas.
+- [Comparación histórica para Roberto, 18/11/2026](docs/historico/CAMBIOS-BACKEND-PARA-ROBERTO-20261118.md): se conserva como referencia del modelo en esa fecha; no sustituye las migraciones ni la documentación actual.
+
 ## Configuración y datos privados
 
 Se comparten código, migraciones, ejemplos de configuración sin secretos y documentación. Los `.env` reales, credenciales SMTP, copias de la base, documentos de usuarios, fotos y claves de sesiones se conservan fuera del repositorio. No se publica la configuración privada de una instalación.

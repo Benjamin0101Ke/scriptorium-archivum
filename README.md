@@ -83,25 +83,23 @@ Las tarjetas mantienen la presentación del catálogo y permiten abrir la ficha 
 
 <p align="center"><img src="docs/imagenes/movil.png" width="280" alt="Favoritos en una pantalla de 390 píxeles"></p>
 
-## Diagramas de Roberto
+## Diseño de la base de datos
 
-Diagramas de datos elaborados por **Roberto**. Las imágenes permiten consultar el diseño desde el README; al pulsarlas puedes abrir el PDF completo para ampliar los detalles.
+El esquema contiene **34 tablas y 260 campos**, una vista y 64 claves foráneas. La primera lámina de cada diagrama muestra las 33 tablas del sistema y sus relaciones; la segunda presenta `configuracion_correo_bitacora`, una tabla técnica independiente sin claves foráneas. Las imágenes abren los PDF completos para ampliar los detalles.
 
 ### Diagrama entidad-relación (DER)
 
-[![Diagrama entidad-relación elaborado por Roberto](docs/diagramas/der-roberto.png)](backend/documentacion/DER%20revisado%20-%20Scriptorium_archivum.pdf)
+[![Diagrama entidad-relación de la base de datos](docs/diagramas/der-base-datos.png)](backend/documentacion/DER%20revisado%20-%20Scriptorium_archivum.pdf)
 
-[Abrir PDF del DER](backend/documentacion/DER%20revisado%20-%20Scriptorium_archivum.pdf) · [Archivo editable de Draw.io](backend/documentacion/DER%20actualizado%20-%20Scriptorium_archivum.drawio)
+[Abrir PDF del DER](backend/documentacion/DER%20revisado%20-%20Scriptorium_archivum.pdf) · [Descargar editable de Draw.io](backend/documentacion/DER%20actualizado%20-%20Scriptorium_archivum.drawio)
 
 ### Modelo relacional
 
-[![Modelo relacional elaborado por Roberto](docs/diagramas/modelo-relacional-roberto.png)](backend/documentacion/Modelo%20relacional%20corregido%20-%20Scriptorium_archivum.pdf)
+[![Modelo relacional de la base de datos](docs/diagramas/modelo-relacional.png)](backend/documentacion/Modelo%20relacional%20corregido%20-%20Scriptorium_archivum.pdf)
 
-[Abrir PDF del modelo relacional](backend/documentacion/Modelo%20relacional%20corregido%20-%20Scriptorium_archivum.pdf) · [Archivo editable de Draw.io](backend/documentacion/Modelo%20relacional%20actualizado%20-%20Scriptorium_archivum.drawio)
+[Abrir PDF del modelo relacional](backend/documentacion/Modelo%20relacional%20corregido%20-%20Scriptorium_archivum.pdf) · [Descargar editable de Draw.io](backend/documentacion/Modelo%20relacional%20actualizado%20-%20Scriptorium_archivum.drawio)
 
-También está disponible el [diccionario de datos de Roberto](backend/documentacion/Diccionario%20de%20datos%20actualizado%20-%20Scriptorium_archivum.pdf).
-
-Se conservan sus documentos originales del modelo base. Las ampliaciones posteriores del esquema están registradas en las [migraciones de la base de datos](backend/sql-init).
+El [diccionario de datos](backend/documentacion/Diccionario%20de%20datos%20actualizado%20-%20Scriptorium_archivum.pdf) describe campos, restricciones, relaciones, índices, vista, funciones, procedimientos y triggers. Incluye los dos diagramas completos. Las [migraciones SQL](backend/sql-init) definen el esquema utilizado por la API.
 
 ## Ejecutar en desarrollo
 
@@ -155,7 +153,7 @@ Un resultado local no acredita por sí solo disponibilidad de una instalación r
 - [Guía de estudio de la defensa (PDF, 16 páginas)](docs/defensa/Guia-defensa-Scriptorium-Archivum.pdf): guion, preguntas por asignatura, demostración y diferencias pendientes frente a la rúbrica. Incluye la diferencia entre el consumo actual con `fetch` y el criterio que solicita `HttpClient`.
 - [Versiones corregidas](docs/VERSIONES-CORREGIDAS-20261126.md): nueva entrega con historial, comprobación de propiedad y sin heredar autorización ni permisos.
 - [Aviso explícito de revocación](docs/AVISO-REVOCACION-20261126.md): notificación a responsables, copia institucional y siete comprobaciones de integración aisladas.
-- [Comparación histórica para Roberto, 18/11/2026](docs/historico/CAMBIOS-BACKEND-PARA-ROBERTO-20261118.md): se conserva como referencia del modelo en esa fecha; no sustituye las migraciones ni la documentación actual.
+- [Comparación histórica del backend, 18/11/2026](docs/historico/CAMBIOS-BACKEND-PARA-ROBERTO-20261118.md): se conserva como referencia del modelo en esa fecha; no sustituye las migraciones ni la documentación actual.
 
 ## Configuración y datos privados
 

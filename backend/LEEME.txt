@@ -1,14 +1,14 @@
-INSTRUCCIONES DEL BACKEND
+﻿INSTRUCCIONES DEL BACKEND
 
-Les dejo los pasos para iniciar la API y consumirla desde su parte del proyecto.
-Recomiendo hacer primero la prueba de /api/carreras en Postman y despues conectar
-la interfaz. No necesitan crear los controllers nuevamente.
+La carpeta contiene el proyecto de la API y los archivos para iniciar sus servicios.
+La prueba de /api/carreras permite comprobar la respuesta antes de conectar
+la interfaz. Los controladores ya estan incluidos.
 
 1. ARCHIVOS QUE SE UTILIZAN
 
 APIScriptoriumArchivum contiene el proyecto de C#
 compose.yaml inicia PostgreSQL, la API, pgAdmin y Mailpit
-sql-init contiene los scripts 01 a 14
+sql-init contiene los scripts 01 a 21, ordenados por numero y nombre
 storage/trabajos guarda los PDF y archivos complementarios
 pruebas contiene un PDF ficticio, la coleccion de Postman y las pruebas
 integracion/CONSUMIR-API.txt explica las rutas y el uso de la sesion
@@ -75,7 +75,7 @@ Las cuentas ficticias se explican en pruebas/PRUEBA-GUIADA.txt.
 4. UTILIZAR UNA BASE QUE YA TIENE DATOS
 
 Usar el mismo nombre de proyecto Docker, volumen y carpeta de archivos.
-Recomiendo conservar un respaldo privado y detener las escrituras antes.
+Se conserva un respaldo privado y se detienen las escrituras antes.
 No usar down -v y no repetir datos-prueba.sql en una base utilizada.
 
 Docker ejecuta sql-init automaticamente solo cuando crea un volumen vacio.

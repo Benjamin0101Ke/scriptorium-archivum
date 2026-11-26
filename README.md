@@ -4,7 +4,7 @@
 
 Repositorio digital de proyectos y trabajos de grado de la **Universidad de El Salvador · Facultad Multidisciplinaria Oriental**. Reúne consulta pública, recepción de trabajos, revisión docente y publicación controlada por Biblioteca.
 
-**Versión del código: 25 de noviembre de 2026.** Angular + ASP.NET Core + PostgreSQL. Incluye la rama `frontend-benjamin-daniel`, las mejoras de la aplicación y la integración verificada el 23 de noviembre. Consulta el [registro de actualización de `main`](docs/PUBLICACION-20261124.md). Actualizar el repositorio no actualiza automáticamente una instalación que esté apagada.
+**Versión del código: 26 de noviembre de 2026.** Angular + ASP.NET Core + PostgreSQL. Incluye la rama `frontend-benjamin-daniel`, las mejoras de la aplicación y la integración verificada el 23 de noviembre. Consulta el [registro de actualización de `main`](docs/PUBLICACION-20261124.md). Actualizar el repositorio no actualiza automáticamente una instalación que esté apagada.
 
 ![Catálogo académico](docs/imagenes/catalogo.png)
 
@@ -19,6 +19,7 @@ Repositorio digital de proyectos y trabajos de grado de la **Universidad de El S
 - Envíos PDF de hasta **6 GB**, con transferencia por partes para archivos grandes. El tipo **Proyecto de software** se recibe mediante un enlace HTTPS.
 - Complementos Word, Excel, PowerPoint, ZIP/RAR, código y otros archivos. Se descargan en su formato original; el visor principal corresponde al PDF.
 - Docente asignado y correo, observaciones recibidas e historial por versión.
+- Envío de una [versión corregida](docs/VERSIONES-CORREGIDAS-20261126.md) cuando hay cambios solicitados, decisión desfavorable o constancia revocada; conserva el original y vuelve a revisión.
 - Administración de cuentas, roles, habilitación, asignaciones y datos académicos.
 - Recuperación de contraseña por correo, opción de mostrarla y compatibilidad con el gestor del navegador.
 - Actualización automática de listas, estados, favoritos y asignaciones, conservando los campos todavía no guardados.

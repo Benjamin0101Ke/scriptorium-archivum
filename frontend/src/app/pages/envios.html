@@ -88,6 +88,7 @@
             <span class="badge">{{
               item.estado === 'En revision' ? 'En revisión' : item.estado
             }}</span>
+            @if(!api.demo){<app-correccion-envio [trabajo]="item.id" />}
             @if (item.revision_docente) {
               <div class="panel">
                 <p class="muted">

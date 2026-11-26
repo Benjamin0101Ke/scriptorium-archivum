@@ -1,0 +1,37 @@
+{
+  "aislado": true,
+  "casos": [
+    {
+      "prueba": "registro_software",
+      "estado": 201,
+      "ok": true
+    },
+    {
+      "prueba": "envio_software_legacy",
+      "estado": 201,
+      "ok": true
+    },
+    {
+      "prueba": "estado_software",
+      "estado": 200,
+      "ok": true
+    },
+    {
+      "prueba": "software_no_http",
+      "estado": 400,
+      "ok": true
+    },
+    {
+      "prueba": "software_sin_credenciales_en_url",
+      "estado": 400,
+      "ok": true
+    },
+    {
+      "prueba": "software_https_corregido",
+      "estado": 201,
+      "ok": true
+    }
+  ],
+  "total": 6,
+  "correctos": 6
+}

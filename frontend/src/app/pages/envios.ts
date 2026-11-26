@@ -1,6 +1,7 @@
 import { Actualizaciones } from '../core/actualizaciones';
 import { Transiciones } from '../core/transiciones';
 import { MiDocente } from '../shared/mi-docente';
+import { CorreccionEnvio } from '../shared/correccion-envio';
 import { Component, computed, inject, signal, viewChild, DestroyRef } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
@@ -15,7 +16,7 @@ import { cargarCatalogos, CatalogosBiblioteca, nuevaSeleccion } from '../core/bi
 
 @Component({
   selector: 'app-envios',
-  imports: [DatePipe, FormsModule, MetadataFields, ArchivosTrabajo, RouterLink, RevisionesDocentes, MiDocente],
+  imports: [DatePipe, FormsModule, MetadataFields, ArchivosTrabajo, RouterLink, RevisionesDocentes, MiDocente, CorreccionEnvio],
   templateUrl: './envios.html',
 })
 export class Envios {

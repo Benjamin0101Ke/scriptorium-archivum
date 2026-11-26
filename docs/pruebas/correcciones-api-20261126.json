@@ -1,0 +1,144 @@
+{
+  "aislado": true,
+  "base_de_produccion_modificada": false,
+  "casos": [
+    {
+      "prueba": "registro_AlumnoA",
+      "estado": 201,
+      "ok": true
+    },
+    {
+      "prueba": "registro_AlumnoB",
+      "estado": 201,
+      "ok": true
+    },
+    {
+      "prueba": "registro_Biblioteca",
+      "estado": 201,
+      "ok": true
+    },
+    {
+      "prueba": "registro_Docente",
+      "estado": 201,
+      "ok": true
+    },
+    {
+      "prueba": "login_Biblioteca",
+      "estado": 200,
+      "ok": true
+    },
+    {
+      "prueba": "login_Docente revisor",
+      "estado": 200,
+      "ok": true
+    },
+    {
+      "prueba": "envio_inicial",
+      "estado": 201,
+      "ok": true
+    },
+    {
+      "prueba": "estado_inicial",
+      "estado": 200,
+      "ok": true
+    },
+    {
+      "prueba": "anonimo_bloqueado",
+      "estado": 401,
+      "ok": true
+    },
+    {
+      "prueba": "otro_dueno_no_ve",
+      "estado": 404,
+      "ok": true
+    },
+    {
+      "prueba": "otro_dueno_no_reemplaza",
+      "estado": 404,
+      "ok": true
+    },
+    {
+      "prueba": "sin_devolucion_no_reemplaza",
+      "estado": 409,
+      "ok": true
+    },
+    {
+      "prueba": "decision_desfavorable_habilita",
+      "estado": 200,
+      "ok": true
+    },
+    {
+      "prueba": "version_obsoleta_bloqueada",
+      "estado": 409,
+      "ok": true
+    },
+    {
+      "prueba": "pdf_invalido_rechazado",
+      "estado": 400,
+      "ok": true
+    },
+    {
+      "prueba": "extension_invalida_rechazada",
+      "estado": 400,
+      "ok": true
+    },
+    {
+      "prueba": "version_corregida_creada",
+      "estado": 201,
+      "ok": true
+    },
+    {
+      "prueba": "nueva_version_sin_aprobaciones",
+      "estado": 200,
+      "ok": true
+    },
+    {
+      "prueba": "original_conservado_y_nuevo_sin_permisos",
+      "ok": true
+    },
+    {
+      "prueba": "sin_duplicar_version_corregida",
+      "estado": 409,
+      "ok": true
+    },
+    {
+      "prueba": "constancia_revocada_habilita",
+      "estado": 200,
+      "ok": true
+    },
+    {
+      "prueba": "correccion_con_revocacion",
+      "estado": 201,
+      "ok": true
+    },
+    {
+      "prueba": "docente_solicita_cambios",
+      "estado": 200,
+      "ok": true
+    },
+    {
+      "prueba": "concurrencia_solo_una_version",
+      "estados": [
+        201,
+        409
+      ],
+      "ok": true
+    },
+    {
+      "prueba": "avisos_estudiante_docente_biblioteca_y_copia_interna",
+      "ok": true
+    },
+    {
+      "prueba": "bloqueado_Publicado",
+      "estado": 409,
+      "ok": true
+    },
+    {
+      "prueba": "bloqueado_Retirado",
+      "estado": 409,
+      "ok": true
+    }
+  ],
+  "total": 27,
+  "correctos": 27
+}

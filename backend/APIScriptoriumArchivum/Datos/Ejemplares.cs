@@ -1,4 +1,4 @@
-﻿using APIScriptoriumArchivum.Data;
+using APIScriptoriumArchivum.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using System.Globalization;
@@ -291,6 +291,23 @@ namespace APIScriptoriumArchivum.Datos
             int activa = await Comandos.Valor<int>(c, tr, "SELECT id_autorizacion FROM public.autorizaciones_difusion WHERE id_entrega=@e AND estado='Activa'", ct, ("e", ejemplar));
             if (datos.Estado == "Revocada")
             {
+                int registrada = activa != 0 ? activa : await Comandos.Valor<int>(c, tr,
+                    "SELECT id_autorizacion FROM public.autorizaciones_difusion WHERE id_entrega=@e AND estado='Revocada' ORDER BY id_autorizacion DESC LIMIT 1",
+                    ct, ("e", ejemplar));
+                if (registrada == 0)
+                    throw new ErrorApi(400, "Este ejemplar no tiene una constancia registrada para revocar. Guarda primero la referencia, los otorgantes y la fecha con estado Vigente.");
+                if (datos.Referencia is not null || datos.OtorganteIds is not null || !string.IsNullOrWhiteSpace(datos.Otorgantes))
+                {
+                    int[]? personas = datos.OtorganteIds is not null || !string.IsNullOrWhiteSpace(datos.Otorgantes)
+                        ? await Fichas.ResolverPersonas(c, tr, datos.OtorganteIds,
+                            datos.Otorgantes?.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries), ct)
+                        : null;
+                    bool coinciden = await Comandos.Valor<bool>(c, tr,
+                        "SELECT (@ref::text IS NULL OR referencia_respaldo=@ref) AND (@ids::int[] IS NULL OR array(SELECT id_persona FROM public.personas_autorizaciones WHERE id_autorizacion=@a ORDER BY id_persona)=@ids) FROM public.autorizaciones_difusion WHERE id_autorizacion=@a",
+                        ct, ("ref", datos.Referencia?.Trim()), ("ids", personas?.Order().ToArray()), ("a", registrada));
+                    if (!coinciden)
+                        throw new ErrorApi(400, "Los otorgantes o la referencia cambiaron. Guarda primero la constancia con estado Vigente y después revócala; la revocación conserva los datos de la constancia registrada.");
+                }
                 if (activa != 0)
                 {
                     await Suspender(c, tr, ficha, actor, "Se revocó la constancia de difusión.", ct);

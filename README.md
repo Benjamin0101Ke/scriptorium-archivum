@@ -4,7 +4,7 @@
 
 Repositorio digital de proyectos y trabajos de grado de la **Universidad de El Salvador · Facultad Multidisciplinaria Oriental**. Reúne consulta pública, recepción de trabajos, revisión docente y publicación controlada por Biblioteca.
 
-**Versión del código: 26 de noviembre de 2026.** Angular + ASP.NET Core + PostgreSQL. Incluye la rama `frontend-benjamin-daniel`, las mejoras de la aplicación y la integración verificada el 23 de noviembre. Consulta el [registro de actualización de `main`](docs/PUBLICACION-20261124.md). Actualizar el repositorio no actualiza automáticamente una instalación que esté apagada.
+**Versión del código: 26 de noviembre de 2026.** Angular + ASP.NET Core + Entity Framework Core + PostgreSQL. Incluye la rama `frontend-benjamin-daniel`, las mejoras de la aplicación y la integración verificada el 23 de noviembre. Consulta el [registro de actualización de `main`](docs/PUBLICACION-20261124.md). Actualizar el repositorio no actualiza automáticamente una instalación que esté apagada.
 
 ![Catálogo académico](docs/imagenes/catalogo.png)
 
@@ -149,6 +149,8 @@ La compilación y las pruebas automatizadas se documentan en [el informe de veri
 Un resultado local no acredita por sí solo disponibilidad de una instalación real ni usabilidad con estudiantes. Los requisitos diferidos conservan ese estado hasta ampliar formalmente su alcance.
 
 ## Material de defensa y cambios recientes
+
+- [Integración de Entity Framework y constancias](docs/INTEGRACION-ENTITY-FRAMEWORK-20261126.md): actualización del backend, scripts SQL pendientes y validación de correcciones, correos y favoritos.
 
 - [Guía de estudio de la defensa (PDF, 16 páginas)](docs/defensa/Guia-defensa-Scriptorium-Archivum.pdf): guion, preguntas por asignatura, demostración y diferencias pendientes frente a la rúbrica. Incluye la diferencia entre el consumo actual con `fetch` y el criterio que solicita `HttpClient`.
 - [Versiones corregidas](docs/VERSIONES-CORREGIDAS-20261126.md): nueva entrega con historial, comprobación de propiedad y sin heredar autorización ni permisos.

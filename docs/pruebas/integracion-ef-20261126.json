@@ -1,0 +1,245 @@
+{
+  "correctas": 60,
+  "resultados": [
+    {
+      "prueba": "carreras publicas",
+      "http": 200
+    },
+    {
+      "prueba": "areas publicas",
+      "http": 200
+    },
+    {
+      "prueba": "tipos publicos",
+      "http": 200
+    },
+    {
+      "prueba": "catalogo publico con vista de estrellas",
+      "http": 200
+    },
+    {
+      "prueba": "busqueda con DTO de Entity Framework",
+      "http": 200
+    },
+    {
+      "prueba": "filtros del catalogo",
+      "http": 200
+    },
+    {
+      "prueba": "anio invalido",
+      "http": 400
+    },
+    {
+      "prueba": "admin sin sesion",
+      "http": 401
+    },
+    {
+      "prueba": "credenciales invalidas",
+      "http": 401
+    },
+    {
+      "prueba": "login superadministrador",
+      "http": 200
+    },
+    {
+      "prueba": "sesion conserva rol principal",
+      "http": 200
+    },
+    {
+      "prueba": "rol principal de sesion",
+      "ok": true
+    },
+    {
+      "prueba": "acceso Biblioteca con superadministrador",
+      "http": 200
+    },
+    {
+      "prueba": "gestion de roles y docentes",
+      "http": 200
+    },
+    {
+      "prueba": "busqueda de personas",
+      "http": 200
+    },
+    {
+      "prueba": "login estudiante",
+      "http": 200
+    },
+    {
+      "prueba": "estudiante no administra Biblioteca",
+      "http": 403
+    },
+    {
+      "prueba": "mis envios",
+      "http": 200
+    },
+    {
+      "prueba": "rechazo PDF invalido",
+      "http": 400
+    },
+    {
+      "prueba": "nuevo envio PDF y transaccion",
+      "http": 201
+    },
+    {
+      "prueba": "consulta estado de correccion",
+      "http": 200
+    },
+    {
+      "prueba": "sin observaciones no reemplaza",
+      "ok": true
+    },
+    {
+      "prueba": "reemplazo sin observaciones bloqueado",
+      "http": 409
+    },
+    {
+      "prueba": "login otra cuenta",
+      "http": 200
+    },
+    {
+      "prueba": "propiedad de la correccion",
+      "http": 404
+    },
+    {
+      "prueba": "revision docente solicita cambios",
+      "http": 201
+    },
+    {
+      "prueba": "habilitacion de la correccion",
+      "http": 200
+    },
+    {
+      "prueba": "observaciones habilitan correccion",
+      "ok": true
+    },
+    {
+      "prueba": "version desactualizada rechazada",
+      "http": 409
+    },
+    {
+      "prueba": "version PDF corregida",
+      "http": 201
+    },
+    {
+      "prueba": "incremento de version",
+      "ok": true
+    },
+    {
+      "prueba": "estado de la nueva entrega",
+      "http": 200
+    },
+    {
+      "prueba": "la version nueva no hereda observaciones",
+      "ok": true
+    },
+    {
+      "prueba": "detalle del ejemplar nuevo",
+      "http": 200
+    },
+    {
+      "prueba": "la version corregida no hereda constancia",
+      "ok": true
+    },
+    {
+      "prueba": "no revoca constancia inexistente",
+      "http": 400
+    },
+    {
+      "prueba": "guardar constancia y otorgantes",
+      "http": 200
+    },
+    {
+      "prueba": "recargar constancia",
+      "http": 200
+    },
+    {
+      "prueba": "referencia y otorgantes persistentes",
+      "ok": true
+    },
+    {
+      "prueba": "revocacion valida",
+      "http": 200
+    },
+    {
+      "prueba": "consulta constancia revocada",
+      "http": 200
+    },
+    {
+      "prueba": "revocacion deshabilita permisos y conserva constancia",
+      "ok": true
+    },
+    {
+      "prueba": "envio de software HTTPS",
+      "http": 201
+    },
+    {
+      "prueba": "estado software",
+      "http": 200
+    },
+    {
+      "prueba": "observaciones de software",
+      "http": 201
+    },
+    {
+      "prueba": "software no acepta HTTP",
+      "http": 400
+    },
+    {
+      "prueba": "software acepta nueva version HTTPS",
+      "http": 201
+    },
+    {
+      "prueba": "nuevo estado software",
+      "http": 200
+    },
+    {
+      "prueba": "nuevas observaciones para concurrencia",
+      "http": 201
+    },
+    {
+      "prueba": "concurrencia una version creada y otro conflicto",
+      "ok": true
+    },
+    {
+      "prueba": "cerrar sesion",
+      "http": 200
+    },
+    {
+      "prueba": "sesion cerrada no autoriza",
+      "http": 401
+    },
+    {
+      "prueba": "catalogo aislado tiene fichas publicas",
+      "ok": true
+    },
+    {
+      "prueba": "agregar favorito incrementa estrellas",
+      "ok": true
+    },
+    {
+      "prueba": "favorito repetido no duplica estrellas",
+      "ok": true
+    },
+    {
+      "prueba": "lista de favoritos incluye la ficha",
+      "ok": true
+    },
+    {
+      "prueba": "quitar favorito actualiza estrellas",
+      "ok": true
+    },
+    {
+      "prueba": "favorito quitado sale de la lista",
+      "ok": true
+    },
+    {
+      "prueba": "PDF lectura con rango y firma valida",
+      "ok": true
+    },
+    {
+      "prueba": "PDF descarga con rango y firma valida",
+      "ok": true
+    }
+  ]
+}

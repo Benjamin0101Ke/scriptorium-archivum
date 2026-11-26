@@ -321,9 +321,12 @@
               <label>Estado
                 <select name="estadoAut" [(ngModel)]="control.autorizacion.estado">
                   <option>Vigente</option>
-                  <option>Revocada</option>
+                  <option [disabled]="!current()?.autorizacion">Revocada</option>
                 </select>
               </label>
+              @if (!current()?.autorizacion) {
+                <p class="muted">Guarda primero la referencia, los otorgantes y la fecha con estado Vigente. Después podrás revocar esa constancia.</p>
+              }
               <p>Operaciones concedidas por la constancia</p>
               <label class="check">
                 <input name="autFicha" type="checkbox" [(ngModel)]="control.autorizacion.ficha">

@@ -1,4 +1,4 @@
-﻿using APIScriptoriumArchivum.Data;
+using APIScriptoriumArchivum.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
@@ -79,13 +79,32 @@ public sealed class Avisos(IDbContextFactory<AppDbContext> db, IConfiguration co
     {
         var fichas = await Comandos.FilasJson(c, tr, """
             SELECT jsonb_build_object('titulo',t.titulo,'tipo',tt.nombre,'estado',t.estado_publicacion,
-                'alumno',coalesce(u.nombre_mostrar,concat_ws(' ',p.nombres,p.apellidos)))::text
+                'alumno',coalesce(u.nombre_mostrar,concat_ws(' ',p.nombres,p.apellidos)),
+                'otorgantes',coalesce(constancia.otorgantes,'No registrados para este ejemplar'),
+                'constancia_referencia',coalesce(constancia.referencia_respaldo,'Sin constancia registrada'),
+                'constancia_estado',coalesce(constancia.estado,'Sin registro'))::text
             FROM public.trabajos t JOIN public.tipos_trabajo tt USING(id_tipo_trabajo)
             LEFT JOIN public.usuarios u ON u.id_usuario=t.id_usuario_envio
-            LEFT JOIN public.personas p ON p.id_persona=u.id_persona WHERE t.id_trabajo=@id
+            LEFT JOIN public.personas p ON p.id_persona=u.id_persona
+            LEFT JOIN LATERAL (
+                SELECT e.id_entrega FROM public.entregas e WHERE e.id_trabajo=t.id_trabajo
+                ORDER BY e.numero_version DESC,e.id_entrega DESC LIMIT 1
+            ) ejemplar_actual ON true
+            LEFT JOIN LATERAL (
+                SELECT a.referencia_respaldo,a.estado,
+                    (SELECT string_agg(concat_ws(' ',ot.nombres,ot.apellidos),'; ' ORDER BY ot.id_persona)
+                     FROM public.personas_autorizaciones pa JOIN public.personas ot USING(id_persona)
+                     WHERE pa.id_autorizacion=a.id_autorizacion) otorgantes
+                FROM public.autorizaciones_difusion a WHERE a.id_entrega=ejemplar_actual.id_entrega
+                ORDER BY a.id_autorizacion DESC LIMIT 1
+            ) constancia ON true
+            WHERE t.id_trabajo=@id
             """, ct, ("id", id));
         var ficha = fichas[0];
-        string texto = $"Trabajo: {ficha.GetProperty("titulo").GetString()}\nTipo: {ficha.GetProperty("tipo").GetString()}\nAutor de la cuenta: {ficha.GetProperty("alumno").GetString()}\nEstado: {ficha.GetProperty("estado").GetString()}\n\n{cambio}\n\nFecha: {FechaLocal()}";
+        string contextoConstancia = ficha.GetProperty("constancia_estado").GetString() == "Sin registro"
+            ? "Constancia de autorización: pendiente de registro."
+            : $"Otorgantes de la constancia: {ficha.GetProperty("otorgantes").GetString()}\nReferencia de la constancia: {ficha.GetProperty("constancia_referencia").GetString()}\nEstado de la constancia: {ficha.GetProperty("constancia_estado").GetString()}";
+        string texto = $"Trabajo: {ficha.GetProperty("titulo").GetString()}\nTipo: {ficha.GetProperty("tipo").GetString()}\nAutor de la cuenta: {ficha.GetProperty("alumno").GetString()}\nEstado: {ficha.GetProperty("estado").GetString()}\n{contextoConstancia}\n\n{cambio}\n\nFecha: {FechaLocal()}";
         int evento = await Evento(c, tr, actor, tipo, "trabajos", id, texto, ct);
         var destinos = await Comandos.FilasJson(c, tr, """
             SELECT DISTINCT jsonb_build_object('id',u.id_usuario,'correo',u.correo_institucional)::text

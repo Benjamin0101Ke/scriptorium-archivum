@@ -15,6 +15,10 @@
 .biblioteca-sidebar__heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
 .biblioteca-sidebar__heading h2 { margin: 7px 0 0; font-size: 21px; }
 .biblioteca-count { display: inline-grid; min-width: 36px; height: 36px; padding: 0 10px; place-items: center; border-radius: 999px; background: var(--lavender); color: var(--violet); font-size: 13px; font-weight: 800; }
+.biblioteca-fichas { max-height: clamp(180px, 45dvh, 480px); overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: var(--violet) var(--surface-2); padding: 3px 8px 3px 3px; }
+.biblioteca-fichas:focus-visible { outline: 2px solid var(--violet); outline-offset: 3px; border-radius: 10px; }
+.biblioteca-fichas::-webkit-scrollbar { width: 8px; }
+.biblioteca-fichas::-webkit-scrollbar-thumb { background: var(--violet); border-radius: 8px; }
 .biblioteca-sidebar .work-choice { margin: 0 0 10px; padding: 15px 16px; transition: box-shadow 150ms, background 150ms; }
 .biblioteca-sidebar .work-choice.selected { box-shadow: inset 0 0 0 2px var(--violet), inset 6px 0 0 var(--violet); }
 .biblioteca-sidebar .work-choice strong { display: block; font-size: 13.5px; line-height: 1.45; }

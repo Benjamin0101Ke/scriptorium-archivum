@@ -124,6 +124,7 @@
       </label>
       <p class="muted" role="status">{{fichasFiltradas().length}} de {{items().length}} fichas</p>
       @if(actualFueraFiltro()){<p class="notice">La ficha abierta no coincide con el filtro. Se mantiene abierta para conservar tu edición.</p>}
+      <div class="biblioteca-fichas" role="region" aria-label="Lista de fichas registradas" tabindex="0">
       @for(t of fichasFiltradas(); track t.id){
         <button
           class="work-choice"
@@ -138,6 +139,7 @@
       @if(!fichasFiltradas().length){
         <p class="muted">{{items().length?'No hay fichas con este estado.':'Todavía no hay fichas registradas.'}}</p>
       }
+      </div>
 
       <div class="actions">
         <button data-icon="activity" class="secondary" (click)="activity()" [disabled]="busy()">

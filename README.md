@@ -4,7 +4,7 @@
 
 Repositorio digital de proyectos y trabajos de grado de la **Universidad de El Salvador · Facultad Multidisciplinaria Oriental**. Reúne consulta pública, recepción de trabajos, revisión docente y publicación controlada por Biblioteca.
 
-**Versión del código: 24 de noviembre de 2026.** Angular + ASP.NET Core + PostgreSQL. Incluye la rama `frontend-benjamin-daniel`, las mejoras de la aplicación y la integración verificada el 23 de noviembre. Consulta el [registro de actualización de `main`](docs/PUBLICACION-20261124.md). Actualizar el repositorio no actualiza automáticamente una instalación que esté apagada.
+**Versión del código: 25 de noviembre de 2026.** Angular + ASP.NET Core + PostgreSQL. Incluye la rama `frontend-benjamin-daniel`, las mejoras de la aplicación y la integración verificada el 23 de noviembre. Consulta el [registro de actualización de `main`](docs/PUBLICACION-20261124.md). Actualizar el repositorio no actualiza automáticamente una instalación que esté apagada.
 
 ![Catálogo académico](docs/imagenes/catalogo.png)
 
@@ -22,6 +22,8 @@ Repositorio digital de proyectos y trabajos de grado de la **Universidad de El S
 - Administración de cuentas, roles, habilitación, asignaciones y datos académicos.
 - Recuperación de contraseña por correo, opción de mostrarla y compatibilidad con el gestor del navegador.
 - Actualización automática de listas, estados, favoritos y asignaciones, conservando los campos todavía no guardados.
+- Lista de fichas de Biblioteca con desplazamiento interno y filtro visible.
+- Copia institucional de los eventos registrados en bitácora, con responsable, motivo y destinatarios. Consulta la [configuración y validación](docs/COPIAS-INTERNAS-20261125.md).
 - Modo claro u oscuro, adaptación a móvil, iconos originales y transiciones que se pueden omitir y respetan la preferencia de reducir movimiento.
 
 ## Búsqueda dentro de los desplegables

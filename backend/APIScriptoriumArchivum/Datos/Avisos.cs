@@ -1,32 +1,46 @@
+﻿using APIScriptoriumArchivum.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
 
 namespace APIScriptoriumArchivum.Datos;
-
-public sealed class Avisos(NpgsqlDataSource db, IConfiguration config)
+public sealed class Avisos(IDbContextFactory<AppDbContext> db, IConfiguration config)
 {
-    public static string FechaLocal() => TimeZoneInfo.ConvertTimeBySystemTimeZoneId(
-        DateTimeOffset.UtcNow, "America/El_Salvador").ToString("dd/MM/yyyy HH:mm '— El Salvador'");
-
-    private static async Task<int> Evento(NpgsqlConnection c, NpgsqlTransaction tr, int actor,
-        string tipo, string tabla, int id, string detalle, CancellationToken ct) =>
-        await Comandos.Valor<int>(c, tr, """
-            INSERT INTO public.bitacora(id_usuario_actor,operacion,tabla_afectada,registro_afectado,detalle)
-            VALUES(@actor,@tipo,@tabla,@id::text,@detalle) RETURNING id_evento
-            """, ct, ("actor", actor), ("tipo", tipo), ("tabla", tabla), ("id", id), ("detalle", detalle));
-
-    private static async Task Encolar(NpgsqlConnection c, NpgsqlTransaction tr, int evento,
-        string destino, string titulo, string texto, CancellationToken ct)
+    public static string FechaLocal()
     {
-        if (string.IsNullOrWhiteSpace(destino)) return;
+        return TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTimeOffset.UtcNow, "America/El_Salvador").ToString("dd/MM/yyyy HH:mm '— El Salvador'");
+    }
+
+    private static async Task<int> Evento(AppDbContext c, IDbContextTransaction tr, int actor, string tipo, string tabla, int id, string detalle, CancellationToken ct)
+    {
+        var evento = new APIScriptoriumArchivum.Models.Bitacora
+        {
+            IdUsuarioActor = actor,
+            Operacion = tipo,
+            TablaAfectada = tabla,
+            RegistroAfectado = id.ToString(),
+            Detalle = detalle
+        };
+        c.Bitacora.Add(evento);
+        await c.SaveChangesAsync(ct);
+        return evento.IdEvento;
+    }
+
+    private static async Task Encolar(AppDbContext c, IDbContextTransaction tr, int evento, string destino, string titulo, string texto, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(destino))
+        {
+            return;
+        }
+
         await Comandos.Ejecutar(c, tr, """
             INSERT INTO public.correos_eventos(id_evento,destino,asunto,titulo,mensaje)
             VALUES(@evento,lower(@destino),@asunto,@titulo,@texto)
             ON CONFLICT(id_evento,destino) DO NOTHING
-            """, ct, ("evento", evento), ("destino", destino), ("asunto", titulo + " · Scriptorium Archivum"),
-            ("titulo", titulo), ("texto", texto));
+            """, ct, ("evento", evento), ("destino", destino), ("asunto", titulo + " · Scriptorium Archivum"), ("titulo", titulo), ("texto", texto));
     }
 
-    public async Task Cuenta(NpgsqlConnection c, NpgsqlTransaction tr, int id, string tipo, CancellationToken ct)
+    public async Task Cuenta(AppDbContext c, IDbContextTransaction tr, int id, string tipo, CancellationToken ct)
     {
         var cuentas = await Comandos.FilasJson(c, tr, """
             SELECT jsonb_build_object('nombre',coalesce(u.nombre_mostrar,concat_ws(' ',p.nombres,p.apellidos)),
@@ -43,23 +57,25 @@ public sealed class Avisos(NpgsqlDataSource db, IConfiguration config)
         string texto = $"{nombre}\nCorreo: {correo}\nRol: {rol}\nAcción: {titulo}\nFecha: {FechaLocal()}";
         int evento = await Evento(c, tr, id, tipo, "usuarios", id, texto, ct);
         if (registro || tipo == "INICIO_SESION" && config.GetValue("Correo:AvisosAcceso", true))
-            await Encolar(c, tr, evento, string.IsNullOrWhiteSpace(config["Correo:Avisos"])
-                ? config["Correo:Remitente"] ?? "no-responder@scriptorium.test" : config["Correo:Avisos"]!, titulo, texto, ct);
+        {
+            await Encolar(c, tr, evento, string.IsNullOrWhiteSpace(config["Correo:Avisos"]) ? config["Correo:Remitente"] ?? "no-responder@scriptorium.test" : config["Correo:Avisos"]!, titulo, texto, ct);
+        }
+
         if (registro)
-            await Encolar(c, tr, evento, correo, "Tu cuenta está registrada",
-                $"Hola, {nombre}.\nTu cuenta de {rol} se registró correctamente. Ya puedes ingresar a Scriptorium Archivum.\nFecha: {FechaLocal()}", ct);
+        {
+            await Encolar(c, tr, evento, correo, "Tu cuenta está registrada", $"Hola, {nombre}.\nTu cuenta de {rol} se registró correctamente. Ya puedes ingresar a Scriptorium Archivum.\nFecha: {FechaLocal()}", ct);
+        }
     }
 
     public async Task Acceso(int id, string tipo, CancellationToken ct)
     {
-        await using var c = await db.OpenConnectionAsync(ct);
-        await using var tr = await c.BeginTransactionAsync(ct);
+        await using var c = await db.CreateDbContextAsync(ct);
+        await using var tr = await c.Database.BeginTransactionAsync(ct);
         await Cuenta(c, tr, id, tipo, ct);
         await tr.CommitAsync(ct);
     }
 
-    public async Task Trabajo(NpgsqlConnection c, NpgsqlTransaction tr, int id, int actor,
-        string tipo, string titulo, string cambio, bool avisarBiblioteca, CancellationToken ct)
+    public async Task Trabajo(AppDbContext c, IDbContextTransaction tr, int id, int actor, string tipo, string titulo, string cambio, bool avisarBiblioteca, CancellationToken ct)
     {
         var fichas = await Comandos.FilasJson(c, tr, """
             SELECT jsonb_build_object('titulo',t.titulo,'tipo',tt.nombre,'estado',t.estado_publicacion,
@@ -88,18 +104,15 @@ public sealed class Avisos(NpgsqlDataSource db, IConfiguration config)
         foreach (var destinatario in destinos)
         {
             int usuario = destinatario.GetProperty("id").GetInt32();
-            await Comandos.Ejecutar(c, tr, """
-                INSERT INTO public.notificaciones(id_trabajo,tipo_evento,mensaje,id_usuario)
-                VALUES(@id,@tipo,@texto,@usuario)
-                """, ct, ("id", id), ("tipo", tipo), ("texto", texto), ("usuario", usuario));
+            c.Notificaciones.Add(new APIScriptoriumArchivum.Models.Notificaciones { IdTrabajo = id, TipoEvento = tipo, Mensaje = texto, IdUsuario = usuario });
+            await c.SaveChangesAsync(ct);
             await Encolar(c, tr, evento, destinatario.GetProperty("correo").GetString()!, titulo, texto, ct);
         }
     }
 
-    public async Task Asignacion(NpgsqlConnection c, NpgsqlTransaction tr, int alumno, int? docente, int actor, CancellationToken ct)
+    public async Task Asignacion(AppDbContext c, IDbContextTransaction tr, int alumno, int? docente, int actor, CancellationToken ct)
     {
-        int evento = await Evento(c, tr, actor, "ASIGNAR_DOCENTE", "usuarios", alumno,
-            docente.HasValue ? $"Docente asignado: {docente.Value}" : "Asignación de docente retirada", ct);
+        int evento = await Evento(c, tr, actor, "ASIGNAR_DOCENTE", "usuarios", alumno, docente.HasValue ? $"Docente asignado: {docente.Value}" : "Asignación de docente retirada", ct);
         var cuentas = await Comandos.FilasJson(c, tr, """
             SELECT jsonb_build_object('nombre',coalesce(u.nombre_mostrar,concat_ws(' ',p.nombres,p.apellidos)),
                 'correo',u.correo_institucional,'alumno',u.id_usuario=@alumno)::text
@@ -111,7 +124,8 @@ public sealed class Avisos(NpgsqlDataSource db, IConfiguration config)
         string nombreDocente = cuentas.Count > 1 ? cuentas[1].GetProperty("nombre").GetString()! : "Sin docente asignado";
         string contactoDocente = cuentas.Count > 1 ? "\nCorreo del docente: " + cuentas[1].GetProperty("correo").GetString() : "";
         foreach (var cuenta in cuentas)
-            await Encolar(c, tr, evento, cuenta.GetProperty("correo").GetString()!, "Asignación de docente actualizada",
-                $"Alumno: {nombreAlumno}\nDocente: {nombreDocente}{contactoDocente}\nAdministración actualizó la asignación. Los próximos avisos del trabajo se enviarán a las personas responsables.\nFecha: {FechaLocal()}", ct);
+        {
+            await Encolar(c, tr, evento, cuenta.GetProperty("correo").GetString()!, "Asignación de docente actualizada", $"Alumno: {nombreAlumno}\nDocente: {nombreDocente}{contactoDocente}\nAdministración actualizó la asignación. Los próximos avisos del trabajo se enviarán a las personas responsables.\nFecha: {FechaLocal()}", ct);
+        }
     }
 }

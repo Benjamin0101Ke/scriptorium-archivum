@@ -1,3 +1,6 @@
+﻿using APIScriptoriumArchivum.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using System.Security.Claims;
 using APIScriptoriumArchivum.Datos;
 using APIScriptoriumArchivum.Dtos;
@@ -6,18 +9,20 @@ using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 
 namespace APIScriptoriumArchivum.Controllers;
-
+// Recibe los trabajos del usuario con la carrera guardada en su perfil
 [ApiController]
 [Authorize(Roles = "Lector,Estudiante")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 [Route("api/mis-envios")]
-public class EnviosController(NpgsqlDataSource baseDeDatos, Fichas fichas, ArchivoPdf archivos, Avisos avisos, CargasArchivos cargas)
-    : ControllerBase
+public class EnviosController(IDbContextFactory<AppDbContext> baseDeDatos, Fichas fichas, ArchivoPdf archivos, Avisos avisos, CargasArchivos cargas) : ControllerBase
 {
+    // Consulta los envios de la cuenta conectada y el resultado de su revision docente
     [HttpGet]
     public async Task<IActionResult> Listar(CancellationToken ct)
     {
-        await using var conexion = await baseDeDatos.OpenConnectionAsync(ct);
+        await using var conexion = await baseDeDatos.CreateDbContextAsync(ct);
+        // La consulta combina el trabajo con su tipo y la ultima revision docente
+        // jsonb_build_object organiza las columnas como campos del resultado JSON
         return Ok(await Comandos.FilasJson(conexion, """
             SELECT jsonb_build_object(
                 'id', t.id_trabajo::text,
@@ -50,6 +55,7 @@ public class EnviosController(NpgsqlDataSource baseDeDatos, Fichas fichas, Archi
             """, ct, ("actor", Actor())));
     }
 
+    // Registra el trabajo y su PDF o enlace con la carrera del perfil del usuario
     [HttpPost]
     [RequestSizeLimit(CargasArchivos.MaximoBytes + 1024 * 1024)]
     [RequestFormLimits(MultipartBodyLengthLimit = CargasArchivos.MaximoBytes)]
@@ -58,52 +64,44 @@ public class EnviosController(NpgsqlDataSource baseDeDatos, Fichas fichas, Archi
         await using var recibido = await cargas.Resolver(datos.Archivo, datos.CargaId, Actor(), ct);
         IFormFile? archivo = recibido.Archivo;
         string? tipo;
-
-        await using (var consultaTipo = await baseDeDatos.OpenConnectionAsync(ct))
+        await using (var consultaTipo = await baseDeDatos.CreateDbContextAsync(ct))
         {
-            tipo = await Comandos.Valor<string>(
-                consultaTipo,
-                null,
-                "SELECT nombre FROM public.tipos_trabajo WHERE id_tipo_trabajo=@id",
-                ct,
-                ("id", datos.IdTipoTrabajo));
+            tipo = await Comandos.Valor<string>(consultaTipo, null, "SELECT nombre FROM public.tipos_trabajo WHERE id_tipo_trabajo=@id", ct, ("id", datos.IdTipoTrabajo));
         }
 
         if (tipo is null)
+        {
             return BadRequest(new { error = "Selecciona un tipo de trabajo válido." });
+        }
 
-        bool esSoftware = tipo.Trim().Equals(
-            "Proyecto de software",
-            StringComparison.OrdinalIgnoreCase);
-
+        bool esSoftware = tipo.Trim().Equals("Proyecto de software", StringComparison.OrdinalIgnoreCase);
         string? enlace = datos.Enlace?.Trim();
-
         if (esSoftware)
         {
             if (archivo is not null)
+            {
                 return BadRequest(new { error = "El proyecto de software debe registrarse mediante un enlace, no con un archivo." });
+            }
 
-            if (string.IsNullOrWhiteSpace(enlace) ||
-                enlace.Length > 2048 ||
-                !Uri.TryCreate(enlace, UriKind.Absolute, out Uri? url) ||
-                url.Scheme != Uri.UriSchemeHttps ||
-                (string.IsNullOrWhiteSpace(url.Host) || !string.IsNullOrEmpty(url.UserInfo)))
+            if (string.IsNullOrWhiteSpace(enlace) || enlace.Length > 2048 || !Uri.TryCreate(enlace, UriKind.Absolute, out Uri? url) || url.Scheme != Uri.UriSchemeHttps || (string.IsNullOrWhiteSpace(url.Host) || !string.IsNullOrEmpty(url.UserInfo)))
+            {
                 return BadRequest(new { error = "Ingresa un enlace HTTPS válido para tu proyecto." });
+            }
         }
         else
         {
             if (!string.IsNullOrWhiteSpace(enlace))
+            {
                 return BadRequest(new { error = "Este tipo de trabajo requiere un PDF, no un enlace." });
+            }
 
-            if (archivo is null ||
-                archivo.Length < 5 ||
-                archivo.Length > CargasArchivos.MaximoBytes ||
-                !archivo.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+            if (archivo is null || archivo.Length < 5 || archivo.Length > CargasArchivos.MaximoBytes || !archivo.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+            {
                 return BadRequest(new { error = "Selecciona un PDF de hasta 6 GB." });
+            }
         }
 
         string? clave = null;
-
         if (archivo is not null)
         {
             try
@@ -117,38 +115,37 @@ public class EnviosController(NpgsqlDataSource baseDeDatos, Fichas fichas, Archi
         }
 
         int actor = Actor();
-        string nombre = archivo is null
-            ? "Repositorio del proyecto"
-            : Path.GetFileName(archivo.FileName.Replace('\\', '/'));
-
-        if (nombre.Length > 255) nombre = "ejemplar.pdf";
+        string nombre = archivo is null ? "Repositorio del proyecto" : Path.GetFileName(archivo.FileName.Replace('\\', '/'));
+        if (nombre.Length > 255)
+        {
+            nombre = "ejemplar.pdf";
+        }
 
         try
         {
-            await using var conexion = await baseDeDatos.OpenConnectionAsync(ct);
-            await using var tr = await conexion.BeginTransactionAsync(ct);
-
+            await using var conexion = await baseDeDatos.CreateDbContextAsync(ct);
+            // Confirma juntos el trabajo, su ejemplar y los avisos registrados en la base
+            await using var tr = await conexion.Database.BeginTransactionAsync(ct);
             int persona;
             int carrera;
-
-            await using (var consulta = Comandos.Crear(conexion, tr,
-                "SELECT id_persona, id_carrera FROM public.usuarios WHERE id_usuario = @actor AND estado = 'Habilitada' FOR SHARE",
-                ("actor", actor)))
-            await using (var lector = await consulta.ExecuteReaderAsync(ct))
+            var cuentas = await conexion.Usuarios.FromSqlRaw("SELECT * FROM public.usuarios WHERE id_usuario = @actor AND estado = 'Habilitada' FOR SHARE", Comandos.Parametros(("actor", actor))).AsNoTracking().ToListAsync(ct);
+            var cuenta = cuentas.SingleOrDefault();
+            if (cuenta is null)
             {
-                if (!await lector.ReadAsync(ct))
-                    throw new ErrorApi(403, "La cuenta no está habilitada.");
-
-                persona = lector.GetInt32(0);
-
-                if (lector.IsDBNull(1))
-                    throw new ErrorApi(409, "Completa tu carrera en Mi perfil antes de enviar el trabajo.");
-
-                carrera = lector.GetInt32(1);
+                throw new ErrorApi(403, "La cuenta no está habilitada.");
             }
 
+            persona = cuenta.IdPersona;
+            if (!cuenta.IdCarrera.HasValue)
+            {
+                throw new ErrorApi(409, "Completa tu carrera en Mi perfil antes de enviar el trabajo.");
+            }
+
+            carrera = cuenta.IdCarrera.Value;
             if (datos.IdCarrera != 0 && datos.IdCarrera != carrera)
+            {
                 throw new ErrorApi(409, "La carrera del envío debe coincidir con tu perfil. Recarga la página.");
+            }
 
             var metadata = new MetadatosFicha
             {
@@ -160,18 +157,14 @@ public class EnviosController(NpgsqlDataSource baseDeDatos, Fichas fichas, Archi
                 AreaIds = datos.Areas,
                 AutorIds = [persona]
             };
-
             int id = await fichas.Guardar(conexion, tr, null, metadata, ct, actor);
-
             if (esSoftware)
             {
-                await Ejemplares.AgregarVersion(
-                    conexion, tr, id, actor, "ENLACE", enlace!, nombre, null, ct);
+                await Ejemplares.AgregarVersion(conexion, tr, id, actor, "ENLACE", enlace!, nombre, null, ct);
             }
             else
             {
-                await Ejemplares.AgregarVersion(
-                    conexion, tr, id, actor, "PDF", clave!, nombre, archivo!.Length, ct);
+                await Ejemplares.AgregarVersion(conexion, tr, id, actor, "PDF", clave!, nombre, archivo!.Length, ct);
             }
 
             var filas = await Comandos.FilasJson(conexion, tr, """
@@ -180,35 +173,29 @@ public class EnviosController(NpgsqlDataSource baseDeDatos, Fichas fichas, Archi
                 FROM public.trabajos t JOIN public.tipos_trabajo tt USING (id_tipo_trabajo)
                 WHERE t.id_trabajo = @id
                 """, ct, ("id", id));
-
-            await avisos.Trabajo(
-                conexion,
-                tr,
-                id,
-                actor,
-                "TRABAJO_ENVIADO",
-                "Trabajo recibido para revisión",
-                esSoftware
-                    ? "Se registró el trabajo y el enlace de su proyecto de software. Biblioteca revisará los requisitos antes de decidir su publicación."
-                    : "Se registró el trabajo y su PDF. Biblioteca revisará los requisitos antes de decidir su publicación.",
-                true,
-                ct);
-
+            await avisos.Trabajo(conexion, tr, id, actor, "TRABAJO_ENVIADO", "Trabajo recibido para revisión", esSoftware ? "Se registró el trabajo y el enlace de su proyecto de software. Biblioteca revisará los requisitos antes de decidir su publicación." : "Se registró el trabajo y su PDF. Biblioteca revisará los requisitos antes de decidir su publicación.", true, ct);
             await tr.CommitAsync(CancellationToken.None);
             return StatusCode(201, filas[0]);
         }
         catch
         {
             if (clave is not null)
+            {
                 archivos.QuitarTemporal(clave);
+            }
 
             throw;
         }
     }
 
-    private int Actor() => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    // Obtiene el identificador del usuario que realiza el envio
+    private int Actor()
+    {
+        return int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    }
 }
 
+// Campos del formulario y archivo o enlace que acompanan el envio del trabajo
 public sealed class EnvioLector
 {
     public string? Titulo { get; init; }
@@ -223,8 +210,8 @@ public sealed class EnvioLector
 
     [FromForm(Name = "area_ids")]
     public int[] Areas { get; init; } = [];
-
     public IFormFile? Archivo { get; init; }
+
     [FromForm(Name = "carga_id")]
     public string? CargaId { get; init; }
 

@@ -1,13 +1,15 @@
+﻿using APIScriptoriumArchivum.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using System.Text.Json;
 using Npgsql;
 
 namespace APIScriptoriumArchivum.Datos;
-
-public sealed class AsignacionesDocentes(NpgsqlDataSource db, Avisos avisos)
+public sealed class AsignacionesDocentes(IDbContextFactory<AppDbContext> db, Avisos avisos)
 {
     public async Task<List<JsonElement>> Docentes(CancellationToken ct)
     {
-        await using var c = await db.OpenConnectionAsync(ct);
+        await using var c = await db.CreateDbContextAsync(ct);
         return await Comandos.FilasJson(c, """
             SELECT jsonb_build_object('id',u.id_usuario,'nombre',coalesce(u.nombre_mostrar,concat_ws(' ',p.nombres,p.apellidos)),
                 'correo',u.correo_institucional)::text FROM public.usuarios u
@@ -19,33 +21,38 @@ public sealed class AsignacionesDocentes(NpgsqlDataSource db, Avisos avisos)
 
     public async Task Asignar(int alumno, int? docente, int actor, CancellationToken ct)
     {
-        await using var c = await db.OpenConnectionAsync(ct);
-        await using var tr = await c.BeginTransactionAsync(ct);
-        await using (var comando = Comandos.Crear(c, tr, """
-            SELECT u.id_docente FROM public.usuarios u JOIN public.roles r USING(id_rol)
+        await using var c = await db.CreateDbContextAsync(ct);
+        await using var tr = await c.Database.BeginTransactionAsync(ct);
+        var alumnos = await c.Usuarios.FromSqlRaw("""
+            SELECT u.* FROM public.usuarios u JOIN public.roles r USING(id_rol)
             WHERE u.id_usuario=@id AND u.estado='Habilitada' AND r.nombre='Estudiante' AND r.activo
             FOR UPDATE OF u
-            """, ("id", alumno)))
-        await using (var lector = await comando.ExecuteReaderAsync(ct))
+            """, Comandos.Parametros(("id", alumno))).ToListAsync(ct);
+        var estudiante = alumnos.SingleOrDefault();
+        if (estudiante is null)
         {
-            if (!await lector.ReadAsync(ct)) throw new ErrorApi(409, "Selecciona una cuenta estudiantil habilitada.");
-            int? actual = lector.IsDBNull(0) ? null : lector.GetInt32(0);
-            if (actual == docente) return;
+            throw new ErrorApi(409, "Selecciona una cuenta estudiantil habilitada.");
         }
-        if (docente.HasValue && !await Comandos.Valor<bool>(c, tr, """
-            SELECT EXISTS(SELECT 1 FROM public.usuarios u JOIN public.roles r USING(id_rol)
-                WHERE u.id_usuario=@id AND u.estado='Habilitada' AND r.nombre IN ('Docente revisor','Superadministrador') AND r.activo)
-            """, ct, ("id", docente.Value)))
+
+        if (estudiante.IdDocente == docente)
+        {
+            return;
+        }
+
+        if (docente.HasValue && !await c.Usuarios.AnyAsync(u => u.IdUsuario == docente.Value && u.Estado == "Habilitada" && u.IdRolNavigation.Activo && (u.IdRolNavigation.Nombre == "Docente revisor" || u.IdRolNavigation.Nombre == "Superadministrador"), ct))
+        {
             throw new ErrorApi(400, "Selecciona un docente revisor habilitado.");
-        await Comandos.Ejecutar(c, tr, "UPDATE public.usuarios SET id_docente=@docente::int WHERE id_usuario=@alumno",
-            ct, ("docente", docente), ("alumno", alumno));
+        }
+
+        estudiante.IdDocente = docente;
+        await c.SaveChangesAsync(ct);
         await avisos.Asignacion(c, tr, alumno, docente, actor, ct);
         await tr.CommitAsync(ct);
     }
 
     public async Task<List<JsonElement>> Correos(CancellationToken ct)
     {
-        await using var c = await db.OpenConnectionAsync(ct);
+        await using var c = await db.CreateDbContextAsync(ct);
         return await Comandos.FilasJson(c, """
             SELECT jsonb_build_object('id',m.id_correo::text,'destino',m.destino,'asunto',m.asunto,'estado',m.estado,
                 'intentos',m.intentos,'ciclo',m.ciclo,'proximo_intento',m.proximo_intento,'fecha',m.creado_en,'enviado_en',m.enviado_en,'error_tipo',m.error_tipo,

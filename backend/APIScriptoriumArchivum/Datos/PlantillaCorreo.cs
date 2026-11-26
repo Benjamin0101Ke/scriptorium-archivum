@@ -1,24 +1,22 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Mail;
 using System.Net.Mime;
 using System.Text;
 
 namespace APIScriptoriumArchivum.Datos;
-
 public static class PlantillaCorreo
 {
-    public static MailMessage Crear(string remitente, string destino, string asunto, string titulo,
-        string texto, string? codigo = null)
+    public static MailMessage Crear(string remitente, string destino, string asunto, string titulo, string texto, string? codigo = null)
     {
         string E(string valor) => WebUtility.HtmlEncode(valor);
         var mensaje = new MailMessage(new MailAddress(remitente, "Scriptorium Archivum"), new MailAddress(destino))
         {
-            Subject = asunto, SubjectEncoding = Encoding.UTF8, BodyEncoding = Encoding.UTF8
+            Subject = asunto,
+            SubjectEncoding = Encoding.UTF8,
+            BodyEncoding = Encoding.UTF8
         };
         string rutaLogo = Path.Combine(AppContext.BaseDirectory, "Correo", "logo.jpeg");
-        string logo = File.Exists(rutaLogo)
-            ? "<img src=\"cid:logo-scriptorium\" width=\"72\" height=\"72\" alt=\"Scriptorium Archivum\" style=\"display:block;border-radius:16px;margin:0 auto 16px\">"
-            : "";
+        string logo = File.Exists(rutaLogo) ? "<img src=\"cid:logo-scriptorium\" width=\"72\" height=\"72\" alt=\"Scriptorium Archivum\" style=\"display:block;border-radius:16px;margin:0 auto 16px\">" : "";
         string bloqueCodigo = codigo is null ? "" : $"""
             <div style="margin:24px 0;padding:22px;background:#f1edff;border:2px solid #6040c5;border-radius:14px;text-align:center">
               <div style="font-size:12px;color:#534175;margin-bottom:12px">TU CÓDIGO DE VERIFICACIÓN</div>
@@ -42,12 +40,13 @@ public static class PlantillaCorreo
               Universidad de El Salvador · Facultad Multidisciplinaria Oriental<br>Mensaje automático de Scriptorium Archivum.
             </td></tr></table></td></tr></table></body></html>
             """;
-        mensaje.AlternateViews.Add(AlternateView.CreateAlternateViewFromString(
-            titulo + "\n\n" + (codigo is null ? "" : "Código: " + codigo + "\n\n") + texto, Encoding.UTF8, MediaTypeNames.Text.Plain));
+        mensaje.AlternateViews.Add(AlternateView.CreateAlternateViewFromString(titulo + "\n\n" + (codigo is null ? "" : "Código: " + codigo + "\n\n") + texto, Encoding.UTF8, MediaTypeNames.Text.Plain));
         var vista = AlternateView.CreateAlternateViewFromString(html, Encoding.UTF8, MediaTypeNames.Text.Html);
         if (File.Exists(rutaLogo))
-            vista.LinkedResources.Add(new LinkedResource(rutaLogo, "image/jpeg")
-            { ContentId = "logo-scriptorium", TransferEncoding = TransferEncoding.Base64 });
+        {
+            vista.LinkedResources.Add(new LinkedResource(rutaLogo, "image/jpeg") { ContentId = "logo-scriptorium", TransferEncoding = TransferEncoding.Base64 });
+        }
+
         mensaje.AlternateViews.Add(vista);
         return mensaje;
     }

@@ -1,3 +1,6 @@
+﻿using APIScriptoriumArchivum.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using System.Security.Claims;
 using System.Text.Json;
 using APIScriptoriumArchivum.Datos;
@@ -7,27 +10,51 @@ using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 
 namespace APIScriptoriumArchivum.Controllers;
-
+// Muestra al docente los trabajos asignados y permite registrar su revision
 [ApiController]
 [Authorize(Roles = "Docente revisor")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 [Route("api/docente")]
 public class DocenteController(RevisionesDocentes revisiones) : ControllerBase
 {
-    private bool Super=>User.IsInRole("Superadministrador");
-    private int Actor() => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    // Reconoce el acceso especial de la cuenta Superadministrador
+    private bool Super
+    {
+        get
+        {
+            return User.IsInRole("Superadministrador");
+        }
+    }
 
+    // Identifica al docente conectado desde los datos de su sesion
+    private int Actor()
+    {
+        return int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    }
+
+    // Consulta el panel de trabajos y estudiantes asignados
     [HttpGet]
-    public async Task<IActionResult> Panel(CancellationToken ct)=>Ok(await revisiones.Panel(Actor(),Super,ct));
+    public async Task<IActionResult> Panel(CancellationToken ct)
+    {
+        return Ok(await revisiones.Panel(Actor(), Super, ct));
+    }
 
+    // Comprueba la asignacion antes de mostrar las revisiones del trabajo
     [HttpGet("trabajos/{id:int}/revisiones")]
-    public async Task<IActionResult> Historial(int id,CancellationToken ct){await revisiones.Autorizar(id,Actor(),Super,ct);return Ok(await revisiones.Historial(id,ct));}
+    public async Task<IActionResult> Historial(int id, CancellationToken ct)
+    {
+        await revisiones.Autorizar(id, Actor(), Super, ct);
+        return Ok(await revisiones.Historial(id, ct));
+    }
+
+    // Devuelve los totales del panel docente
     [HttpGet("resumen")]
     public async Task<IActionResult> Resumen(CancellationToken ct)
     {
         return Ok(await revisiones.Resumen(Actor(), ct, Super));
     }
 
+    // Busca los trabajos asignados con filtros de estudiante y estado de revision
     [HttpGet("trabajos")]
     public async Task<IActionResult> Trabajos([FromQuery] string? q, [FromQuery] string? estado, [FromQuery] int? estudiante, CancellationToken ct)
     {
@@ -36,15 +63,18 @@ public class DocenteController(RevisionesDocentes revisiones) : ControllerBase
         {
             return BadRequest(new { error = "El estado de revisión solicitado no es válido." });
         }
+
         return Ok(await revisiones.Listar(Actor(), q, filtro, estudiante, ct, Super));
     }
 
+    // Muestra al docente los datos del trabajo que puede revisar
     [HttpGet("trabajos/{id:int}")]
     public async Task<IActionResult> Detalle(int id, CancellationToken ct)
     {
         return Ok(await revisiones.Detalle(Actor(), id, ct, Super));
     }
 
+    // Entrega el ejemplar que el docente tiene permitido revisar
     [HttpGet("trabajos/{id:int}/pdf")]
     public async Task<IActionResult> Pdf(int id, [FromQuery] int? ejemplar, CancellationToken ct)
     {
@@ -54,25 +84,36 @@ public class DocenteController(RevisionesDocentes revisiones) : ControllerBase
         return PhysicalFile(ruta, "application/pdf", enableRangeProcessing: true);
     }
 
+    // Registra la revision docente del ejemplar sin conceder permiso de publicacion
     [HttpPost("trabajos/{id:int}/revisiones")]
     public async Task<IActionResult> Revisar(int id, RevisionDocenteDatos datos, CancellationToken ct)
     {
         JsonElement revision = await revisiones.Registrar(Actor(), id, datos, ct, Super);
-        return StatusCode(201,new { revision });
+        return StatusCode(201, new { revision });
     }
 }
 
-[ApiController,Authorize,ResponseCache(NoStore=true,Location=ResponseCacheLocation.None)]
-public sealed class HistorialDocenteController(RevisionesDocentes revisiones,NpgsqlDataSource db):ControllerBase
+// Entrega el historial de revisiones segun el rol y la relacion con el trabajo
+[ApiController, Authorize, ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+public sealed class HistorialDocenteController(RevisionesDocentes revisiones, IDbContextFactory<AppDbContext> db) : ControllerBase
 {
-    [Authorize(Roles="Biblioteca"),HttpGet("api/admin/trabajos/{id:int}/revisiones")]
-    public async Task<IActionResult> Biblioteca(int id,CancellationToken ct)=>Ok(await revisiones.Historial(id,ct));
-    [Authorize(Roles="Lector,Estudiante"),HttpGet("api/mis-envios/{id:int}/revisiones")]
-    public async Task<IActionResult> Alumno(int id,CancellationToken ct)
+    // Permite a Biblioteca consultar las revisiones docentes del trabajo
+    [Authorize(Roles = "Biblioteca"), HttpGet("api/admin/trabajos/{id:int}/revisiones")]
+    public async Task<IActionResult> Biblioteca(int id, CancellationToken ct)
     {
-        await using var c=await db.OpenConnectionAsync(ct);
-        if(!await Comandos.Valor<bool>(c,null,"SELECT EXISTS(SELECT 1 FROM public.trabajos WHERE id_trabajo=@id AND id_usuario_envio=@actor)",ct,
-            ("id",id),("actor",int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!))))return NotFound(new{error="El envío no está disponible."});
-        return Ok(await revisiones.Historial(id,ct));
+        return Ok(await revisiones.Historial(id, ct));
+    }
+
+    // Muestra el historial al usuario que envio ese trabajo
+    [Authorize(Roles = "Lector,Estudiante"), HttpGet("api/mis-envios/{id:int}/revisiones")]
+    public async Task<IActionResult> Alumno(int id, CancellationToken ct)
+    {
+        await using var c = await db.CreateDbContextAsync(ct);
+        if (!await Comandos.Valor<bool>(c, null, "SELECT EXISTS(SELECT 1 FROM public.trabajos WHERE id_trabajo=@id AND id_usuario_envio=@actor)", ct, ("id", id), ("actor", int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!))))
+        {
+            return NotFound(new { error = "El envío no está disponible." });
+        }
+
+        return Ok(await revisiones.Historial(id, ct));
     }
 }

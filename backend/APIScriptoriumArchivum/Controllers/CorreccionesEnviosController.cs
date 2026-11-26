@@ -1,22 +1,30 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Text.Json;
 using APIScriptoriumArchivum.Datos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Npgsql;
+using APIScriptoriumArchivum.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace APIScriptoriumArchivum.Controllers;
 
+// Consulta y recibe correcciones del propietario sin heredar autorizaciones del ejemplar anterior
 [ApiController]
 [Authorize(Roles = "Lector,Estudiante")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 [Route("api/mis-envios/{id:int}")]
-public sealed class CorreccionesEnviosController(NpgsqlDataSource db, ArchivoPdf archivos,
+public sealed class CorreccionesEnviosController(IDbContextFactory<AppDbContext> db, ArchivoPdf archivos,
     CargasArchivos cargas, Avisos avisos) : ControllerBase
 {
-    private int Actor() => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    // Identifica al propietario del envio desde su sesion
+    private int Actor()
+    {
+        return int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    }
 
-    private static async Task<JsonElement> Estado(NpgsqlConnection c, NpgsqlTransaction? tr,
+    // Consulta el ultimo ejemplar y los motivos que permiten corregirlo
+    private static async Task<JsonElement> Estado(AppDbContext c, IDbContextTransaction? tr,
         int id, int actor, CancellationToken ct)
     {
         var filas = await Comandos.FilasJson(c, tr, """
@@ -43,25 +51,35 @@ public sealed class CorreccionesEnviosController(NpgsqlDataSource db, ArchivoPdf
                 WHERE a.id_entrega=e.id_entrega ORDER BY a.id_autorizacion DESC LIMIT 1) a ON true
             WHERE t.id_trabajo=@id AND t.id_usuario_envio=@actor
             """, ct, ("id", id), ("actor", actor));
-        if (filas.Count == 0) throw new ErrorApi(404, "El envío no existe o no pertenece a tu cuenta.");
+        if (filas.Count == 0)
+        {
+            throw new ErrorApi(404, "El envío no existe o no pertenece a tu cuenta.");
+        }
         return filas[0];
     }
 
+    // Devuelve el estado de correccion del trabajo enviado por esta cuenta
     [HttpGet("correccion")]
     public async Task<IActionResult> Consultar(int id, CancellationToken ct)
     {
-        await using var c = await db.OpenConnectionAsync(ct);
+        await using var c = await db.CreateDbContextAsync(ct);
         return Ok(await Estado(c, null, id, Actor(), ct));
     }
 
+    // Rechaza un reemplazo no autorizado o basado en una version que ya cambio
     private static void ValidarEstado(JsonElement estado, string? esperado)
     {
         if (!estado.GetProperty("puede_reemplazar").GetBoolean())
+        {
             throw new ErrorApi(409, "Solo puedes enviar una nueva versión cuando el trabajo está en revisión y tiene cambios solicitados, una decisión desfavorable o una constancia revocada.");
+        }
         if (string.IsNullOrWhiteSpace(esperado) || estado.GetProperty("ejemplar_id").GetString() != esperado)
+        {
             throw new ErrorApi(409, "El ejemplar cambió. Actualiza el envío antes de enviar otra versión.");
+        }
     }
 
+    // Guarda la version corregida y sus avisos dentro de la misma transaccion
     [HttpPost("reemplazo")]
     [RequestSizeLimit(CargasArchivos.MaximoBytes + 1024 * 1024)]
     [RequestFormLimits(MultipartBodyLengthLimit = CargasArchivos.MaximoBytes)]
@@ -69,12 +87,16 @@ public sealed class CorreccionesEnviosController(NpgsqlDataSource db, ArchivoPdf
     {
         int actor = Actor();
         JsonElement estado;
-        await using (var c = await db.OpenConnectionAsync(ct))
+        await using (var c = await db.CreateDbContextAsync(ct))
+        {
             estado = await Estado(c, null, id, actor, ct);
+        }
         ValidarEstado(estado, datos.EjemplarId);
         string motivo = datos.Cambios?.Trim() ?? "";
         if (motivo.Length is < 10 or > 1500 || motivo.Any(ch => char.IsControl(ch) && ch is not ('\r' or '\n' or '\t')))
+        {
             throw new ErrorApi(400, "Describe los cambios realizados, entre 10 y 1500 caracteres.");
+        }
 
         await using var recibido = await cargas.Resolver(datos.Archivo, datos.CargaId, actor, ct);
         IFormFile? archivo = recibido.Archivo;
@@ -85,44 +107,50 @@ public sealed class CorreccionesEnviosController(NpgsqlDataSource db, ArchivoPdf
             if (archivo is not null || enlace is null || enlace.Length > 2048 ||
                 !Uri.TryCreate(enlace, UriKind.Absolute, out var url) || url.Scheme != Uri.UriSchemeHttps ||
                 string.IsNullOrWhiteSpace(url.Host) || !string.IsNullOrEmpty(url.UserInfo))
+            {
                 throw new ErrorApi(400, "Proporciona un enlace HTTPS del proyecto, sin credenciales ni archivo adjunto.");
+            }
         }
         else if (!string.IsNullOrEmpty(enlace) || archivo is null || archivo.Length < 5 ||
             archivo.Length > CargasArchivos.MaximoBytes || !archivo.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+        {
             throw new ErrorApi(400, "Selecciona el PDF corregido, de hasta 6 GB.");
+        }
 
         string? clave = null;
         try
         {
             if (archivo is not null)
             {
-                try { clave = await archivos.Guardar(archivo, ct); }
-                catch (InvalidDataException) { throw new ErrorApi(400, "Selecciona un PDF válido que se pueda abrir."); }
+                try
+                {
+                    clave = await archivos.Guardar(archivo, ct);
+                }
+                catch (InvalidDataException)
+                {
+                    throw new ErrorApi(400, "Selecciona un PDF válido que se pueda abrir.");
+                }
             }
-            await using var c = await db.OpenConnectionAsync(ct);
-            await using var tr = await c.BeginTransactionAsync(ct);
+            await using var c = await db.CreateDbContextAsync(ct);
+            await using var tr = await c.Database.BeginTransactionAsync(ct);
             await Fichas.Bloquear(c, tr, id, ct);
             ValidarEstado(await Estado(c, tr, id, actor, ct), datos.EjemplarId);
 
             string nombre = software ? "Repositorio del proyecto corregido" : Path.GetFileName(archivo!.FileName.Replace('\\','/'));
-            if (nombre.Length > 255 || nombre.Any(char.IsControl)) nombre = "ejemplar-corregido.pdf";
-            int entrega;
+            if (nombre.Length > 255 || nombre.Any(char.IsControl))
+            {
+                nombre = "ejemplar-corregido.pdf";
+            }
+            // La nueva version se crea con sus valores iniciales, sin copiar permisos anteriores
+            int entrega = await Ejemplares.AgregarVersion(c, tr, id, actor, software ? "ENLACE" : "PDF",
+                software ? enlace! : clave!, nombre, archivo?.Length, ct);
             if (software)
             {
-                entrega = await Comandos.Valor<int>(c, tr, """
-                    INSERT INTO public.entregas(id_trabajo,numero_version,id_usuario_envia)
-                    VALUES(@id,(SELECT coalesce(max(numero_version),0)+1 FROM public.entregas WHERE id_trabajo=@id),@actor)
-                    RETURNING id_entrega
-                    """, ct, ("id", id), ("actor", actor));
-                await Comandos.Ejecutar(c, tr, """
-                    INSERT INTO public.recursos_digitales(id_trabajo,id_entrega,clase,ubicacion,nombre,tipo_formato,descripcion)
-                    VALUES(@id,@e,'ENLACE',@url,@nombre,'text/html','Repositorio externo del proyecto de software corregido')
-                    """, ct, ("id", id), ("e", entrega), ("url", enlace), ("nombre", nombre));
+                await c.RecursosDigitales.Where(r => r.IdEntrega == entrega && r.Clase == "ENLACE")
+                    .ExecuteUpdateAsync(s => s.SetProperty(r => r.Descripcion, "Repositorio externo del proyecto de software corregido"), ct);
             }
-            else
-                entrega = await Ejemplares.AgregarVersion(c, tr, id, actor, "PDF", clave!, nombre, archivo?.Length, ct);
-            await Comandos.Ejecutar(c, tr,
-                "UPDATE public.trabajos SET id_entrega_final=NULL WHERE id_trabajo=@id", ct, ("id", id));
+            await c.Trabajos.Where(t => t.IdTrabajo == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(t => t.IdEntregaFinal, (int?)null), ct);
             int version = await Comandos.Valor<int>(c, tr,
                 "SELECT numero_version FROM public.entregas WHERE id_entrega=@e", ct, ("e", entrega));
             await avisos.Trabajo(c, tr, id, actor, "VERSION_CORREGIDA_ENVIADA", "Nueva versión recibida para revisión",
@@ -132,12 +160,16 @@ public sealed class CorreccionesEnviosController(NpgsqlDataSource db, ArchivoPdf
         }
         catch
         {
-            if (clave is not null) archivos.QuitarTemporal(clave);
+            if (clave is not null)
+            {
+                archivos.QuitarTemporal(clave);
+            }
             throw;
         }
     }
 }
 
+// Datos del formulario para sustituir el ejemplar pendiente de revision
 public sealed class CorreccionEnvio
 {
     [FromForm(Name = "ejemplar_id")] public string? EjemplarId { get; init; }

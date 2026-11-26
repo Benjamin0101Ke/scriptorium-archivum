@@ -1,3 +1,6 @@
+﻿using APIScriptoriumArchivum.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using System.Security.Claims;
 using APIScriptoriumArchivum.Datos;
 using Microsoft.AspNetCore.Authorization;
@@ -5,16 +8,19 @@ using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 
 namespace APIScriptoriumArchivum.Controllers;
-
+// Consulta el docente asignado al estudiante y si esa cuenta sigue disponible
 [ApiController, Authorize(Roles = "Estudiante"), Route("api/mi-docente")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class MiDocenteController(NpgsqlDataSource db) : ControllerBase
+public sealed class MiDocenteController(IDbContextFactory<AppDbContext> db) : ControllerBase
 {
+    // Devuelve el docente asignado o informa que no hay uno disponible
     [HttpGet]
     public async Task<IActionResult> Consultar(CancellationToken ct)
     {
         int actor = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        await using var c = await db.OpenConnectionAsync(ct);
+        await using var c = await db.CreateDbContextAsync(ct);
+        // SELECT consulta los datos y jsonb_build_object arma el objeto JSON de respuesta
+        // LEFT JOIN conserva al estudiante aunque todavia no tenga docente asignado
         var rows = await Comandos.FilasJson(c, """
             SELECT jsonb_build_object(
               'estado',CASE WHEN a.id_docente IS NULL THEN 'Sin asignación'
@@ -26,7 +32,7 @@ public sealed class MiDocenteController(NpgsqlDataSource db) : ControllerBase
             FROM public.usuarios a LEFT JOIN public.usuarios d ON d.id_usuario=a.id_docente
             LEFT JOIN public.roles r ON r.id_rol=d.id_rol LEFT JOIN public.personas p ON p.id_persona=d.id_persona
             WHERE a.id_usuario=@actor AND a.estado='Habilitada'
-            """, ct, ("actor",actor));
+            """, ct, ("actor", actor));
         return rows.Count == 0 ? NotFound(new { error = "La cuenta no está disponible." }) : Ok(rows[0]);
     }
 }

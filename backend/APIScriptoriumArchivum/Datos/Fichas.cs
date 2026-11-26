@@ -1,3 +1,6 @@
+﻿using APIScriptoriumArchivum.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -14,7 +17,6 @@ namespace APIScriptoriumArchivum.Datos
             'areas', a.nombres, 'area_ids', a.ids, 'id_carrera', t.id_carrera,
             'id_tipo_trabajo', t.id_tipo_trabajo, 'autores', p.nombres, 'autor_ids', p.ids
             """;
-
         public const string RelacionesBasicas = """
             FROM public.trabajos t
             JOIN public.carreras c USING (id_carrera)
@@ -32,11 +34,9 @@ namespace APIScriptoriumArchivum.Datos
                         AND ap.calidad_participacion='Autor' ORDER BY ap.orden_autoria NULLS LAST, ap.id_participacion) ids
             ) p
             """;
-
-        private NpgsqlDataSource baseDeDatos;
+        private IDbContextFactory<AppDbContext> baseDeDatos;
         private Avisos avisos;
-
-        public Fichas(NpgsqlDataSource baseDeDatos, Avisos avisos)
+        public Fichas(IDbContextFactory<AppDbContext> baseDeDatos, Avisos avisos)
         {
             this.baseDeDatos = baseDeDatos;
             this.avisos = avisos;
@@ -44,16 +44,14 @@ namespace APIScriptoriumArchivum.Datos
 
         public async Task<List<JsonElement>> Listar(CancellationToken ct)
         {
-            await using NpgsqlConnection conexion = await baseDeDatos.OpenConnectionAsync(ct);
-            string sql = "SELECT jsonb_build_object(" + DatosBasicos +
-                ", 'estado', replace(t.estado_publicacion, 'En revisión', 'En revision'), 'revision_docente', CASE WHEN rd.id_revision IS NULL THEN null ELSE jsonb_build_object('resultado',rd.resultado,'observaciones',rd.motivo_decision,'fecha',rd.fecha_cierre,'docente',coalesce(ru.nombre_mostrar,concat_ws(' ',rp.nombres,rp.apellidos)),'version',rd.numero_version) END)::text " +
-                RelacionesBasicas + " LEFT JOIN LATERAL (SELECT r.*, e.numero_version FROM public.entregas e JOIN public.revisiones r ON r.id_entrega=e.id_entrega WHERE e.id_trabajo=t.id_trabajo AND r.ambito_revision='Revisión docente' AND r.fecha_cierre IS NOT NULL ORDER BY e.numero_version DESC, r.fecha_cierre DESC, r.id_revision DESC LIMIT 1) rd ON true LEFT JOIN public.usuarios ru ON ru.id_usuario=rd.id_usuario_revisor LEFT JOIN public.personas rp ON rp.id_persona=ru.id_persona ORDER BY t.id_trabajo DESC";
+            await using AppDbContext conexion = await baseDeDatos.CreateDbContextAsync(ct);
+            string sql = "SELECT jsonb_build_object(" + DatosBasicos + ", 'estado', replace(t.estado_publicacion, 'En revisión', 'En revision'), 'revision_docente', CASE WHEN rd.id_revision IS NULL THEN null ELSE jsonb_build_object('resultado',rd.resultado,'observaciones',rd.motivo_decision,'fecha',rd.fecha_cierre,'docente',coalesce(ru.nombre_mostrar,concat_ws(' ',rp.nombres,rp.apellidos)),'version',rd.numero_version) END)::text " + RelacionesBasicas + " LEFT JOIN LATERAL (SELECT r.*, e.numero_version FROM public.entregas e JOIN public.revisiones r ON r.id_entrega=e.id_entrega WHERE e.id_trabajo=t.id_trabajo AND r.ambito_revision='Revisión docente' AND r.fecha_cierre IS NOT NULL ORDER BY e.numero_version DESC, r.fecha_cierre DESC, r.id_revision DESC LIMIT 1) rd ON true LEFT JOIN public.usuarios ru ON ru.id_usuario=rd.id_usuario_revisor LEFT JOIN public.personas rp ON rp.id_persona=ru.id_persona ORDER BY t.id_trabajo DESC";
             return await Comandos.FilasJson(conexion, sql, ct);
         }
 
         public async Task<List<JsonElement>> Personas(string? busqueda, CancellationToken ct)
         {
-            await using NpgsqlConnection conexion = await baseDeDatos.OpenConnectionAsync(ct);
+            await using AppDbContext conexion = await baseDeDatos.CreateDbContextAsync(ct);
             const string sql = """
                 SELECT jsonb_build_object('id', id_persona, 'nombre', concat_ws(' ', nombres, apellidos),
                                           'nombres', nombres, 'apellidos', apellidos)::text
@@ -72,15 +70,21 @@ namespace APIScriptoriumArchivum.Datos
             {
                 throw new ErrorApi(400, "Revisa los nombres, apellidos y el identificador institucional.");
             }
-            await using NpgsqlConnection conexion = await baseDeDatos.OpenConnectionAsync(ct);
+
+            await using AppDbContext conexion = await baseDeDatos.CreateDbContextAsync(ct);
             try
             {
-                return await Comandos.Valor<int>(conexion, null, """
-                    INSERT INTO public.personas(nombres, apellidos, identificador_institucional)
-                    VALUES (@nombres, @apellidos, @carnet::text) RETURNING id_persona
-                    """, ct, ("nombres", nombres), ("apellidos", apellidos), ("carnet", carnet));
+                var persona = new APIScriptoriumArchivum.Models.Personas
+                {
+                    Nombres = nombres,
+                    Apellidos = apellidos,
+                    IdentificadorInstitucional = carnet
+                };
+                conexion.Personas.Add(persona);
+                await conexion.SaveChangesAsync(ct);
+                return persona.IdPersona;
             }
-            catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.UniqueViolation)
+            catch (DbUpdateException e)when (e.InnerException is PostgresException postgres && postgres.SqlState == PostgresErrorCodes.UniqueViolation)
             {
                 throw new ErrorApi(409, "Ya existe una persona con ese identificador.");
             }
@@ -88,18 +92,19 @@ namespace APIScriptoriumArchivum.Datos
 
         public async Task<int> Guardar(int? id, MetadatosFicha datos, CancellationToken ct, int? actor = null)
         {
-            await using var conexion = await baseDeDatos.OpenConnectionAsync(ct);
-            await using var tr = await conexion.BeginTransactionAsync(ct);
+            await using var conexion = await baseDeDatos.CreateDbContextAsync(ct);
+            await using var tr = await conexion.Database.BeginTransactionAsync(ct);
             int ficha = await Guardar(conexion, tr, id, datos, ct);
             if (id.HasValue && actor.HasValue)
-                await avisos.Trabajo(conexion, tr, ficha, actor.Value, "METADATOS_ACTUALIZADOS", "Datos del trabajo actualizados",
-                    "Biblioteca guardó una corrección de los datos de la ficha. Consulta los datos actualizados en el repositorio.", false, ct);
+            {
+                await avisos.Trabajo(conexion, tr, ficha, actor.Value, "METADATOS_ACTUALIZADOS", "Datos del trabajo actualizados", "Biblioteca guardó una corrección de los datos de la ficha. Consulta los datos actualizados en el repositorio.", false, ct);
+            }
+
             await tr.CommitAsync(ct);
             return ficha;
         }
 
-        internal async Task<int> Guardar(NpgsqlConnection conexion, NpgsqlTransaction tr, int? id,
-            MetadatosFicha datos, CancellationToken ct, int? actorEnvio = null)
+        internal async Task<int> Guardar(AppDbContext conexion, IDbContextTransaction tr, int? id, MetadatosFicha datos, CancellationToken ct, int? actorEnvio = null)
         {
             string titulo = datos.Titulo?.Trim() ?? "";
             string resumen = datos.Resumen?.Trim() ?? "";
@@ -108,10 +113,12 @@ namespace APIScriptoriumArchivum.Datos
             {
                 invalidos.Add("titulo");
             }
+
             if (datos.Anio is < 1000 or > 9999)
             {
                 invalidos.Add("anio");
             }
+
             if (resumen.Length == 0)
             {
                 invalidos.Add("resumen");
@@ -133,28 +140,29 @@ namespace APIScriptoriumArchivum.Datos
                 """, ct, ("id", datos.IdTipoTrabajo), ("nombre", datos.Tipo?.Trim() ?? ""), ("ficha", id));
             int[] areas = datos.AreaIds?.Distinct().ToArray() ?? await AreasPorNombre(conexion, tr, datos.Area, ct);
             int[] autores = await ResolverPersonas(conexion, tr, datos.AutorIds, datos.Autores, ct);
-
             if (carrera == 0)
             {
                 invalidos.Add("carrera");
             }
+
             if (tipo == 0)
             {
                 invalidos.Add("tipo");
             }
-            if (areas.Length != await Comandos.Valor<long>(conexion, tr,
-                "SELECT count(*) FROM public.areas_tematicas WHERE activa AND id_area=ANY(@ids)", ct, ("ids", areas)))
+
+            if (areas.Length != await Comandos.Valor<long>(conexion, tr, "SELECT count(*) FROM public.areas_tematicas WHERE activa AND id_area=ANY(@ids)", ct, ("ids", areas)))
             {
                 invalidos.Add("area");
             }
+
             if (autores.Length == 0)
             {
                 invalidos.Add("autores");
             }
+
             if (invalidos.Count > 0)
             {
-                throw new ErrorApi(400, "Los metadatos de la ficha no están completos.",
-                    new { error = "Revisa los campos y usa personas y catálogos ya registrados.", fields = invalidos });
+                throw new ErrorApi(400, "Los metadatos de la ficha no están completos.", new { error = "Revisa los campos y usa personas y catálogos ya registrados.", fields = invalidos });
             }
 
             if (!id.HasValue && !datos.ConfirmarDuplicado)
@@ -164,74 +172,77 @@ namespace APIScriptoriumArchivum.Datos
                     array(SELECT p.id_persona FROM public.participaciones p
                           WHERE p.id_trabajo=t.id_trabajo AND calidad_participacion='Autor' ORDER BY p.id_persona)=@autores
                     """;
-                await using NpgsqlCommand comando = Comandos.Crear(conexion, tr, posibles,
-                    ("anio", datos.Anio), ("autores", autores.Order().ToArray()));
-                await using NpgsqlDataReader lector = await comando.ExecuteReaderAsync(ct);
-                while (await lector.ReadAsync(ct))
+                List<string> titulos = await Comandos.Filas<string>(conexion, posibles, ct, ("anio", datos.Anio), ("autores", autores.Order().ToArray()));
+                foreach (string existente in titulos)
                 {
-                    if (Normalizar(lector.GetString(0)) == Normalizar(titulo))
+                    if (Normalizar(existente) == Normalizar(titulo))
                     {
                         throw new ErrorApi(409, "Posible ficha duplicada.", new { error = "Posible ficha duplicada.", duplicate = true });
                     }
                 }
             }
 
-            int ficha;
+            APIScriptoriumArchivum.Models.Trabajos trabajo;
             if (id.HasValue)
             {
-                ficha = id.Value;
-                await Comandos.Ejecutar(conexion, tr, """
-                    UPDATE public.trabajos SET titulo=@titulo, resumen=@resumen, anio=@anio,
-                        id_carrera=@carrera, id_tipo_trabajo=@tipo WHERE id_trabajo=@id
-                    """, ct, ("titulo", titulo), ("resumen", resumen), ("anio", (short)datos.Anio),
-                    ("carrera", carrera), ("tipo", tipo), ("id", ficha));
-                await Comandos.Ejecutar(conexion, tr, """
-                    DELETE FROM public.participaciones WHERE id_trabajo=@id AND calidad_participacion='Autor';
-                    DELETE FROM public.trabajos_areas WHERE id_trabajo=@id;
-                    """, ct, ("id", ficha));
+                trabajo = await conexion.Trabajos.SingleAsync(t => t.IdTrabajo == id.Value, ct);
+                await conexion.Participaciones.Where(p => p.IdTrabajo == id.Value && p.CalidadParticipacion == "Autor").ExecuteDeleteAsync(ct);
+                await conexion.TrabajosAreas.Where(a => a.IdTrabajo == id.Value).ExecuteDeleteAsync(ct);
             }
             else
             {
-                ficha = await Comandos.Valor<int>(conexion, tr, """
-                    INSERT INTO public.trabajos(codigo,titulo,resumen,anio,id_carrera,id_tipo_trabajo,id_usuario_envio,estado_publicacion)
-                    VALUES ('TR-'||substr(gen_random_uuid()::text,1,23), @titulo,@resumen,@anio,@carrera,@tipo,@actor::int,
-                            CASE WHEN @actor::int IS NULL THEN 'Borrador' ELSE 'En revisión' END)
-                    RETURNING id_trabajo
-                    """, ct, ("titulo", titulo), ("resumen", resumen), ("anio", (short)datos.Anio),
-                    ("carrera", carrera), ("tipo", tipo), ("actor", actorEnvio));
+                trabajo = new APIScriptoriumArchivum.Models.Trabajos
+                {
+                    Codigo = "TR-" + Guid.NewGuid().ToString()[..23],
+                    IdUsuarioEnvio = actorEnvio,
+                    EstadoPublicacion = actorEnvio.HasValue ? "En revisión" : "Borrador"
+                };
+                conexion.Trabajos.Add(trabajo);
             }
 
-            await Comandos.Ejecutar(conexion, tr, """
-                INSERT INTO public.participaciones(id_trabajo,id_persona,calidad_participacion,orden_autoria)
-                    SELECT @id, persona, 'Autor', posicion::smallint FROM unnest(@autores) WITH ORDINALITY a(persona,posicion);
-                INSERT INTO public.trabajos_areas(id_trabajo,id_area) SELECT @id, unnest(@areas);
-                """, ct, ("id", ficha), ("autores", autores), ("areas", areas));
+            trabajo.Titulo = titulo;
+            trabajo.Resumen = resumen;
+            trabajo.Anio = (short)datos.Anio;
+            trabajo.IdCarrera = carrera;
+            trabajo.IdTipoTrabajo = tipo;
+            await conexion.SaveChangesAsync(ct);
+            int ficha = trabajo.IdTrabajo;
+            for (int posicion = 0; posicion < autores.Length; posicion++)
+            {
+                conexion.Participaciones.Add(new APIScriptoriumArchivum.Models.Participaciones { IdTrabajo = ficha, IdPersona = autores[posicion], CalidadParticipacion = "Autor", OrdenAutoria = checked((short)(posicion + 1)) });
+            }
+
+            foreach (int area in areas)
+            {
+                conexion.TrabajosAreas.Add(new APIScriptoriumArchivum.Models.TrabajosAreas { IdTrabajo = ficha, IdArea = area });
+            }
+
+            await conexion.SaveChangesAsync(ct);
             return ficha;
         }
 
-        internal static async Task<string> Bloquear(NpgsqlConnection conexion, NpgsqlTransaction tr, int id, CancellationToken ct)
+        internal static async Task<string> Bloquear(AppDbContext conexion, IDbContextTransaction tr, int id, CancellationToken ct)
         {
-            string? estado = await Comandos.Valor<string>(conexion, tr,
-                "SELECT estado_publicacion FROM public.trabajos WHERE id_trabajo=@id FOR UPDATE", ct, ("id", id));
+            string? estado = await Comandos.Valor<string>(conexion, tr, "SELECT estado_publicacion FROM public.trabajos WHERE id_trabajo=@id FOR UPDATE", ct, ("id", id));
             if (estado is null)
             {
                 throw new ErrorApi(404, "La ficha no existe.");
             }
+
             if (estado == "Retirado")
             {
                 throw new ErrorApi(409, "La ficha está retirada.");
             }
+
             return estado;
         }
 
-        internal static async Task<int[]> ResolverPersonas(NpgsqlConnection conexion, NpgsqlTransaction tr,
-            int[]? ids, string[]? nombres, CancellationToken ct)
+        internal static async Task<int[]> ResolverPersonas(AppDbContext conexion, IDbContextTransaction tr, int[]? ids, string[]? nombres, CancellationToken ct)
         {
             if (ids is not null)
             {
                 int[] personas = ids.Distinct().ToArray();
-                long encontradas = await Comandos.Valor<long>(conexion, tr,
-                    "SELECT count(*) FROM public.personas WHERE id_persona=ANY(@ids)", ct, ("ids", personas));
+                long encontradas = await Comandos.Valor<long>(conexion, tr, "SELECT count(*) FROM public.personas WHERE id_persona=ANY(@ids)", ct, ("ids", personas));
                 return encontradas == personas.Length ? personas : Array.Empty<int>();
             }
 
@@ -246,18 +257,17 @@ namespace APIScriptoriumArchivum.Datos
                 {
                     return Array.Empty<int>();
                 }
+
                 resultado.Add(encontrados[0]);
             }
+
             return resultado.Distinct().ToArray();
         }
 
-        private static async Task<int[]> AreasPorNombre(NpgsqlConnection conexion, NpgsqlTransaction tr, string? dato, CancellationToken ct)
+        private static async Task<int[]> AreasPorNombre(AppDbContext conexion, IDbContextTransaction tr, string? dato, CancellationToken ct)
         {
-            string[] nombres = (dato ?? "").Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-                .Select(n => n.ToLowerInvariant()).Distinct().ToArray();
-            int[] ids = await Comandos.Valor<int[]>(conexion, tr,
-                "SELECT array(SELECT id_area FROM public.areas_tematicas WHERE activa AND lower(nombre)=ANY(@nombres))",
-                ct, ("nombres", nombres)) ?? Array.Empty<int>();
+            string[] nombres = (dato ?? "").Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Select(n => n.ToLowerInvariant()).Distinct().ToArray();
+            int[] ids = await Comandos.Valor<int[]>(conexion, tr, "SELECT array(SELECT id_area FROM public.areas_tematicas WHERE activa AND lower(nombre)=ANY(@nombres))", ct, ("nombres", nombres)) ?? Array.Empty<int>();
             return ids.Length == nombres.Length ? ids : Array.Empty<int>();
         }
 
@@ -276,6 +286,7 @@ namespace APIScriptoriumArchivum.Datos
                     texto.Append(letra);
                 }
             }
+
             return texto.ToString();
         }
     }

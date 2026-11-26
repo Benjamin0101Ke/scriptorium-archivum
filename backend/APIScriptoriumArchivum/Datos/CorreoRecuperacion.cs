@@ -1,15 +1,10 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Threading.Channels;
 
 namespace APIScriptoriumArchivum.Datos;
-
 public sealed class CorreoRecuperacion(IConfiguration config, ILogger<CorreoRecuperacion> log, RegistroCorreos registro, CambiosEnVivo cambios) : BackgroundService
 {
-    private Channel<Mensaje> cola = Channel.CreateBounded<Mensaje>(new BoundedChannelOptions(64)
-    {
-        SingleReader = true
-    });
-
+    private Channel<Mensaje> cola = Channel.CreateBounded<Mensaje>(new BoundedChannelOptions(64) { SingleReader = true });
     public void Encolar(int usuario, string destino, string codigo, int minutos)
     {
         if (!cola.Writer.TryWrite(new(usuario, destino, codigo, minutos, DateTimeOffset.UtcNow.AddMinutes(minutos))))
@@ -35,14 +30,11 @@ public sealed class CorreoRecuperacion(IConfiguration config, ILogger<CorreoRecu
                     else
                     {
                         int minutos = Math.Max(1, (int)Math.Ceiling((item.Vence - DateTimeOffset.UtcNow).TotalMinutes));
-                        using var mensaje = PlantillaCorreo.Crear(
-                            config["Correo:Remitente"] ?? "no-responder@scriptorium.test", item.Destino,
-                            "Código de recuperación · Scriptorium Archivum", "Recupera el acceso a tu cuenta",
-                            $"Este código vence en {minutos.ToString(CultureInfo.InvariantCulture)} minutos y se puede usar una sola vez.\nIngresalo en la pantalla de recuperación para elegir tu nueva contraseña.\n\nSi no solicitaste este cambio, ignora este mensaje. No compartas el código con nadie.", item.Codigo);
+                        using var mensaje = PlantillaCorreo.Crear(config["Correo:Remitente"] ?? "no-responder@scriptorium.test", item.Destino, "Código de recuperación · Scriptorium Archivum", "Recupera el acceso a tu cuenta", $"Este código vence en {minutos.ToString(CultureInfo.InvariantCulture)} minutos y se puede usar una sola vez.\nIngresalo en la pantalla de recuperación para elegir tu nueva contraseña.\n\nSi no solicitaste este cambio, ignora este mensaje. No compartas el código con nadie.", item.Codigo);
                         await TransporteCorreo.Enviar(config, mensaje, stoppingToken);
                     }
                 }
-                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                catch (OperationCanceledException)when (stoppingToken.IsCancellationRequested)
                 {
                     throw;
                 }
@@ -52,19 +44,22 @@ public sealed class CorreoRecuperacion(IConfiguration config, ILogger<CorreoRecu
                     error = e.GetType().Name;
                     log.LogWarning("No se pudo enviar un correo de recuperacion, intento {Intento} ({Tipo})", intento, error);
                 }
+
                 try
                 {
                     await registro.Recuperacion(item.Usuario, intento, resultado, error, stoppingToken);
                     cambios.Publicar("correos");
                 }
-                catch (Exception e) when (!stoppingToken.IsCancellationRequested)
+                catch (Exception e)when (!stoppingToken.IsCancellationRequested)
                 {
                     log.LogWarning("No se pudo registrar el intento de recuperacion ({Tipo})", e.GetType().Name);
                 }
+
                 if (resultado != "Fallido" || intento == 5)
                 {
                     break;
                 }
+
                 await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, intento)), stoppingToken);
             }
         }

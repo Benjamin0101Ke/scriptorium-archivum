@@ -1,13 +1,17 @@
+﻿using APIScriptoriumArchivum.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
+using PersonaModelo = APIScriptoriumArchivum.Models.Personas;
+using UsuarioModelo = APIScriptoriumArchivum.Models.Usuarios;
 
 namespace APIScriptoriumArchivum.Datos
 {
     public class Usuarios
     {
-        private NpgsqlDataSource baseDeDatos;
+        private IDbContextFactory<AppDbContext> baseDeDatos;
         private Avisos avisos;
-
-        public Usuarios(NpgsqlDataSource baseDeDatos, Avisos avisos)
+        public Usuarios(IDbContextFactory<AppDbContext> baseDeDatos, Avisos avisos)
         {
             this.baseDeDatos = baseDeDatos;
             this.avisos = avisos;
@@ -15,146 +19,179 @@ namespace APIScriptoriumArchivum.Datos
 
         public async Task<Cuenta?> BuscarAsync(int? id, string? correo, CancellationToken ct, bool incluirDeshabilitadas = false)
         {
-            const string sql = """
-                SELECT u.id_usuario, coalesce(u.nombre_mostrar, concat_ws(' ', p.nombres, p.apellidos)),
-                       u.correo_institucional, r.nombre, u.hash_contrasena, u.avatar, u.tema, u.version_rol,
-                       u.foto_version::text, u.id_carrera, u.id_plan, u.estado = 'Habilitada'
-                FROM public.usuarios u
-                JOIN public.personas p ON p.id_persona = u.id_persona
-                JOIN public.roles r ON r.id_rol = u.id_rol
-                WHERE (@incluir OR u.estado = 'Habilitada') AND r.activo
-                  AND ((@id::integer IS NOT NULL AND u.id_usuario = @id::integer)
-                    OR (@correo::text IS NOT NULL AND u.correo_institucional = @correo::text))
-                """;
-            await using NpgsqlConnection conexion = await baseDeDatos.OpenConnectionAsync(ct);
-            await using NpgsqlCommand comando = Comandos.Crear(conexion, null, sql, ("id", id), ("correo", correo), ("incluir", incluirDeshabilitadas));
-            await using NpgsqlDataReader lector = await comando.ExecuteReaderAsync(ct);
-            if (!await lector.ReadAsync(ct))
-            {
-                return null;
-            }
-
-            return new Cuenta
-            {
-                Id = lector.GetInt32(0),
-                Nombre = lector.GetString(1),
-                Correo = lector.GetString(2),
-                Rol = lector.GetString(3),
-                Hash = lector.GetString(4),
-                Avatar = lector.GetString(5),
-                Tema = lector.GetString(6),
-                VersionRol = lector.GetInt32(7),
-                FotoVersion = lector.IsDBNull(8) ? null : lector.GetString(8),
-                IdCarrera = lector.IsDBNull(9) ? null : lector.GetInt32(9),
-                IdPlan = lector.IsDBNull(10) ? null : lector.GetInt32(10),
-                Habilitada = lector.GetBoolean(11)
-            };
+            await using AppDbContext contexto = await baseDeDatos.CreateDbContextAsync(ct);
+            IQueryable<Cuenta> consulta =
+                from usuario in contexto.Usuarios.AsNoTracking()join persona in contexto.Personas on usuario.IdPersona equals persona.IdPersona
+                join rol in contexto.Roles on usuario.IdRol equals rol.IdRol
+                where (incluirDeshabilitadas || usuario.Estado == "Habilitada") && rol.Activo && ((id != null && usuario.IdUsuario == id) || (correo != null && usuario.CorreoInstitucional == correo))select new Cuenta
+                {
+                    Id = usuario.IdUsuario,
+                    Nombre = usuario.NombreMostrar ?? persona.Nombres + " " + persona.Apellidos,
+                    Correo = usuario.CorreoInstitucional,
+                    Rol = rol.Nombre,
+                    Hash = usuario.HashContrasena,
+                    Avatar = usuario.Avatar,
+                    Tema = usuario.Tema,
+                    VersionRol = usuario.VersionRol,
+                    FotoVersion = usuario.FotoVersion.HasValue ? usuario.FotoVersion.Value.ToString() : null,
+                    IdCarrera = usuario.IdCarrera,
+                    IdPlan = usuario.IdPlan,
+                    Habilitada = usuario.Estado == "Habilitada"
+                };
+            return await consulta.FirstOrDefaultAsync(ct);
         }
 
-        public async Task<int> RegistrarLectorAsync(string nombres, string apellidos, string correo,
-            string hash, CancellationToken ct, int? idCarrera = null, int? idPlan = null)
+        public async Task<int> RegistrarLectorAsync(string nombres, string apellidos, string correo, string hash, CancellationToken ct, int? idCarrera = null, int? idPlan = null)
         {
-            await using var conexion = await baseDeDatos.OpenConnectionAsync(ct);
-            await using var tr = await conexion.BeginTransactionAsync(ct);
-            int rol = await Comandos.Valor<int>(conexion, tr,
-                "SELECT id_rol FROM public.roles WHERE nombre = @rol AND activo", ct,
-                ("rol", idCarrera.HasValue ? "Estudiante" : "Lector"));
-            if (rol == 0) throw new ErrorApi(409, "El registro de lectores todavía no está disponible.");
-            await ValidarCarrera(conexion, tr, idCarrera, ct);
-            await ValidarPlan(conexion, tr, idCarrera, idPlan, ct);
+            await using AppDbContext contexto = await baseDeDatos.CreateDbContextAsync(ct);
+            await using IDbContextTransaction transaccion = await contexto.Database.BeginTransactionAsync(ct);
+            string nombreRol = idCarrera.HasValue ? "Estudiante" : "Lector";
+            int rol = await contexto.Roles.Where(r => r.Nombre == nombreRol && r.Activo).Select(r => r.IdRol).FirstOrDefaultAsync(ct);
+            if (rol == 0)
+            {
+                throw new ErrorApi(409, "El registro de lectores todavía no está disponible.");
+            }
 
+            await ValidarCarrera(contexto, transaccion, idCarrera, ct);
+            await ValidarPlan(contexto, transaccion, idCarrera, idPlan, ct);
             try
             {
-                int id = await Comandos.Valor<int>(conexion, tr, """
-                    WITH persona AS (
-                        INSERT INTO public.personas (nombres, apellidos) VALUES (@nombres, @apellidos)
-                        RETURNING id_persona
-                    )
-                    INSERT INTO public.usuarios (id_persona, correo_institucional, hash_contrasena, id_rol, id_carrera, id_plan)
-                    SELECT id_persona, @correo, @hash, @rol, @carrera, @plan FROM persona RETURNING id_usuario
-                    """, ct, ("nombres", nombres), ("apellidos", apellidos), ("correo", correo),
-                    ("hash", hash), ("rol", rol), ("carrera", idCarrera), ("plan", idPlan));
-                await avisos.Cuenta(conexion, tr, id, "REGISTRO_CUENTA", ct);
-                await tr.CommitAsync(ct);
-                return id;
+                PersonaModelo persona = new PersonaModelo();
+                persona.Nombres = nombres;
+                persona.Apellidos = apellidos;
+                contexto.Personas.Add(persona);
+                await contexto.SaveChangesAsync(ct);
+                UsuarioModelo usuario = new UsuarioModelo();
+                usuario.IdPersona = persona.IdPersona;
+                usuario.CorreoInstitucional = correo;
+                usuario.HashContrasena = hash;
+                usuario.IdRol = rol;
+                usuario.IdCarrera = idCarrera;
+                usuario.IdPlan = idPlan;
+                contexto.Usuarios.Add(usuario);
+                await contexto.SaveChangesAsync(ct);
+                await avisos.Cuenta(contexto, transaccion, usuario.IdUsuario, "REGISTRO_CUENTA", ct);
+                await transaccion.CommitAsync(ct);
+                return usuario.IdUsuario;
             }
-            catch (PostgresException e) when (e.ConstraintName == "uq_usuarios_correo_institucional")
+            catch (DbUpdateException e)when (e.InnerException is PostgresException pg && pg.ConstraintName == "uq_usuarios_correo_institucional")
             {
                 throw new ErrorApi(409, "Ya existe una cuenta con ese correo.");
             }
         }
 
-        internal static async Task ValidarCarrera(NpgsqlConnection c, NpgsqlTransaction? tr, int? carrera, CancellationToken ct)
+        internal static async Task ValidarCarrera(AppDbContext contexto, IDbContextTransaction? transaccion, int? carrera, CancellationToken ct)
         {
-            if (carrera is null) return;
-            bool valida = await Comandos.Valor<bool>(c, tr, """
-                SELECT EXISTS(SELECT 1 FROM public.carreras c JOIN public.departamentos a USING(id_departamento)
-                    WHERE c.id_carrera=@id AND c.activa AND a.activa)
-                """, ct, ("id", carrera));
-            if (!valida) throw new ErrorApi(400, "Selecciona una carrera activa.");
+            if (carrera is null)
+            {
+                return;
+            }
+
+            IQueryable<int> consulta =
+                from c in contexto.Carreras
+                join departamento in contexto.Departamentos on c.IdDepartamento equals departamento.IdDepartamento
+                where c.IdCarrera == carrera && c.Activa && departamento.Activa
+                select c.IdCarrera;
+            if (!await consulta.AnyAsync(ct))
+            {
+                throw new ErrorApi(400, "Selecciona una carrera activa.");
+            }
         }
 
-        internal static async Task ValidarPlan(NpgsqlConnection c, NpgsqlTransaction? tr, int? carrera, int? plan, CancellationToken ct)
+        internal static async Task ValidarPlan(AppDbContext contexto, IDbContextTransaction? transaccion, int? carrera, int? plan, CancellationToken ct)
         {
-            if (plan is null) return;
-            bool valido = await Comandos.Valor<bool>(c, tr, """
-                SELECT EXISTS(SELECT 1 FROM public.planes_estudio WHERE id_plan=@plan AND id_carrera=@carrera AND activa)
-                """, ct, ("plan", plan), ("carrera", carrera));
-            if (!valido) throw new ErrorApi(400, "El plan seleccionado debe pertenecer a tu carrera.");
+            if (plan is null)
+            {
+                return;
+            }
+
+            if (!await contexto.PlanesEstudio.AnyAsync(p => p.IdPlan == plan && p.IdCarrera == carrera && p.Activa, ct))
+            {
+                throw new ErrorApi(400, "El plan seleccionado debe pertenecer a tu carrera.");
+            }
         }
 
         public async Task ActualizarPerfilAsync(int id, string? nombre, string? avatar, string? tema, CancellationToken ct, int? idCarrera = null, int? idPlan = null)
         {
-            await using var conexion = await baseDeDatos.OpenConnectionAsync(ct);
-            await using var tr = await conexion.BeginTransactionAsync(ct);
-            await ValidarCarrera(conexion, tr, idCarrera, ct);
-            await ValidarPlan(conexion, tr, idCarrera, idPlan, ct);
-            await using var comando = Comandos.Crear(conexion, tr, """
-                UPDATE public.usuarios SET nombre_mostrar = coalesce(@nombre::text, nombre_mostrar),
-                    avatar = coalesce(@avatar::text, avatar), tema = coalesce(@tema::text, tema),
-                    id_carrera=coalesce(@carrera::int,id_carrera),
-                    id_plan=CASE WHEN @carrera::int IS NOT NULL THEN @plan::int ELSE id_plan END,
-                    version_rol=version_rol + CASE WHEN @carrera::int IS NOT NULL
-                        AND id_rol=(SELECT id_rol FROM public.roles WHERE nombre='Lector') THEN 1 ELSE 0 END,
-                    id_rol=CASE WHEN @carrera::int IS NOT NULL AND id_rol=(SELECT id_rol FROM public.roles WHERE nombre='Lector')
-                        THEN (SELECT id_rol FROM public.roles WHERE nombre='Estudiante' AND activo) ELSE id_rol END
-                WHERE id_usuario = @id AND estado = 'Habilitada'
-                """, ("nombre", nombre), ("avatar", avatar), ("tema", tema), ("id", id), ("carrera", idCarrera), ("plan", idPlan));
-            if (await comando.ExecuteNonQueryAsync(ct) != 1)
+            await using AppDbContext contexto = await baseDeDatos.CreateDbContextAsync(ct);
+            await using IDbContextTransaction transaccion = await contexto.Database.BeginTransactionAsync(ct);
+            await ValidarCarrera(contexto, transaccion, idCarrera, ct);
+            await ValidarPlan(contexto, transaccion, idCarrera, idPlan, ct);
+            List<UsuarioModelo> cuentas = await contexto.Usuarios.FromSqlRaw("SELECT * FROM public.usuarios WHERE id_usuario=@id AND estado='Habilitada' FOR UPDATE", Comandos.Parametros(("id", id))).ToListAsync(ct);
+            UsuarioModelo? usuario = cuentas.FirstOrDefault();
+            if (usuario is null)
+            {
                 throw new ErrorApi(409, "La cuenta ya no está habilitada.");
-            await tr.CommitAsync(ct);
+            }
+
+            if (nombre is not null)
+            {
+                usuario.NombreMostrar = nombre;
+            }
+
+            if (avatar is not null)
+            {
+                usuario.Avatar = avatar;
+            }
+
+            if (tema is not null)
+            {
+                usuario.Tema = tema;
+            }
+
+            if (idCarrera.HasValue)
+            {
+                usuario.IdCarrera = idCarrera;
+                usuario.IdPlan = idPlan;
+                bool lector = await contexto.Roles.AnyAsync(r => r.IdRol == usuario.IdRol && r.Nombre == "Lector", ct);
+                if (lector)
+                {
+                    int rol = await contexto.Roles.Where(r => r.Nombre == "Estudiante" && r.Activo).Select(r => r.IdRol).FirstOrDefaultAsync(ct);
+                    if (rol == 0)
+                    {
+                        throw new ErrorApi(409, "El rol estudiantil no está disponible.");
+                    }
+
+                    usuario.IdRol = rol;
+                    usuario.VersionRol++;
+                }
+            }
+
+            await contexto.SaveChangesAsync(ct);
+            await transaccion.CommitAsync(ct);
         }
 
         public async Task GuardarFoto(int id, byte[]? foto, string? tipo, CancellationToken ct)
         {
-            await using var conexion = await baseDeDatos.OpenConnectionAsync(ct);
-            await using var comando = Comandos.Crear(conexion, null, """
-                UPDATE public.usuarios SET foto_perfil=@foto::bytea, foto_tipo=@tipo::text,
-                    foto_version=@version::uuid WHERE id_usuario=@id AND estado='Habilitada'
-                """, ("id", id), ("foto", foto), ("tipo", tipo), ("version", foto is null ? (Guid?)null : Guid.NewGuid()));
-            if (await comando.ExecuteNonQueryAsync(ct) != 1)
+            await using AppDbContext contexto = await baseDeDatos.CreateDbContextAsync(ct);
+            Guid? version = foto is null ? null : Guid.NewGuid();
+            int filas = await contexto.Usuarios.Where(u => u.IdUsuario == id && u.Estado == "Habilitada").ExecuteUpdateAsync(cambios => cambios.SetProperty(u => u.FotoPerfil, foto).SetProperty(u => u.FotoTipo, tipo).SetProperty(u => u.FotoVersion, version), ct);
+            if (filas != 1)
+            {
                 throw new ErrorApi(409, "La cuenta ya no está habilitada.");
+            }
         }
 
         public async Task<(byte[] Datos, string Tipo)?> LeerFoto(int id, CancellationToken ct)
         {
-            await using var conexion = await baseDeDatos.OpenConnectionAsync(ct);
-            await using var comando = Comandos.Crear(conexion, null,
-                "SELECT foto_perfil, foto_tipo FROM public.usuarios WHERE id_usuario=@id AND foto_perfil IS NOT NULL",
-                ("id", id));
-            await using var lector = await comando.ExecuteReaderAsync(ct);
-            return await lector.ReadAsync(ct) ? (lector.GetFieldValue<byte[]>(0), lector.GetString(1)) : null;
+            await using AppDbContext contexto = await baseDeDatos.CreateDbContextAsync(ct);
+            var foto = await contexto.Usuarios.AsNoTracking().Where(u => u.IdUsuario == id && u.FotoPerfil != null).Select(u => new { Datos = u.FotoPerfil, Tipo = u.FotoTipo }).FirstOrDefaultAsync(ct);
+            if (foto is null)
+            {
+                return null;
+            }
+
+            return (foto.Datos!, foto.Tipo!);
         }
 
         public async Task CambiarContrasenaAsync(int id, string anterior, string nuevo, CancellationToken ct)
         {
-            await using var conexion = await baseDeDatos.OpenConnectionAsync(ct);
-            await using var comando = Comandos.Crear(conexion, null, """
-                UPDATE public.usuarios SET hash_contrasena = @nuevo
-                WHERE id_usuario = @id AND hash_contrasena = @anterior AND estado = 'Habilitada'
-                """, ("nuevo", nuevo), ("id", id), ("anterior", anterior));
-            if (await comando.ExecuteNonQueryAsync(ct) != 1)
+            await using AppDbContext contexto = await baseDeDatos.CreateDbContextAsync(ct);
+            int filas = await contexto.Usuarios.Where(u => u.IdUsuario == id && u.HashContrasena == anterior && u.Estado == "Habilitada").ExecuteUpdateAsync(cambios => cambios.SetProperty(u => u.HashContrasena, nuevo), ct);
+            if (filas != 1)
+            {
                 throw new ErrorApi(409, "La cuenta cambió. Vuelve a iniciar sesión.");
+            }
         }
     }
 
@@ -173,8 +210,13 @@ namespace APIScriptoriumArchivum.Datos
         public int? IdCarrera { get; init; }
         public int? IdPlan { get; init; }
 
-        public string VersionSesion => Convert.ToHexString(
-            System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(
-                VersionRol == 0 ? Hash : FormattableString.Invariant($"{Hash}:{VersionRol}"))));
+        public string VersionSesion
+        {
+            get
+            {
+                string valor = VersionRol == 0 ? Hash : FormattableString.Invariant($"{Hash}:{VersionRol}");
+                return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(valor)));
+            }
+        }
     }
 }

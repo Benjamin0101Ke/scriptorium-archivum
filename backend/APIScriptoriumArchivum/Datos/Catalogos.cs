@@ -1,81 +1,34 @@
+﻿using APIScriptoriumArchivum.Data;
 using APIScriptoriumArchivum.Dtos;
-using Npgsql;
+using Microsoft.EntityFrameworkCore;
 
 namespace APIScriptoriumArchivum.Datos
 {
+    // Consulta los catalogos disponibles para los formularios
     public class Catalogos
     {
-        private NpgsqlDataSource baseDeDatos;
-
-        public Catalogos(NpgsqlDataSource baseDeDatos)
+        private AppDbContext contexto;
+        public Catalogos(AppDbContext contexto)
         {
-            this.baseDeDatos = baseDeDatos;
+            this.contexto = contexto;
         }
 
+        // Obtiene las carreras activas con el contrato de la interfaz
         public async Task<List<CarreraDto>> ListarCarrerasAsync(CancellationToken cancellationToken)
         {
-            const string consulta = """
-                SELECT id_carrera, nombre
-                FROM public.carreras
-                WHERE activa
-                ORDER BY nombre, id_carrera
-                """;
-
-            List<CarreraDto> carreras = new List<CarreraDto>();
-
-            await using NpgsqlCommand comando = baseDeDatos.CreateCommand(consulta);
-            await using NpgsqlDataReader filas = await comando.ExecuteReaderAsync(cancellationToken);
-
-            while (await filas.ReadAsync(cancellationToken))
-            {
-                carreras.Add(new CarreraDto(filas.GetInt32(0), filas.GetString(1)));
-            }
-
-            return carreras;
+            return await contexto.Carreras.AsNoTracking().Where(c => c.Activa).OrderBy(c => c.Nombre).ThenBy(c => c.IdCarrera).Select(c => new CarreraDto(c.IdCarrera, c.Nombre)).ToListAsync(cancellationToken);
         }
 
+        // Obtiene los tipos habilitados para registrar trabajos
         public async Task<List<TipoDeTrabajoDto>> ListarTiposDeTrabajoAsync(CancellationToken cancellationToken)
         {
-            const string consulta = """
-                SELECT id_tipo_trabajo, nombre
-                FROM public.tipos_trabajo
-                WHERE activa
-                ORDER BY nombre, id_tipo_trabajo
-                """;
-
-            List<TipoDeTrabajoDto> tiposDeTrabajo = new List<TipoDeTrabajoDto>();
-
-            await using NpgsqlCommand comando = baseDeDatos.CreateCommand(consulta);
-            await using NpgsqlDataReader filas = await comando.ExecuteReaderAsync(cancellationToken);
-
-            while (await filas.ReadAsync(cancellationToken))
-            {
-                tiposDeTrabajo.Add(new TipoDeTrabajoDto(filas.GetInt32(0), filas.GetString(1)));
-            }
-
-            return tiposDeTrabajo;
+            return await contexto.TiposTrabajo.AsNoTracking().Where(t => t.Activa).OrderBy(t => t.Nombre).ThenBy(t => t.IdTipoTrabajo).Select(t => new TipoDeTrabajoDto(t.IdTipoTrabajo, t.Nombre)).ToListAsync(cancellationToken);
         }
 
+        // Obtiene las areas tematicas activas
         public async Task<List<AreaTematicaDto>> ListarAreasTematicasAsync(CancellationToken cancellationToken)
         {
-            const string consulta = """
-                SELECT id_area, nombre
-                FROM public.areas_tematicas
-                WHERE activa
-                ORDER BY nombre, id_area
-                """;
-
-            List<AreaTematicaDto> areasTematicas = new List<AreaTematicaDto>();
-
-            await using NpgsqlCommand comando = baseDeDatos.CreateCommand(consulta);
-            await using NpgsqlDataReader filas = await comando.ExecuteReaderAsync(cancellationToken);
-
-            while (await filas.ReadAsync(cancellationToken))
-            {
-                areasTematicas.Add(new AreaTematicaDto(filas.GetInt32(0), filas.GetString(1)));
-            }
-
-            return areasTematicas;
+            return await contexto.AreasTematicas.AsNoTracking().Where(a => a.Activa).OrderBy(a => a.Nombre).ThenBy(a => a.IdArea).Select(a => new AreaTematicaDto(a.IdArea, a.Nombre)).ToListAsync(cancellationToken);
         }
     }
 }

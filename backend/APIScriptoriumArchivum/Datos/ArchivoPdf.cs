@@ -1,24 +1,22 @@
-using UglyToad.PdfPig;
+﻿using UglyToad.PdfPig;
 
 namespace APIScriptoriumArchivum.Datos
 {
     public class ArchivoPdf
     {
         private string carpeta;
-
         public ArchivoPdf(IConfiguration configuracion, IWebHostEnvironment entorno)
         {
-            carpeta = Path.GetFullPath(configuracion["Storage:Ruta"] ??
-                Path.Combine(entorno.ContentRootPath, "storage", "trabajos"));
+            carpeta = Path.GetFullPath(configuracion["Storage:Ruta"] ?? Path.Combine(entorno.ContentRootPath, "storage", "trabajos"));
         }
 
         public string? Ubicar(string? clave)
         {
-            if (clave is null || clave.Length != 36 || !clave.EndsWith(".pdf", StringComparison.Ordinal) ||
-                !Guid.TryParseExact(clave[..32], "N", out _))
+            if (clave is null || clave.Length != 36 || !clave.EndsWith(".pdf", StringComparison.Ordinal) || !Guid.TryParseExact(clave[..32], "N", out _))
             {
                 return null;
             }
+
             string archivo = Path.Combine(carpeta, clave);
             return File.Exists(archivo) ? archivo : null;
         }
@@ -66,7 +64,7 @@ namespace APIScriptoriumArchivum.Datos
 
                 documento.GetPage(1);
             }
-            catch (Exception error) when (error is not (IOException or UnauthorizedAccessException or OutOfMemoryException))
+            catch (Exception error)when (error is not (IOException or UnauthorizedAccessException or OutOfMemoryException))
             {
                 throw new InvalidDataException("El archivo no contiene un PDF válido que se pueda abrir.", error);
             }

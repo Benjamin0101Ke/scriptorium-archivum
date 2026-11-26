@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Text.Json;
 using System.Threading.RateLimiting;
 using APIScriptoriumArchivum.Datos;
@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
+using APIScriptoriumArchivum.Data;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,6 +35,10 @@ builder.Services.AddSingleton<NpgsqlDataSource>(servicios =>
         throw new InvalidOperationException("Falta configurar ConnectionStrings:Scriptorium.");
     }
     return NpgsqlDataSource.Create(cadena);
+});
+builder.Services.AddDbContextFactory<AppDbContext>((servicios, opciones) =>
+{
+    opciones.UseNpgsql(servicios.GetRequiredService<NpgsqlDataSource>());
 });
 builder.Services.AddScoped<Catalogos>();
 builder.Services.AddScoped<Usuarios>();
@@ -111,8 +117,15 @@ builder.Services.AddAuthentication("Scriptorium").AddCookie("Scriptorium", opcio
                 contexto.HttpContext.Items[typeof(Cuenta)] = cuenta;
                 // El rol principal se conserva para validar la cookie y la versión de sesión.
                 if (cuenta.Rol == "Superadministrador" && contexto.Principal?.Identity is ClaimsIdentity identidad)
+                {
                     foreach (string rol in new[] { "Administrador", "Biblioteca", "Docente revisor", "Estudiante", "Lector" })
-                        if (!contexto.Principal.IsInRole(rol)) identidad.AddClaim(new Claim(ClaimTypes.Role, rol));
+                    {
+                        if (!contexto.Principal.IsInRole(rol))
+                        {
+                            identidad.AddClaim(new Claim(ClaimTypes.Role, rol));
+                        }
+                    }
+                }
             }
         }
     };
@@ -168,8 +181,10 @@ app.UseAuthorization();
 app.Use(async (contexto, continuar) =>
 {
     await continuar();
-    if(contexto.Response.StatusCode is >=200 and <300 && contexto.Request.Method is "POST" or "PUT" or "PATCH" or "DELETE")
-        contexto.RequestServices.GetRequiredService<CambiosEnVivo>().Peticion(contexto.Request.Path.Value?.ToLowerInvariant()??"");
+    if (contexto.Response.StatusCode is >= 200 and < 300 && contexto.Request.Method is "POST" or "PUT" or "PATCH" or "DELETE")
+    {
+        contexto.RequestServices.GetRequiredService<CambiosEnVivo>().Peticion(contexto.Request.Path.Value?.ToLowerInvariant() ?? "");
+    }
 });
 app.MapControllers();
 app.Run();

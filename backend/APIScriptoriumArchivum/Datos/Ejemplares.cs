@@ -1,3 +1,6 @@
+﻿using APIScriptoriumArchivum.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -8,18 +11,22 @@ namespace APIScriptoriumArchivum.Datos
 {
     public class Ejemplares
     {
-        private NpgsqlDataSource baseDeDatos;
+        private IDbContextFactory<AppDbContext> baseDeDatos;
         private ArchivoPdf archivos;
         private Avisos avisos;
         private static string[] Controles =
         {
-            "Metadatos completos", "Comprobante UES verificado", "Ejemplar final verificado",
-            "Constancia vigente para el ejemplar", "Decisión favorable de Biblioteca",
-            "Ficha pública autorizada", "Permisos de PDF respaldados", "PDF disponible y controlado",
+            "Metadatos completos",
+            "Comprobante UES verificado",
+            "Ejemplar final verificado",
+            "Constancia vigente para el ejemplar",
+            "Decisión favorable de Biblioteca",
+            "Ficha pública autorizada",
+            "Permisos de PDF respaldados",
+            "PDF disponible y controlado",
             "Cuenta de Biblioteca y estado válido"
         };
-
-        public Ejemplares(NpgsqlDataSource baseDeDatos, ArchivoPdf archivos, Avisos avisos)
+        public Ejemplares(IDbContextFactory<AppDbContext> baseDeDatos, ArchivoPdf archivos, Avisos avisos)
         {
             this.baseDeDatos = baseDeDatos;
             this.archivos = archivos;
@@ -86,57 +93,53 @@ namespace APIScriptoriumArchivum.Datos
                     ORDER BY (x.estado='Activa') DESC,x.id_autorizacion DESC LIMIT 1) co ON true
                 WHERE t.id_trabajo=@id
                 """;
-            string sql = "SELECT jsonb_build_object(" + Fichas.DatosBasicos + ", " + detalle + ")::text " +
-                Fichas.RelacionesBasicas + " " + joins;
-            await using NpgsqlConnection conexion = await baseDeDatos.OpenConnectionAsync(ct);
+            string sql = "SELECT jsonb_build_object(" + Fichas.DatosBasicos + ", " + detalle + ")::text " + Fichas.RelacionesBasicas + " " + joins;
+            await using AppDbContext conexion = await baseDeDatos.CreateDbContextAsync(ct);
             string? datos = await Comandos.Valor<string>(conexion, null, sql, ct, ("id", id));
             if (datos is null)
             {
                 throw new ErrorApi(404, "La ficha no existe.");
             }
+
             JsonObject respuesta = JsonNode.Parse(datos)!.AsObject();
             string[] bloqueos = await Evaluar(conexion, null, id, ct);
-            if (respuesta["estado"]?.GetValue<string>() is "Publicado" or "Retirado")
+            if (respuesta["estado"]?.GetValue<string>()is "Publicado" or "Retirado")
             {
                 bloqueos = bloqueos.Append("09_ESTADO_ORIGEN_INVALIDO").ToArray();
             }
+
             respuesta["controles"] = JsonSerializer.SerializeToNode(ResumenControles(bloqueos));
             return respuesta;
         }
 
         public async Task<int> Registrar(int id, int actor, string clase, string ubicacion, string? nombre, long? bytes, CancellationToken ct)
         {
-            await using NpgsqlConnection conexion = await baseDeDatos.OpenConnectionAsync(ct);
-            await using NpgsqlTransaction tr = await conexion.BeginTransactionAsync(ct);
+            await using AppDbContext conexion = await baseDeDatos.CreateDbContextAsync(ct);
+            await using IDbContextTransaction tr = await conexion.Database.BeginTransactionAsync(ct);
             await Fichas.Bloquear(conexion, tr, id, ct);
             await Suspender(conexion, tr, id, actor, "Sustitución del ejemplar.", ct);
-            await Comandos.Ejecutar(conexion, tr, """
-                UPDATE public.trabajos SET id_entrega_final=NULL, deposito_verificado_por=NULL, deposito_verificado_en=NULL WHERE id_trabajo=@id;
-                UPDATE public.entregas SET estado='Sustituido' WHERE id_trabajo=@id AND estado <> 'Sustituido';
-                """, ct, ("id", id));
+            await conexion.Trabajos.Where(t => t.IdTrabajo == id).ExecuteUpdateAsync(s => s.SetProperty(t => t.IdEntregaFinal, (int? )null).SetProperty(t => t.DepositoVerificadoPor, (int? )null).SetProperty(t => t.DepositoVerificadoEn, (DateTime? )null), ct);
+            await conexion.Entregas.Where(e => e.IdTrabajo == id && e.Estado != "Sustituido").ExecuteUpdateAsync(s => s.SetProperty(e => e.Estado, "Sustituido"), ct);
             int ejemplar = await AgregarVersion(conexion, tr, id, actor, clase, ubicacion, nombre, bytes, ct);
-            await avisos.Trabajo(conexion, tr, id, actor, "EJEMPLAR_ACTUALIZADO", "Ejemplar del trabajo actualizado",
-                "Biblioteca asoció un nuevo ejemplar. Este ejemplar requiere sus propias verificaciones, autorización y decisión.", false, ct);
+            await avisos.Trabajo(conexion, tr, id, actor, "EJEMPLAR_ACTUALIZADO", "Ejemplar del trabajo actualizado", "Biblioteca asoció un nuevo ejemplar. Este ejemplar requiere sus propias verificaciones, autorización y decisión.", false, ct);
             await tr.CommitAsync(CancellationToken.None);
             return ejemplar;
         }
 
-        internal static async Task<int> AgregarVersion(NpgsqlConnection conexion, NpgsqlTransaction tr, int id, int actor,
-            string clase, string ubicacion, string? nombre, long? bytes, CancellationToken ct)
+        internal static async Task<int> AgregarVersion(AppDbContext conexion, IDbContextTransaction tr, int id, int actor, string clase, string ubicacion, string? nombre, long? bytes, CancellationToken ct)
         {
-            int ejemplar = await Comandos.Valor<int>(conexion, tr, """
-                INSERT INTO public.entregas(id_trabajo,numero_version,id_usuario_envia)
-                VALUES (@id,(SELECT coalesce(max(numero_version),0)+1 FROM public.entregas WHERE id_trabajo=@id),@actor)
-                RETURNING id_entrega
-                """, ct, ("id", id), ("actor", actor));
-            await Comandos.Ejecutar(conexion, tr, """
-    INSERT INTO public.recursos_digitales(id_trabajo,id_entrega,clase,ubicacion,nombre,tamano_bytes,tipo_formato,estado_carga,descripcion)
-    VALUES (@id,@ejemplar,@clase,@ubicacion,@nombre::text,@bytes::bigint,
-        CASE WHEN @clase='PDF' THEN 'application/pdf' WHEN @clase='ENLACE' THEN 'text/html' END,
-        CASE WHEN @clase='PDF' THEN 'Disponible' END,
-        CASE WHEN @clase='ENLACE' THEN 'Repositorio externo del proyecto de software' END)
-    """, ct, ("id", id), ("ejemplar", ejemplar), ("clase", clase), ("ubicacion", ubicacion),
-    ("nombre", nombre), ("bytes", bytes));
+            int version = await conexion.Entregas.Where(e => e.IdTrabajo == id).Select(e => (int? )e.NumeroVersion).MaxAsync(ct) ?? 0;
+            var entrega = new APIScriptoriumArchivum.Models.Entregas
+            {
+                IdTrabajo = id,
+                NumeroVersion = version + 1,
+                IdUsuarioEnvia = actor
+            };
+            conexion.Entregas.Add(entrega);
+            await conexion.SaveChangesAsync(ct);
+            int ejemplar = entrega.IdEntrega;
+            conexion.RecursosDigitales.Add(new APIScriptoriumArchivum.Models.RecursosDigitales { IdTrabajo = id, IdEntrega = ejemplar, Clase = clase, Ubicacion = ubicacion, Nombre = nombre, TamanoBytes = bytes, TipoFormato = clase == "PDF" ? "application/pdf" : clase == "ENLACE" ? "text/html" : null, EstadoCarga = clase == "PDF" ? "Disponible" : null, Descripcion = clase == "ENLACE" ? "Repositorio externo del proyecto de software" : null });
+            await conexion.SaveChangesAsync(ct);
             return ejemplar;
         }
 
@@ -147,11 +150,10 @@ namespace APIScriptoriumArchivum.Datos
                 throw new ErrorApi(400, "Indica el ejemplar.");
             }
 
-            await using NpgsqlConnection conexion = await baseDeDatos.OpenConnectionAsync(ct);
-            await using NpgsqlTransaction tr = await conexion.BeginTransactionAsync(ct);
+            await using AppDbContext conexion = await baseDeDatos.CreateDbContextAsync(ct);
+            await using IDbContextTransaction tr = await conexion.Database.BeginTransactionAsync(ct);
             await Fichas.Bloquear(conexion, tr, id, ct);
-            int actual = await Comandos.Valor<int>(conexion, tr,
-                "SELECT id_entrega FROM public.entregas WHERE id_trabajo=@id ORDER BY numero_version DESC LIMIT 1", ct, ("id", id));
+            int actual = await Comandos.Valor<int>(conexion, tr, "SELECT id_entrega FROM public.entregas WHERE id_trabajo=@id ORDER BY numero_version DESC LIMIT 1", ct, ("id", id));
             if (ejemplar != actual || actual == 0)
             {
                 throw new ErrorApi(409, "El ejemplar cambio. Actualiza la ficha y vuelve a revisar los controles.");
@@ -165,24 +167,20 @@ namespace APIScriptoriumArchivum.Datos
                 {
                     throw new ErrorApi(400, "Indica la referencia de conformidad académica.");
                 }
-                string? previa = await Comandos.Valor<string>(conexion, tr,
-                    "SELECT referencia_conformidad FROM public.entregas WHERE id_entrega=@e", ct, ("e", ejemplar));
+
+                string? previa = await Comandos.Valor<string>(conexion, tr, "SELECT referencia_conformidad FROM public.entregas WHERE id_entrega=@e", ct, ("e", ejemplar));
                 if (previa is not null && previa != conformidad)
                 {
                     await Suspender(conexion, tr, id, actor, "Cambio de la referencia de conformidad.", ct);
                 }
-                await Comandos.Ejecutar(conexion, tr, """
-                    UPDATE public.entregas SET estado='Verificado', referencia_conformidad=@ref,
-                        verificado_por=@actor, verificado_en=clock_timestamp() WHERE id_entrega=@e;
-                    UPDATE public.trabajos SET id_entrega_final=@e WHERE id_trabajo=@id;
-                    """, ct, ("ref", conformidad), ("actor", actor), ("e", ejemplar), ("id", id));
+
+                await conexion.Entregas.Where(e => e.IdEntrega == ejemplar).ExecuteUpdateAsync(s => s.SetProperty(e => e.Estado, "Verificado").SetProperty(e => e.ReferenciaConformidad, conformidad).SetProperty(e => e.VerificadoPor, actor).SetProperty(e => e.VerificadoEn, DateTime.UtcNow), ct);
+                await conexion.Trabajos.Where(t => t.IdTrabajo == id).ExecuteUpdateAsync(s => s.SetProperty(t => t.IdEntregaFinal, ejemplar), ct);
             }
 
-            if (datos.Autorizacion is not null || datos.Decision is not null ||
-                datos.FichaPublica == true || datos.Lectura == true || datos.Descarga == true)
+            if (datos.Autorizacion is not null || datos.Decision is not null || datos.FichaPublica == true || datos.Lectura == true || datos.Descarga == true)
             {
-                bool verificado = await Comandos.Valor<bool>(conexion, tr,
-                    "SELECT EXISTS(SELECT 1 FROM public.entregas WHERE id_entrega=@e AND estado='Verificado')", ct, ("e", ejemplar));
+                bool verificado = await Comandos.Valor<bool>(conexion, tr, "SELECT EXISTS(SELECT 1 FROM public.entregas WHERE id_entrega=@e AND estado='Verificado')", ct, ("e", ejemplar));
                 if (!verificado)
                 {
                     throw new ErrorApi(400, "Verifica el ejemplar antes de registrar autorización, decisión o permisos.");
@@ -197,6 +195,7 @@ namespace APIScriptoriumArchivum.Datos
             {
                 await GuardarConstancia(conexion, tr, id, actor, ejemplar, datos.Autorizacion, ct);
             }
+
             await GuardarPermisos(conexion, tr, ejemplar, datos, ct);
             bool nuevaDecision = false;
             if (datos.Decision is not null)
@@ -206,6 +205,7 @@ namespace APIScriptoriumArchivum.Datos
                 {
                     throw new ErrorApi(400, "Indica el resultado y el motivo de la decisión de Biblioteca.");
                 }
+
                 bool repetida = await Comandos.Valor<bool>(conexion, tr, """
                     SELECT coalesce((SELECT r.resultado=@resultado AND r.motivo_decision=@motivo FROM public.revisiones r
                       WHERE r.id_entrega=@e AND r.ambito_revision='Difusión' AND r.fecha_cierre IS NOT NULL
@@ -214,10 +214,9 @@ namespace APIScriptoriumArchivum.Datos
                 if (!repetida || datos.RegistrarDecision)
                 {
                     nuevaDecision = true;
-                    await Comandos.Ejecutar(conexion, tr, """
-                        INSERT INTO public.revisiones(id_entrega,id_usuario_revisor,fecha_inicio,fecha_cierre,ambito_revision,resultado,motivo_decision)
-                        SELECT @e,@actor,ahora,ahora,'Difusión',@resultado,@motivo FROM (SELECT clock_timestamp() ahora) h
-                        """, ct, ("e", ejemplar), ("actor", actor), ("resultado", datos.Decision.Resultado), ("motivo", razon));
+                    DateTime ahora = DateTime.UtcNow;
+                    conexion.Revisiones.Add(new APIScriptoriumArchivum.Models.Revisiones { IdEntrega = ejemplar, IdUsuarioRevisor = actor, FechaInicio = ahora, FechaCierre = ahora, AmbitoRevision = "Difusión", Resultado = datos.Decision.Resultado, MotivoDecision = razon });
+                    await conexion.SaveChangesAsync(ct);
                 }
             }
 
@@ -225,6 +224,7 @@ namespace APIScriptoriumArchivum.Datos
             {
                 await Suspender(conexion, tr, id, actor, "Los controles de difusión dejaron de cumplirse.", ct);
             }
+
             if (constanciaRevocada)
             {
                 string motivo = datos.Decision?.Motivo is { Length: > 0 }
@@ -246,62 +246,61 @@ namespace APIScriptoriumArchivum.Datos
             await tr.CommitAsync(ct);
         }
 
-        private static async Task GuardarDeposito(NpgsqlConnection c, NpgsqlTransaction tr, int id, int actor,
-            int ejemplar, ControlesFicha datos, CancellationToken ct)
+        private static async Task GuardarDeposito(AppDbContext c, IDbContextTransaction tr, int id, int actor, int ejemplar, ControlesFicha datos, CancellationToken ct)
         {
             if (datos.DepositoReferencia is not null || datos.DepositoVerificado.HasValue)
             {
-                string? referenciaAnterior = await Comandos.Valor<string>(c, tr,
-                    "SELECT referencia_deposito_ues FROM public.trabajos WHERE id_trabajo=@id", ct, ("id", id));
+                string? referenciaAnterior = await Comandos.Valor<string>(c, tr, "SELECT referencia_deposito_ues FROM public.trabajos WHERE id_trabajo=@id", ct, ("id", id));
                 string? referencia = datos.DepositoReferencia is null ? referenciaAnterior : Fichas.TextoOpcional(datos.DepositoReferencia);
                 bool cambio = referencia != referenciaAnterior;
                 if (datos.DepositoVerificado == true && referencia is null)
                 {
                     throw new ErrorApi(400, "Indica el comprobante UES antes de verificarlo.");
                 }
+
                 if ((cambio && referenciaAnterior is not null) || datos.DepositoVerificado == false)
                 {
                     await Suspender(c, tr, id, actor, "Cambio o retiro de la verificación del depósito UES.", ct);
                 }
 
-                await Comandos.Ejecutar(c, tr, """
-                    UPDATE public.trabajos SET referencia_deposito_ues=@ref::text,
-                        deposito_verificado_por=CASE
-                            WHEN @verificar AND (@cambio OR deposito_verificado_en IS NULL) THEN @actor
-                            WHEN @limpiar THEN NULL ELSE deposito_verificado_por END,
-                        deposito_verificado_en=CASE
-                            WHEN @verificar AND (@cambio OR deposito_verificado_en IS NULL) THEN clock_timestamp()
-                            WHEN @limpiar THEN NULL ELSE deposito_verificado_en END
-                    WHERE id_trabajo=@id
-                    """, ct, ("ref", referencia), ("cambio", cambio), ("limpiar", cambio || datos.DepositoVerificado == false),
-                    ("verificar", datos.DepositoVerificado == true), ("actor", actor), ("id", id));
+                var trabajo = await c.Trabajos.SingleAsync(t => t.IdTrabajo == id, ct);
+                trabajo.ReferenciaDepositoUes = referencia;
+                if (datos.DepositoVerificado == true && (cambio || trabajo.DepositoVerificadoEn == null))
+                {
+                    trabajo.DepositoVerificadoPor = actor;
+                    trabajo.DepositoVerificadoEn = DateTime.UtcNow;
+                }
+                else if (cambio || datos.DepositoVerificado == false)
+                {
+                    trabajo.DepositoVerificadoPor = null;
+                    trabajo.DepositoVerificadoEn = null;
+                }
+
+                await c.SaveChangesAsync(ct);
             }
+
             if (datos.DepositoFecha is not null)
             {
                 DateOnly? fecha = Fecha(datos.DepositoFecha, "fecha de depósito");
-                await Comandos.Ejecutar(c, tr, "UPDATE public.entregas SET fecha_deposito=@fecha::date WHERE id_entrega=@e",
-                    ct, ("fecha", fecha), ("e", ejemplar));
+                await c.Entregas.Where(e => e.IdEntrega == ejemplar).ExecuteUpdateAsync(s => s.SetProperty(e => e.FechaDeposito, fecha), ct);
             }
         }
 
-        private static async Task GuardarConstancia(NpgsqlConnection c, NpgsqlTransaction tr, int ficha, int actor,
-            int ejemplar, ConstanciaDatos datos, CancellationToken ct)
+        private static async Task GuardarConstancia(AppDbContext c, IDbContextTransaction tr, int ficha, int actor, int ejemplar, ConstanciaDatos datos, CancellationToken ct)
         {
-            int activa = await Comandos.Valor<int>(c, tr,
-                "SELECT id_autorizacion FROM public.autorizaciones_difusion WHERE id_entrega=@e AND estado='Activa'", ct, ("e", ejemplar));
+            int activa = await Comandos.Valor<int>(c, tr, "SELECT id_autorizacion FROM public.autorizaciones_difusion WHERE id_entrega=@e AND estado='Activa'", ct, ("e", ejemplar));
             if (datos.Estado == "Revocada")
             {
                 if (activa != 0)
                 {
                     await Suspender(c, tr, ficha, actor, "Se revocó la constancia de difusión.", ct);
-                    await Comandos.Ejecutar(c, tr, """
-                        UPDATE public.autorizaciones_difusion SET estado='Revocada' WHERE id_autorizacion=@a;
-                        UPDATE public.entregas SET difundir_ficha_habilitado=false, leer_pdf_habilitado=false,
-                             descargar_pdf_habilitado=false WHERE id_entrega=@e;
-                        """, ct, ("a", activa), ("e", ejemplar));
+                    await c.AutorizacionesDifusion.Where(a => a.IdAutorizacion == activa).ExecuteUpdateAsync(s => s.SetProperty(a => a.Estado, "Revocada"), ct);
+                    await c.Entregas.Where(e => e.IdEntrega == ejemplar).ExecuteUpdateAsync(s => s.SetProperty(e => e.DifundirFichaHabilitado, false).SetProperty(e => e.LeerPdfHabilitado, false).SetProperty(e => e.DescargarPdfHabilitado, false), ct);
                 }
+
                 return;
             }
+
             if (datos.Estado is not ("Vigente" or "Activa"))
             {
                 throw new ErrorApi(400, "El estado de la constancia debe ser Vigente o Revocada.");
@@ -310,12 +309,12 @@ namespace APIScriptoriumArchivum.Datos
             string? referencia = Fichas.TextoOpcional(datos.Referencia);
             DateOnly? fecha = Fecha(datos.Fecha, "fecha de la constancia");
             DateOnly? vence = Fecha(datos.Vence, "vencimiento");
-            int[] otorgantes = await Fichas.ResolverPersonas(c, tr, datos.OtorganteIds,
-                datos.Otorgantes?.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries), ct);
+            int[] otorgantes = await Fichas.ResolverPersonas(c, tr, datos.OtorganteIds, datos.Otorgantes?.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries), ct);
             if (referencia is null || !fecha.HasValue || otorgantes.Length == 0 || vence < fecha)
             {
                 throw new ErrorApi(400, "La constancia requiere referencia, fecha, al menos un otorgante registrado y vigencia válida.");
             }
+
             bool mismo = activa != 0 && await Comandos.Valor<bool>(c, tr, """
                 SELECT coalesce((SELECT referencia_respaldo=@ref
                     AND (fecha_otorgamiento AT TIME ZONE 'America/El_Salvador')::date=@fecha::date
@@ -323,29 +322,38 @@ namespace APIScriptoriumArchivum.Datos
                     AND difundir_ficha_concedido=@ficha AND leer_pdf_concedido=@lectura AND descargar_pdf_concedido=@descarga
                     AND array(SELECT id_persona FROM public.personas_autorizaciones WHERE id_autorizacion=@a ORDER BY id_persona)=@ids
                     FROM public.autorizaciones_difusion WHERE id_autorizacion=@a),false)
-                """, ct, ("ref", referencia), ("fecha", fecha.Value), ("vence", vence), ("ficha", datos.Ficha),
-                ("lectura", datos.Lectura), ("descarga", datos.Descarga), ("ids", otorgantes.Order().ToArray()), ("a", activa));
+                """, ct, ("ref", referencia), ("fecha", fecha.Value), ("vence", vence), ("ficha", datos.Ficha), ("lectura", datos.Lectura), ("descarga", datos.Descarga), ("ids", otorgantes.Order().ToArray()), ("a", activa));
             if (mismo)
             {
                 return;
             }
+
             await Suspender(c, tr, ficha, actor, "Se registró una nueva constancia de difusión.", ct);
-            await Comandos.Ejecutar(c, tr,
-                "UPDATE public.autorizaciones_difusion SET estado='Sustituida' WHERE id_autorizacion=@a", ct, ("a", activa));
-            int nueva = await Comandos.Valor<int>(c, tr, """
-                INSERT INTO public.autorizaciones_difusion(id_entrega,id_usuario_registra,fecha_otorgamiento,alcance,estado,
-                    referencia_respaldo,vigencia_hasta,difundir_ficha_concedido,leer_pdf_concedido,descargar_pdf_concedido)
-                VALUES (@e,@actor,(@fecha::date::timestamp AT TIME ZONE 'America/El_Salvador'),'Difusión','Activa',
-                    @ref,@vence::date,@ficha,@lectura,@descarga) RETURNING id_autorizacion
-                """, ct, ("e", ejemplar), ("actor", actor), ("fecha", fecha.Value), ("ref", referencia), ("vence", vence),
-                ("ficha", datos.Ficha), ("lectura", datos.Lectura), ("descarga", datos.Descarga));
-            await Comandos.Ejecutar(c, tr, """
-                INSERT INTO public.personas_autorizaciones(id_persona,id_autorizacion) SELECT unnest(@ids),@a
-                """, ct, ("ids", otorgantes), ("a", nueva));
+            await c.AutorizacionesDifusion.Where(a => a.IdAutorizacion == activa).ExecuteUpdateAsync(s => s.SetProperty(a => a.Estado, "Sustituida"), ct);
+            var autorizacion = new APIScriptoriumArchivum.Models.AutorizacionesDifusion
+            {
+                IdEntrega = ejemplar,
+                IdUsuarioRegistra = actor,
+                FechaOtorgamiento = TimeZoneInfo.ConvertTimeToUtc(fecha.Value.ToDateTime(TimeOnly.MinValue), TimeZoneInfo.FindSystemTimeZoneById("America/El_Salvador")),
+                Alcance = "Difusión",
+                Estado = "Activa",
+                ReferenciaRespaldo = referencia,
+                VigenciaHasta = vence,
+                DifundirFichaConcedido = datos.Ficha,
+                LeerPdfConcedido = datos.Lectura,
+                DescargarPdfConcedido = datos.Descarga
+            };
+            c.AutorizacionesDifusion.Add(autorizacion);
+            await c.SaveChangesAsync(ct);
+            foreach (int persona in otorgantes)
+            {
+                c.PersonasAutorizaciones.Add(new APIScriptoriumArchivum.Models.PersonasAutorizaciones { IdPersona = persona, IdAutorizacion = autorizacion.IdAutorizacion });
+            }
+
+            await c.SaveChangesAsync(ct);
         }
 
-        private static async Task GuardarPermisos(NpgsqlConnection c, NpgsqlTransaction tr, int ejemplar,
-            ControlesFicha datos, CancellationToken ct)
+        private static async Task GuardarPermisos(AppDbContext c, IDbContextTransaction tr, int ejemplar, ControlesFicha datos, CancellationToken ct)
         {
             if (datos.Autorizacion?.Estado == "Revocada")
             {
@@ -368,29 +376,23 @@ namespace APIScriptoriumArchivum.Datos
             {
                 throw new ErrorApi(400, "Los permisos habilitados deben estar respaldados por la constancia vigente.");
             }
-            await Comandos.Ejecutar(c, tr, """
-                UPDATE public.entregas SET difundir_ficha_habilitado=coalesce(@ficha::bool,difundir_ficha_habilitado),
-                    leer_pdf_habilitado=coalesce(@lectura::bool,leer_pdf_habilitado),
-                    descargar_pdf_habilitado=coalesce(@descarga::bool,descargar_pdf_habilitado) WHERE id_entrega=@e
-                """, ct, ("ficha", datos.FichaPublica), ("lectura", datos.Lectura), ("descarga", datos.Descarga), ("e", ejemplar));
+
+            await c.Entregas.Where(e => e.IdEntrega == ejemplar).ExecuteUpdateAsync(s => s.SetProperty(e => e.DifundirFichaHabilitado, e => datos.FichaPublica ?? e.DifundirFichaHabilitado).SetProperty(e => e.LeerPdfHabilitado, e => datos.Lectura ?? e.LeerPdfHabilitado).SetProperty(e => e.DescargarPdfHabilitado, e => datos.Descarga ?? e.DescargarPdfHabilitado), ct);
         }
 
         public async Task Publicar(int id, int actor, CancellationToken ct)
         {
-            await using NpgsqlConnection conexion = await baseDeDatos.OpenConnectionAsync(ct);
-            await using NpgsqlTransaction tr = await conexion.BeginTransactionAsync(ct);
+            await using AppDbContext conexion = await baseDeDatos.CreateDbContextAsync(ct);
+            await using IDbContextTransaction tr = await conexion.Database.BeginTransactionAsync(ct);
             await Fichas.Bloquear(conexion, tr, id, ct);
-            bool canal = archivos.Ubicar(await ClaveFinal(conexion,tr,id,ct)) is not null;
-            string[] bloqueos = await Comandos.Valor<string[]>(conexion, tr,
-                "CALL public.sp_publicar_trabajo(@id,@actor,@canal,NULL::text[])", ct,
-                ("id", id), ("actor", actor), ("canal", canal)) ?? Array.Empty<string>();
+            bool canal = archivos.Ubicar(await ClaveFinal(conexion, tr, id, ct))is not null;
+            string[] bloqueos = await Comandos.Valor<string[]>(conexion, tr, "CALL public.sp_publicar_trabajo(@id,@actor,@canal,NULL::text[])", ct, ("id", id), ("actor", actor), ("canal", canal)) ?? Array.Empty<string>();
             if (bloqueos.Length > 0)
             {
-                throw new ErrorApi(409, "La ficha aún no se puede publicar.",
-                    new { error = "La ficha aún no se puede publicar.", bloqueos, controles = ResumenControles(bloqueos) });
+                throw new ErrorApi(409, "La ficha aún no se puede publicar.", new { error = "La ficha aún no se puede publicar.", bloqueos, controles = ResumenControles(bloqueos) });
             }
-            await avisos.Trabajo(conexion, tr, id, actor, "TRABAJO_PUBLICADO", "Tu trabajo fue publicado",
-                "Biblioteca publicó el trabajo. Ya está disponible en el catálogo con los permisos de lectura y descarga autorizados.", false, ct);
+
+            await avisos.Trabajo(conexion, tr, id, actor, "TRABAJO_PUBLICADO", "Tu trabajo fue publicado", "Biblioteca publicó el trabajo. Ya está disponible en el catálogo con los permisos de lectura y descarga autorizados.", false, ct);
             await tr.CommitAsync(ct);
         }
 
@@ -400,22 +402,22 @@ namespace APIScriptoriumArchivum.Datos
             {
                 throw new ErrorApi(400, "Indica el motivo del retiro.");
             }
-            await using NpgsqlConnection conexion = await baseDeDatos.OpenConnectionAsync(ct);
-            await using NpgsqlTransaction tr = await conexion.BeginTransactionAsync(ct);
+
+            await using AppDbContext conexion = await baseDeDatos.CreateDbContextAsync(ct);
+            await using IDbContextTransaction tr = await conexion.Database.BeginTransactionAsync(ct);
             if (await Fichas.Bloquear(conexion, tr, id, ct) != "Publicado")
             {
                 throw new ErrorApi(409, "Solo se puede retirar una ficha publicada.");
             }
-            await Comandos.Ejecutar(conexion,tr,"CALL public.sp_retirar_trabajo(@id,@actor,@motivo)",ct,
-                ("id",id),("actor",actor),("motivo",motivo.Trim()));
-            await avisos.Trabajo(conexion, tr, id, actor, "PUBLICACION_RETIRADA", "Publicación del trabajo retirada",
-                $"Biblioteca retiró la publicación.\nMotivo: {motivo.Trim()}", false, ct);
+
+            await Comandos.Ejecutar(conexion, tr, "CALL public.sp_retirar_trabajo(@id,@actor,@motivo)", ct, ("id", id), ("actor", actor), ("motivo", motivo.Trim()));
+            await avisos.Trabajo(conexion, tr, id, actor, "PUBLICACION_RETIRADA", "Publicación del trabajo retirada", $"Biblioteca retiró la publicación.\nMotivo: {motivo.Trim()}", false, ct);
             await tr.CommitAsync(ct);
         }
 
         public async Task<string> PdfBiblioteca(int id, int? ejemplar, CancellationToken ct)
         {
-            await using NpgsqlConnection conexion = await baseDeDatos.OpenConnectionAsync(ct);
+            await using AppDbContext conexion = await baseDeDatos.CreateDbContextAsync(ct);
             string? clave = await Comandos.Valor<string>(conexion, null, """
                 SELECT r.ubicacion FROM public.entregas e JOIN public.recursos_digitales r USING(id_entrega,id_trabajo)
                 WHERE e.id_trabajo=@id AND e.numero_version=(SELECT max(numero_version) FROM public.entregas WHERE id_trabajo=@id)
@@ -425,26 +427,24 @@ namespace APIScriptoriumArchivum.Datos
             return archivos.Ubicar(clave) ?? throw new ErrorApi(404, "El ejemplar no tiene un PDF disponible.");
         }
 
-        private async Task<string[]> Evaluar(NpgsqlConnection c, NpgsqlTransaction? tr, int id, CancellationToken ct)
+        private async Task<string[]> Evaluar(AppDbContext c, IDbContextTransaction? tr, int id, CancellationToken ct)
         {
-            bool canal = archivos.Ubicar(await ClaveFinal(c,tr,id,ct)) is not null;
-            return await Comandos.Valor<string[]>(c,tr,"SELECT bloqueos FROM public.fn_elegibilidad_difusion(@id,@canal)",ct,
-                ("id",id),("canal",canal)) ?? Array.Empty<string>();
+            bool canal = archivos.Ubicar(await ClaveFinal(c, tr, id, ct))is not null;
+            return await Comandos.Valor<string[]>(c, tr, "SELECT bloqueos FROM public.fn_elegibilidad_difusion(@id,@canal)", ct, ("id", id), ("canal", canal)) ?? Array.Empty<string>();
         }
 
-        private static async Task<string?> ClaveFinal(NpgsqlConnection c, NpgsqlTransaction? tr, int id, CancellationToken ct)
+        private static async Task<string?> ClaveFinal(AppDbContext c, IDbContextTransaction? tr, int id, CancellationToken ct)
         {
-            return await Comandos.Valor<string>(c,tr, """
+            return await Comandos.Valor<string>(c, tr, """
                 SELECT r.ubicacion FROM public.trabajos t JOIN public.recursos_digitales r
                 ON r.id_trabajo=t.id_trabajo AND r.id_entrega=t.id_entrega_final
                 WHERE t.id_trabajo=@id AND r.clase='PDF' AND r.estado_carga='Disponible'
-                """,ct,("id",id));
+                """, ct, ("id", id));
         }
 
-        private static async Task Suspender(NpgsqlConnection c, NpgsqlTransaction tr, int id, int actor, string motivo, CancellationToken ct)
+        private static async Task Suspender(AppDbContext c, IDbContextTransaction tr, int id, int actor, string motivo, CancellationToken ct)
         {
-            await Comandos.Ejecutar(c,tr,"CALL public.sp_suspender_difusion(@id,@actor,@motivo)",ct,
-                ("id",id),("actor",actor),("motivo",motivo));
+            await Comandos.Ejecutar(c, tr, "CALL public.sp_suspender_difusion(@id,@actor,@motivo)", ct, ("id", id), ("actor", actor), ("motivo", motivo));
         }
 
         private static List<object> ResumenControles(string[] bloqueos)
@@ -455,6 +455,7 @@ namespace APIScriptoriumArchivum.Datos
                 string prefijo = (i + 1).ToString("D2") + "_";
                 respuesta.Add(new { label = Controles[i], ok = !bloqueos.Any(b => b.StartsWith(prefijo, StringComparison.Ordinal)) });
             }
+
             return respuesta;
         }
 
@@ -464,10 +465,12 @@ namespace APIScriptoriumArchivum.Datos
             {
                 return null;
             }
+
             if (!DateOnly.TryParseExact(dato, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateOnly fecha))
             {
                 throw new ErrorApi(400, "Revisa la " + campo + ".");
             }
+
             return fecha;
         }
     }

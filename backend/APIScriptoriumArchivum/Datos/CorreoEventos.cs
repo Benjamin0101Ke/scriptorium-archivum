@@ -1,8 +1,10 @@
+﻿using APIScriptoriumArchivum.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
 
 namespace APIScriptoriumArchivum.Datos;
-
-public sealed class CorreoEventos(NpgsqlDataSource db, IConfiguration config, ILogger<CorreoEventos> log, CambiosEnVivo cambios) : BackgroundService
+public sealed class CorreoEventos(IDbContextFactory<AppDbContext> db, IConfiguration config, ILogger<CorreoEventos> log, CambiosEnVivo cambios) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
@@ -15,11 +17,15 @@ public sealed class CorreoEventos(NpgsqlDataSource db, IConfiguration config, IL
                     continue;
                 }
             }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            catch (OperationCanceledException)when (ct.IsCancellationRequested)
             {
                 break;
             }
-            catch (Exception e) { log.LogWarning("No se pudo procesar la cola de avisos ({Tipo}).", e.GetType().Name); }
+            catch (Exception e)
+            {
+                log.LogWarning("No se pudo procesar la cola de avisos ({Tipo}).", e.GetType().Name);
+            }
+
             try
             {
                 await Task.Delay(TimeSpan.FromSeconds(3), ct);
@@ -33,7 +39,7 @@ public sealed class CorreoEventos(NpgsqlDataSource db, IConfiguration config, IL
 
     private async Task<bool> Procesar(CancellationToken ct)
     {
-        await using var c = await db.OpenConnectionAsync(ct);
+        await using var c = await db.CreateDbContextAsync(ct);
         Guid reserva = Guid.NewGuid();
         var filas = await Comandos.FilasJson(c, """
             WITH siguiente AS (
@@ -51,6 +57,7 @@ public sealed class CorreoEventos(NpgsqlDataSource db, IConfiguration config, IL
         {
             return false;
         }
+
         var item = filas[0];
         long id = item.GetProperty("id_correo").GetInt64();
         string destino = item.GetProperty("destino").GetString()!;
@@ -64,13 +71,12 @@ public sealed class CorreoEventos(NpgsqlDataSource db, IConfiguration config, IL
             }
             else
             {
-                using var mensaje = PlantillaCorreo.Crear(config["Correo:Remitente"] ?? "no-responder@scriptorium.test", destino,
-                    item.GetProperty("asunto").GetString()!, item.GetProperty("titulo").GetString()!, item.GetProperty("mensaje").GetString()!);
+                using var mensaje = PlantillaCorreo.Crear(config["Correo:Remitente"] ?? "no-responder@scriptorium.test", destino, item.GetProperty("asunto").GetString()!, item.GetProperty("titulo").GetString()!, item.GetProperty("mensaje").GetString()!);
                 await TransporteCorreo.Enviar(config, mensaje, ct);
                 estado = "Enviado";
             }
         }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        catch (OperationCanceledException)when (ct.IsCancellationRequested)
         {
             throw;
         }
@@ -80,32 +86,31 @@ public sealed class CorreoEventos(NpgsqlDataSource db, IConfiguration config, IL
             estado = item.GetProperty("intentos").GetInt32() >= 4 ? "Fallido" : "Pendiente";
             log.LogWarning("No se pudo enviar el aviso {Id} ({Tipo}).", id, error);
         }
+
         string resultado = estado;
         if (error is not null)
         {
             resultado = "Fallido";
         }
+
         int ciclo = item.GetProperty("ciclo").GetInt32();
         int numero = item.GetProperty("intentos").GetInt32() + 1;
-        await using NpgsqlTransaction tr = await c.BeginTransactionAsync(ct);
-        await using NpgsqlCommand actualizar = Comandos.Crear(c, tr, """
+        await using IDbContextTransaction tr = await c.Database.BeginTransactionAsync(ct);
+        int modificados = await Comandos.Ejecutar(c, tr, """
             UPDATE public.correos_eventos SET estado=@estado,intentos=@numero,error_tipo=@error,
                 enviado_en=CASE WHEN @estado='Enviado' THEN clock_timestamp() ELSE NULL END,
                 proximo_intento=now()+make_interval(mins=>power(2,@numero-1)::int),
                 bloqueado_hasta=NULL,reserva=NULL
             WHERE id_correo=@id AND reserva=@reserva AND estado='Enviando' AND ciclo=@ciclo
-            """, ("estado", estado), ("numero", numero), ("error", error), ("id", id),
-            ("reserva", reserva), ("ciclo", ciclo));
-        if (await actualizar.ExecuteNonQueryAsync(ct) == 1)
+            """, ct, ("estado", estado), ("numero", numero), ("error", error), ("id", id), ("reserva", reserva), ("ciclo", ciclo));
+        if (modificados == 1)
         {
-            await Comandos.Ejecutar(c, tr, """
-                INSERT INTO public.correos_intentos(id_correo,categoria,ciclo,numero_intento,resultado,error_tipo)
-                VALUES(@id,'Aviso',@ciclo,@numero,@resultado,@error)
-                """, ct, ("id", id), ("ciclo", ciclo), ("numero", numero),
-                ("resultado", resultado), ("error", error));
+            c.CorreosIntentos.Add(new APIScriptoriumArchivum.Models.CorreosIntentos { IdCorreo = id, Categoria = "Aviso", Ciclo = ciclo, NumeroIntento = numero, Resultado = resultado, ErrorTipo = error });
+            await c.SaveChangesAsync(ct);
             await tr.CommitAsync(ct);
-        cambios.Publicar("correos");
+            cambios.Publicar("correos");
         }
+
         return true;
     }
 }

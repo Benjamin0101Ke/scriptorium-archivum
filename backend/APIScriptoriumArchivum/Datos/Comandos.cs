@@ -1,62 +1,100 @@
-using System.Text.Json;
+﻿using System.Text.Json;
+using APIScriptoriumArchivum.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
 using NpgsqlTypes;
 
 namespace APIScriptoriumArchivum.Datos
 {
-    internal static class Comandos
+    public static class Comandos
     {
-        public static NpgsqlCommand Crear(NpgsqlConnection conexion, NpgsqlTransaction? transaccion, string sql,
-            params (string Nombre, object? Valor)[] parametros)
+        public static object[] Parametros(params (string Nombre, object? Valor)[] valores)
         {
-            NpgsqlCommand comando = new NpgsqlCommand(sql, conexion, transaccion);
-            foreach ((string nombre, object? valor) in parametros)
+            List<object> parametros = new List<object>();
+            foreach ((string nombre, object? valor)in valores)
             {
+                NpgsqlParameter parametro;
                 if (valor is null)
                 {
-                    comando.Parameters.AddWithValue(nombre, NpgsqlDbType.Unknown, DBNull.Value);
+                    parametro = new NpgsqlParameter(nombre, NpgsqlDbType.Unknown);
+                    parametro.Value = DBNull.Value;
                 }
                 else
                 {
-                    comando.Parameters.AddWithValue(nombre, valor);
+                    parametro = new NpgsqlParameter(nombre, valor);
                 }
+
+                parametros.Add(parametro);
             }
-            return comando;
+
+            return parametros.ToArray();
         }
 
-        public static async Task Ejecutar(NpgsqlConnection conexion, NpgsqlTransaction transaccion, string sql,
-            CancellationToken ct, params (string Nombre, object? Valor)[] parametros)
+        private static void ValidarTransaccion(AppDbContext contexto, IDbContextTransaction? transaccion)
         {
-            await using NpgsqlCommand comando = Crear(conexion, transaccion, sql, parametros);
-            await comando.ExecuteNonQueryAsync(ct);
-        }
-
-        public static async Task<T?> Valor<T>(NpgsqlConnection conexion, NpgsqlTransaction? transaccion, string sql,
-            CancellationToken ct, params (string Nombre, object? Valor)[] parametros)
-        {
-            await using NpgsqlCommand comando = Crear(conexion, transaccion, sql, parametros);
-            object? valor = await comando.ExecuteScalarAsync(ct);
-            return valor is T resultado ? resultado : default;
-        }
-
-        public static async Task<List<JsonElement>> FilasJson(NpgsqlConnection conexion, string sql,
-            CancellationToken ct, params (string Nombre, object? Valor)[] parametros)
-        {
-            return await FilasJson(conexion, null, sql, ct, parametros);
-        }
-
-        public static async Task<List<JsonElement>> FilasJson(NpgsqlConnection conexion, NpgsqlTransaction? transaccion,
-            string sql, CancellationToken ct, params (string Nombre, object? Valor)[] parametros)
-        {
-            List<JsonElement> filas = new List<JsonElement>();
-            await using NpgsqlCommand comando = Crear(conexion, transaccion, sql, parametros);
-            await using NpgsqlDataReader lector = await comando.ExecuteReaderAsync(ct);
-            while (await lector.ReadAsync(ct))
+            if (transaccion is not null && contexto.Database.CurrentTransaction != transaccion)
             {
-                using JsonDocument fila = JsonDocument.Parse(lector.GetString(0));
-                filas.Add(fila.RootElement.Clone());
+                throw new InvalidOperationException("La transaccion no corresponde al contexto");
             }
-            return filas;
+        }
+
+        public static async Task<int> Ejecutar(AppDbContext contexto, IDbContextTransaction? transaccion, string sql, CancellationToken ct, params (string Nombre, object? Valor)[] parametros)
+        {
+            ValidarTransaccion(contexto, transaccion);
+            return await contexto.Database.ExecuteSqlRawAsync(sql, Parametros(parametros), ct);
+        }
+
+        public static async Task<List<T>> Filas<T>(AppDbContext contexto, string sql, CancellationToken ct, params (string Nombre, object? Valor)[] parametros)
+        {
+            return await contexto.Database.SqlQueryRaw<T>(sql, Parametros(parametros)).ToListAsync(ct);
+        }
+
+        public static async Task<T?> Valor<T>(AppDbContext contexto, IDbContextTransaction? transaccion, string sql, CancellationToken ct, params (string Nombre, object? Valor)[] parametros)
+        {
+            ValidarTransaccion(contexto, transaccion);
+            object? valor;
+            if (typeof(T) == typeof(int))
+            {
+                List<int?> filas = await Filas<int?>(contexto, sql, ct, parametros);
+                valor = filas.FirstOrDefault() ?? 0;
+            }
+            else if (typeof(T) == typeof(long))
+            {
+                List<long?> filas = await Filas<long?>(contexto, sql, ct, parametros);
+                valor = filas.FirstOrDefault() ?? 0L;
+            }
+            else if (typeof(T) == typeof(bool))
+            {
+                List<bool?> filas = await Filas<bool?>(contexto, sql, ct, parametros);
+                valor = filas.FirstOrDefault() ?? false;
+            }
+            else
+            {
+                List<T> filas = await Filas<T>(contexto, sql, ct, parametros);
+                return filas.FirstOrDefault();
+            }
+
+            return (T)valor;
+        }
+
+        public static async Task<List<JsonElement>> FilasJson(AppDbContext contexto, string sql, CancellationToken ct, params (string Nombre, object? Valor)[] parametros)
+        {
+            return await FilasJson(contexto, null, sql, ct, parametros);
+        }
+
+        public static async Task<List<JsonElement>> FilasJson(AppDbContext contexto, IDbContextTransaction? transaccion, string sql, CancellationToken ct, params (string Nombre, object? Valor)[] parametros)
+        {
+            ValidarTransaccion(contexto, transaccion);
+            List<string> filas = await Filas<string>(contexto, sql, ct, parametros);
+            List<JsonElement> resultado = new List<JsonElement>();
+            foreach (string texto in filas)
+            {
+                using JsonDocument fila = JsonDocument.Parse(texto);
+                resultado.Add(fila.RootElement.Clone());
+            }
+
+            return resultado;
         }
     }
 }

@@ -189,6 +189,10 @@ namespace APIScriptoriumArchivum.Datos
                 }
             }
 
+            bool constanciaRevocada = datos.Autorizacion?.Estado == "Revocada" &&
+                await Comandos.Valor<bool>(conexion, tr,
+                    "SELECT EXISTS(SELECT 1 FROM public.autorizaciones_difusion WHERE id_entrega=@e AND estado='Activa')",
+                    ct, ("e", ejemplar));
             if (datos.Autorizacion is not null)
             {
                 await GuardarConstancia(conexion, tr, id, actor, ejemplar, datos.Autorizacion, ct);
@@ -221,9 +225,24 @@ namespace APIScriptoriumArchivum.Datos
             {
                 await Suspender(conexion, tr, id, actor, "Los controles de difusión dejaron de cumplirse.", ct);
             }
-            await avisos.Trabajo(conexion, tr, id, actor, nuevaDecision ? "DECISION_BIBLIOTECA" : "CONTROLES_ACTUALIZADOS",
-                nuevaDecision ? "Biblioteca registró una decisión" : "Revisión del trabajo actualizada",
-                nuevaDecision ? $"Resultado: {datos.Decision!.Resultado}\nMotivo: {datos.Decision.Motivo}" : "Biblioteca guardó una actualización de los controles del ejemplar. Consulta el estado de tu envío.", false, ct);
+            if (constanciaRevocada)
+            {
+                string motivo = datos.Decision?.Motivo is { Length: > 0 }
+                    ? $"\nMotivo de la decisión de Biblioteca: {datos.Decision.Motivo}"
+                    : "\nConsulta con Biblioteca el motivo y los pasos que correspondan.";
+                await avisos.Trabajo(conexion, tr, id, actor, "CONSTANCIA_REVOCADA",
+                    "Constancia de difusión revocada",
+                    $"Biblioteca revocó la constancia de difusión del ejemplar {ejemplar}." + motivo +
+                    "\nSe deshabilitaron la ficha pública, la lectura y la descarga de este ejemplar." +
+                    "\nSi tu trabajo está En revisión, puedes consultar Mis envíos y enviar una versión corregida cuando corresponda." +
+                    "\nLa nueva versión necesita revisión y autorización de Biblioteca; enviarla no restablece la constancia revocada.", false, ct);
+            }
+            if (!constanciaRevocada || nuevaDecision)
+            {
+                await avisos.Trabajo(conexion, tr, id, actor, nuevaDecision ? "DECISION_BIBLIOTECA" : "CONTROLES_ACTUALIZADOS",
+                    nuevaDecision ? "Biblioteca registró una decisión" : "Revisión del trabajo actualizada",
+                    nuevaDecision ? $"Resultado: {datos.Decision!.Resultado}\nMotivo: {datos.Decision.Motivo}" : "Biblioteca guardó una actualización de los controles del ejemplar. Consulta el estado de tu envío.", false, ct);
+            }
             await tr.CommitAsync(ct);
         }
 

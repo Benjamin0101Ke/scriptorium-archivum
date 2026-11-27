@@ -85,7 +85,7 @@ Las tarjetas mantienen la presentación del catálogo y permiten abrir la ficha 
 
 ## Diseño de la base de datos
 
-El esquema contiene **34 tablas y 260 campos**, una vista y 64 claves foráneas. La primera lámina de cada diagrama muestra las 33 tablas del sistema y sus relaciones; la segunda presenta `configuracion_correo_bitacora`, una tabla técnica independiente sin claves foráneas. Las imágenes abren los PDF completos para ampliar los detalles.
+El total de la base de datos es **34 tablas: 33 para las entidades y operaciones del sistema, mas `configuracion_correo_bitacora` para configurar las copias institucionales de la bitacora por correo**. Esta ultima es una tabla fisica y forma parte del diseno. Guarda una unica fila con `unica`, el correo `destino` y el interruptor `habilitado`; no almacena claves SMTP ni mensajes. Se utiliza para que las funciones y el trigger de PostgreSQL consulten directamente si deben generar la copia y a que direccion enviarla. El destino y la habilitacion pueden cambiarse mediante SQL sin reiniciar la API para esos ajustes. La conexion y las credenciales SMTP se mantienen en el `.env` privado. La primera lamina de los diagramas muestra las 33 tablas del sistema y la segunda muestra esta configuracion independiente, sin claves foraneas.
 
 ### Diagrama entidad-relación (DER)
 

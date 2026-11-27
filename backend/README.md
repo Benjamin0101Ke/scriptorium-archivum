@@ -84,7 +84,7 @@ El proxy `frontend/proxy.conf.json` reenvia `/api` a `http://127.0.0.1:3000`. Si
 
 ## 5. Datos y archivos
 
-El esquema contiene 34 tablas, 260 campos, 64 claves foraneas y una vista. La tabla tecnica `configuracion_correo_bitacora` se presenta por separado de las 33 tablas del sistema. La vista `vw_estrellas_por_trabajo` cuenta favoritos activos y no es una tabla adicional.
+El esquema contiene **34 tablas en total**: 33 para las entidades y operaciones del sistema y una tabla adicional de configuracion, `configuracion_correo_bitacora`. Las 34 forman parte de la base de datos. El conjunto tiene 260 campos, 64 claves foraneas y una vista. La vista `vw_estrellas_por_trabajo` cuenta favoritos activos y no es una tabla adicional.
 
 Los PDF y anexos se guardan en la carpeta indicada por `Storage:Ruta`. PostgreSQL conserva sus referencias. Las fotos de perfil se guardan en `usuarios.foto_perfil` y forman parte del respaldo de la base.
 
@@ -102,7 +102,11 @@ El envio utiliza el servidor SMTP configurado en el `.env` privado. Para Gmail s
 
 Los codigos de recuperacion duran diez minutos y se utilizan una sola vez. Su cola de envio es temporal; si un reinicio interrumpe el envio puede ser necesario solicitar otro codigo.
 
-La copia institucional se configura de forma privada en `configuracion_correo_bitacora`. El trigger diferido encola copias de eventos nuevos dentro de la misma transaccion.
+`configuracion_correo_bitacora` pertenece a la funcion de copias institucionales de bitacora por correo. Admite una unica fila: `unica` identifica esa configuracion, `destino` guarda la direccion que recibira las copias y `habilitado` permite activarlas o desactivarlas. Se crea con destino vacio y deshabilitada.
+
+Esta configuracion esta en PostgreSQL porque `fn_encolar_copia_bitacora` y el trigger `trg_correo_copia_bitacora` la consultan directamente al generar la copia de un evento. Se puede cambiar mediante SQL sin editar archivos ni reiniciar la API para ese ajuste. No tiene un panel propio de administracion en la interfaz y no guarda contrasenas SMTP. Esas credenciales siguen en el `.env` privado.
+
+El trigger diferido encola copias de eventos nuevos dentro de la misma transaccion. La API envia los mensajes de `correos_eventos` y registra los intentos. Deshabilitar esta configuracion impide generar nuevas copias; no cancela las que ya estan en cola. El envio tambien depende de que SMTP este configurado y habilitado en la API.
 
 ## 7. Base existente y respaldo
 

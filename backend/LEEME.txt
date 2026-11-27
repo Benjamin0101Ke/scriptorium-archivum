@@ -65,7 +65,17 @@ integracion/CONSUMIR-API.txt explica las rutas y la sesion
 
 5. BASE Y ARCHIVOS
 
-El esquema contiene 34 tablas y 260 campos y 64 claves foraneas y una vista
+Son 34 tablas fisicas en total y todas forman parte de la base de datos
+33 corresponden a las entidades y operaciones del sistema
+La adicional es configuracion_correo_bitacora para las copias institucionales por correo
+Tiene una sola fila con unica y destino y habilitado
+El destino es el correo que recibe las copias y habilitado activa o desactiva la funcion
+Las funciones y el trigger consultan estos valores directamente en PostgreSQL
+Se pueden cambiar mediante SQL sin reiniciar la API para esos ajustes
+No tiene un panel propio en la interfaz ni guarda claves SMTP ni mensajes
+Las claves del envio siguen en el .env privado y los mensajes van a correos_eventos
+Se crea deshabilitada y desactivarla no cancela mensajes que ya esten en cola
+El conjunto tiene 260 campos y 64 claves foraneas y una vista
 sql-init se ejecuta automaticamente al crear un volumen vacio
 Una base existente requiere respaldo y aplicar solamente los SQL pendientes
 No repetir la creacion de tablas ni ejecutar down -v sobre datos que se necesitan

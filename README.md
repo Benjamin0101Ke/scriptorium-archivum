@@ -4,7 +4,7 @@
 
 Repositorio digital de proyectos y trabajos de grado de la **Universidad de El Salvador · Facultad Multidisciplinaria Oriental**. Reúne consulta pública, recepción de trabajos, revisión docente y publicación controlada por Biblioteca.
 
-**Versión del código: 26 de noviembre de 2026.** Angular + ASP.NET Core + Entity Framework Core + PostgreSQL. Incluye la rama `frontend-benjamin-daniel`, las mejoras de la aplicación y la integración verificada el 23 de noviembre. Consulta el [registro de actualización de `main`](docs/PUBLICACION-20261124.md). Actualizar el repositorio no actualiza automáticamente una instalación que esté apagada.
+La interfaz utiliza Angular y se conecta a una API ASP.NET Core con Entity Framework Core y PostgreSQL. El [registro de integración](docs/PUBLICACION-20261124.md) y los informes de pruebas describen los cambios y las comprobaciones realizadas.
 
 ![Catálogo académico](docs/imagenes/catalogo.png)
 
@@ -153,7 +153,7 @@ Un resultado local no acredita por sí solo disponibilidad de una instalación r
 - [Guía de estudio de la defensa (PDF, 16 páginas)](docs/defensa/Guia-defensa-Scriptorium-Archivum.pdf): guion, preguntas por asignatura, demostración y diferencias pendientes frente a la rúbrica. Incluye la diferencia entre el consumo actual con `fetch` y el criterio que solicita `HttpClient`.
 - [Versiones corregidas](docs/VERSIONES-CORREGIDAS-20261126.md): nueva entrega con historial, comprobación de propiedad y sin heredar autorización ni permisos.
 - [Aviso explícito de revocación](docs/AVISO-REVOCACION-20261126.md): notificación a responsables, copia institucional y siete comprobaciones de integración aisladas.
-- [Comparación histórica del backend, 18/11/2026](docs/historico/CAMBIOS-BACKEND-PARA-ROBERTO-20261118.md): se conserva como referencia del modelo en esa fecha; no sustituye las migraciones ni la documentación actual.
+- [Comparación histórica del backend, 18/11/2026](docs/historico/CAMBIOS-BACKEND-20261118.md): se conserva como referencia del modelo en esa fecha; no sustituye las migraciones ni la documentación actual.
 
 ## Configuración y datos privados
 

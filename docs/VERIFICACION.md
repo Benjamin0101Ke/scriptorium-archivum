@@ -1,4 +1,6 @@
-# Verificación local de la interfaz
+# Verificación inicial de la interfaz
+
+Este registro corresponde a la demostración inicial; los pendientes describen ese momento. Las pruebas posteriores se reúnen en el [informe del 23 de noviembre](PRUEBAS-20261123.md).
 
 El 14 de noviembre de 2026 se ejecutó la compilación de producción y pasaron las nueve pruebas de metadatos.
 
@@ -14,9 +16,9 @@ En Chrome, sobre un perfil de prueba limpio en `http://127.0.0.1:4300/`, se comp
 
 Capturas de la misma ficha ficticia en [pantalla de 390 px](evidencia/ficha-local-390.png) y [pantalla de 1280 px](evidencia/ficha-local-1280.png).
 
-## Pendiente de verificar con el equipo
+## Comprobaciones pendientes en la revisión inicial
 
-- Contrato e integración con la API de Roberto, cuentas reales y autorización del servidor por operación.
+- Contrato e integración con la API del sistema, cuentas reales y autorización del servidor por operación.
 - Arranque limpio de Compose, persistencia compartida, respaldo, restauración y reinstalación.
 - Pruebas de aceptación en los navegadores y versiones previstos, rendimiento con carga y prueba de tareas con estudiantes.
 

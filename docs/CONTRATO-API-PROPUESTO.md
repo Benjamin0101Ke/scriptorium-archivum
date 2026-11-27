@@ -2,7 +2,7 @@
 
 Este documento conserva la propuesta inicial. Para integrar la versión actual, consultá el [contrato del backend](../backend/integracion/INTEGRACION.md).
 
-Este documento describe **lo que actualmente espera el frontend**. No es documentación de una API ya entregada o aprobada por Roberto.
+Esta propuesta describe las rutas y los formatos previstos para la primera interfaz. No representa el contrato vigente ni acredita su implementación.
 
 ## Reglas comunes
 
@@ -14,7 +14,7 @@ Este documento describe **lo que actualmente espera el frontend**. No es documen
 - Identificador estable de ficha y de ejemplar como cadenas.
 - Operaciones administrativas restringidas por el servidor a Biblioteca habilitada.
 - Responsables y fechas confiables los asigna la API. No confiar en el rol que muestra Angular.
-- El límite de 25 MB del selector es una propuesta técnica de interfaz. Acordarlo con Roberto y verificarlo en servidor.
+- El límite de 25 MB del selector es una propuesta técnica de interfaz. El límite definitivo corresponde a la validación del servidor y al contrato vigente.
 - Los nueve controles de RN-02 deben comprobarse en la API. El frontend solo los presenta.
 
 ## Sesión
@@ -70,7 +70,7 @@ La lista pública no debe exponer constancias, responsables administrativos ni r
 | POST | /admin/trabajos | Guardar siete metadatos |
 | PUT | /admin/trabajos/:id | Corregir siete metadatos |
 | POST | /admin/trabajos/:id/pdf | FormData con campo archivo |
-| POST | /admin/trabajos/:id/referencia | Cuerpo con referencia institucional verificable del ejemplar. Acordar con Roberto si se integra en la operación de PDF |
+| POST | /admin/trabajos/:id/referencia | Cuerpo con referencia institucional verificable del ejemplar. Su integración con la operación de PDF depende del contrato del backend |
 | PUT | /admin/trabajos/:id/controles | Registrar verificaciones, constancia, permisos y decisión |
 | POST | /admin/trabajos/:id/publicar | Validar y publicar |
 | POST | /admin/trabajos/:id/retirar | Cuerpo {motivo:"..."} |
@@ -81,7 +81,7 @@ La lista pública no debe exponer constancias, responsables administrativos ni r
 | GET | /admin/reporte | Lista con anio, registradas, publicadas |
 | GET | /admin/guia | disponible, mensaje y, cuando exista una edición vigente, titulo, referencia y url |
 
-El endpoint de controles agrupa el envío de un formulario. No cambia la atomicidad de los requisitos del documento. Si Roberto separa depósito, verificación, autorización y decisión en endpoints independientes, adaptar saveControls() para usar esas operaciones.
+El endpoint de controles agrupa el envío de un formulario. No cambia la atomicidad de los requisitos del documento. Si el contrato separa depósito, verificación, autorización y decisión en endpoints independientes, saveControls() debe utilizar esas operaciones.
 
 Alta y corrección envían los siete campos de metadatos. Para una advertencia de duplicado, se propone HTTP 409 con duplicate:true. La confirmación del usuario reenvía confirmarDuplicado:true.
 

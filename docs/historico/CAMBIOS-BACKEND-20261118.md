@@ -216,7 +216,7 @@ El cambio de PDF no conserva automáticamente las verificaciones, autorizaciones
 - El SMTP se procesa fuera de la petición del usuario: una falla de entrega no borra un trabajo ya guardado. La cola durable de avisos no es la misma cola temporal que entrega códigos de recuperación.
 - Se excluyen de GitHub los `.env` privados, las claves, los respaldos y los documentos subidos por usuarios. `.env.example` solo contiene la plantilla de configuración.
 
-## 7. Qué debe actualizar Roberto en su documentación
+## 7. Documentación afectada por las ampliaciones
 
 1. **DER:** agregar las seis entidades, sus claves y las relaciones de la sección 4, incluyendo la relación recursiva de docente/alumno.
 2. **Modelo relacional:** incorporar las columnas nuevas y las PK/FK/UNIQUE/CHECK descritas, manteniendo las claves del modelo original.
@@ -230,16 +230,6 @@ Los PDF de DER, modelo relacional y diccionario incluidos originalmente no se re
 
 Las migraciones SQL son la referencia del esquema. El diccionario debe reflejar lo implementado, sin atribuir a PostgreSQL reglas que solo valida la API. No se requiere cambiar el esquema únicamente para redactar esta explicación.
 
-## 8. Prompt listo para preparar la explicación de Roberto
-
-> Revisá el backend original del ZIP y la versión actual del repositorio Scriptorium Archivum. Prepará una explicación técnica de los cambios para mi parte de base de datos y API. Usá como referencia las migraciones SQL 04 a 12 y el informe CAMBIOS-BACKEND-PARA-ROBERTO.md. Los scripts originales 01, 02 y 03 se conservaron.
->
-> Explicá las seis tablas nuevas: recuperaciones_contrasena, archivos_complementarios, departamentos, planes_estudio, valoraciones y correos_eventos. Detallá las diez columnas nuevas de usuarios y las incorporaciones id_usuario_envio en trabajos, id_departamento en carreras y activa en tipos_trabajo. Incluí tipos, claves, nulabilidad, valores iniciales y restricciones.
->
-> Indicá las cardinalidades con su opcionalidad, especialmente docente/alumno dentro de usuarios, carrera/plan/cuenta, cuenta/trabajo enviado, valoración cuenta/trabajo, entrega/anexos y bitácora/correos. Diferenciá departamentos de áreas temáticas. No presentes notificaciones, bitacora ni el hash de contraseña como tablas o campos nuevos.
->
-> Explicá qué debo actualizar en DER, modelo relacional, diccionario y contrato API. Separá restricciones SQL de validaciones de la API. Describí registro, perfiles, cinco roles, carrera del alumno, asignación de docente, revisión del ejemplar correcto, recuperación por código, avisos automáticos y persistencia en Docker. No inventés materias del pénsum, una tabla nueva de docentes ni permisos de publicación para el docente. No modifiqués código o datos: prepará el informe y un guion claro para exponerlo, sin contraseñas ni datos privados.
-
 ## Referencias dentro del proyecto
 
 - `backend/sql-init/04_perfil_usuarios.sql` a `12_avisos_y_docentes.sql`.
@@ -247,4 +237,3 @@ Las migraciones SQL son la referencia del esquema. El diccionario debe reflejar 
 - `docs/AVISOS-CORREO.md`: destinatarios, asignaciones y entrega de correo.
 - `docs/INSTALACION-PASO-A-PASO.md`: instalación y GitHub.
 - `docs/AUDITORIA-INTEGRACION.md`: comprobaciones de integración realizadas anteriormente.
-

@@ -19,6 +19,8 @@ Las estrellas se cuentan desde los favoritos activos de cada trabajo
 2. INICIAR EN UNA INSTALACION NUEVA
 
 Abrir Docker Desktop y esperar que inicie. Abrir PowerShell en backend.
+Los comandos de esta instalacion nueva usan el proyecto scriptorium-integracion.
+En una instalacion existente se conserva el nombre usado al crearla.
 Copiar la plantilla solo si no existe un .env propio:
 
 if (!(Test-Path -LiteralPath '.env')) {
@@ -30,11 +32,11 @@ Completar POSTGRES_PASSWORD y PGADMIN_DEFAULT_PASSWORD con las claves locales.
 API_PROJECT_PATH se deja vacio para compilar APIScriptoriumArchivum de esta carpeta.
 La plantilla no incluye credenciales privadas. El .env no se sube a GitHub.
 
-docker compose -p scriptorium-archivum up -d --build
-docker compose -p scriptorium-archivum ps
-docker compose -p scriptorium-archivum exec -T postgres pg_isready -h 127.0.0.1 -U postgres -d scriptorium_archivum
+docker compose -p scriptorium-integracion up -d --build
+docker compose -p scriptorium-integracion ps
+docker compose -p scriptorium-integracion exec -T postgres pg_isready -h 127.0.0.1 -U postgres -d scriptorium_archivum
 Este comando consulta si PostgreSQL ya acepta conexiones
--p scriptorium-archivum selecciona el proyecto de Docker
+-p scriptorium-integracion selecciona el proyecto de Docker
 exec -T postgres ejecuta la comprobacion dentro del servicio PostgreSQL
 pg_isready comprueba la disponibilidad del servidor
 -h 127.0.0.1 se refiere al propio contenedor en esta comprobacion
@@ -63,7 +65,7 @@ Hacerlo una sola vez y unicamente en una base de practica sin usuarios ni fichas
 
 $OutputEncoding = [Text.UTF8Encoding]::new($false)
 Get-Content -LiteralPath './datos-prueba.sql' -Raw -Encoding utf8 |
-    docker compose -p scriptorium-archivum exec -T postgres psql -X -v ON_ERROR_STOP=1 -U postgres -d scriptorium_archivum
+    docker compose -p scriptorium-integracion exec -T postgres psql -X -v ON_ERROR_STOP=1 -U postgres -d scriptorium_archivum
 if ($LASTEXITCODE -ne 0) {
     throw 'Revisar el error antes de continuar'
 }
@@ -120,12 +122,12 @@ un duplicado al reintentar. No se promete entrega exactamente una vez.
 .dockerignore evita copiar archivos innecesarios al construir la imagen
 .env.example es la plantilla publica; .env es la configuracion privada
 
-No necesitan escribir esos archivos de nuevo: se utilizan como estan.
+Estos archivos ya estan incluidos en la carpeta del backend.
 Las instrucciones para consumir la API estan en integracion/CONSUMIR-API.txt.
 Para respaldar la base y los PDF y restaurarlos en otra instalacion, seguir
 pruebas/RESPALDO.txt. Alli se explica cada comando y como comprobar la copia
 
 Para detener y retomar sin borrar datos:
 
-docker compose -p scriptorium-archivum stop
-docker compose -p scriptorium-archivum start
+docker compose -p scriptorium-integracion stop
+docker compose -p scriptorium-integracion start

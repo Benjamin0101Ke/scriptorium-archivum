@@ -19,21 +19,14 @@ Docker debe mostrar información de **Client** y **Server**. Si dice que no pued
 
 ## 2. Entrar a la carpeta del proyecto
 
-En la computadora de Benjamin, la copia que contiene Git está aquí:
+Para una instalación nueva, abrir PowerShell en la carpeta donde se guardará el proyecto:
 
 ```powershell
-Set-Location 'C:\Users\benja\Downloads\scriptorium-archivum-github'
-Set-Location backend
-```
-
-En otra computadora, usá la ruta donde descargaste el repositorio. Para conseguir una copia nueva, desde una carpeta de trabajo:
-
-```powershell
-git clone --branch frontend-benjamin-daniel https://github.com/Benjamin0101Ke/scriptorium-archivum.git
+git clone --branch main https://github.com/Benjamin0101Ke/scriptorium-archivum.git
 Set-Location scriptorium-archivum/backend
 ```
 
-**Elegí una sola carpeta para ejecutar el proyecto.** En la instalación actual de Benjamin, Docker ya usa `C:\Users\benja\Downloads\scriptorium-archivum\backend`. Para seguir trabajando con los datos y PDF actuales, entrá a esa carpeta. La copia terminada en `-github` se usa para preparar los cambios y subirlos. Iniciar desde otra carpeta puede usar una carpeta de archivos distinta aunque conserve la base.
+Si ya existe una instalación, abrir su carpeta `backend` y conservar el nombre de proyecto Compose, sus volúmenes y la carpeta de archivos. Cambiar de carpeta o de nombre puede iniciar otros servicios o utilizar un almacenamiento diferente.
 
 ## 3. Crear la configuración privada
 
@@ -73,7 +66,7 @@ docker compose -p scriptorium-integracion exec -T postgres pg_isready -U postgre
 
 Resultado esperado: **accepting connections**. Si todavía está iniciando, esperá unos segundos y repetí el comando.
 
-Los SQL de `backend/sql-init` crean las tablas automáticamente al iniciar una base vacía. Si ya tenés una base anterior, seguí la sección **Actualizar una base que ya existe** del [README del backend](../backend/README.md); reiniciar Docker por sí solo no aplica las migraciones nuevas.
+Los SQL de `backend/sql-init` crean las tablas automáticamente al iniciar una base vacía. Si ya tenés una base anterior, seguí la sección **Utilizar una base existente** del [README del backend](../backend/README.md); reiniciar Docker por sí solo no aplica las migraciones nuevas.
 
 ## 5. Datos ficticios, solamente para una base nueva y vacía
 
@@ -85,7 +78,7 @@ Get-Content -LiteralPath '.\datos-prueba.sql' -Raw -Encoding utf8 |
     docker compose -p scriptorium-integracion exec -T postgres psql -X -v ON_ERROR_STOP=1 -U postgres -d scriptorium_archivum
 ```
 
-Si el script indica que ya hay datos, detenete en este paso y continuá con el siguiente. No borres la base para volver a cargar los ejemplos. Las credenciales de ejemplo están en el README del backend; usalas únicamente para pruebas locales.
+Si el script indica que ya hay datos, detenete en este paso y continuá con el siguiente. No borres la base para volver a cargar los ejemplos. Las cuentas de ejemplo se explican en [la prueba guiada](../backend/pruebas/PRUEBA-GUIADA.txt); usalas únicamente para pruebas locales.
 
 ## 6. Abrir PostgreSQL con una interfaz
 
@@ -112,15 +105,15 @@ La contraseña para entrar a pgAdmin y la contraseña para conectar PostgreSQL s
 
 ## 7. Abrir la página
 
-Abrí una segunda terminal. Para la instalación actual:
+Desde la raíz del repositorio, abrir una segunda terminal:
 
 ```powershell
-Set-Location 'C:\Users\benja\Downloads\scriptorium-archivum\frontend'
+Set-Location frontend
 npm.cmd ci
-npm.cmd start -- --host 127.0.0.1 --port 4301
+npm.cmd start -- --configuration integration --host 127.0.0.1 --port 4301
 ```
 
-En otra computadora, cambiá la ruta por la carpeta `frontend` de tu copia. Esperá el mensaje de compilación correcta y abrí `http://127.0.0.1:4301/`. Dejá esa terminal abierta. Si ya hay un servidor en ese puerto, usá el existente o detenelo con **Ctrl+C** antes de iniciar otro.
+Esperar la compilación y abrir `http://127.0.0.1:4301/`. La terminal debe permanecer abierta. Si el puerto ya está ocupado, utilizar el servidor existente o detenerlo con **Ctrl+C** antes de iniciar otro.
 
 La configuración normal usa la API real mediante `/api` y una sesión por cookie. No uses la configuración `demo` para comprobar PostgreSQL.
 
@@ -153,10 +146,9 @@ No uses `down -v`: elimina los volúmenes donde están los datos de PostgreSQL.
 
 ## 10. Preparar GitHub sin datos privados
 
-Desde la copia que tiene Git:
+Desde la raíz del repositorio, revisar los archivos antes de preparar una publicación:
 
 ```powershell
-Set-Location 'C:\Users\benja\Downloads\scriptorium-archivum-github'
 git status
 git add -- .gitignore README.md .github docs frontend backend
 git diff --cached --check
@@ -169,10 +161,9 @@ El último comando no debe mostrar ningún archivo. Revisá la lista del penúlt
 Cuando esté revisado:
 
 ```powershell
-git commit -m "Corrige envios y fechas y documenta instalacion local"
-git push origin frontend-benjamin-daniel
+git commit -m "Actualiza la documentacion de instalacion"
 ```
 
-Esto sube la rama `frontend-benjamin-daniel`. Para verla en la página principal del repositorio, seleccioná esa rama; para integrarla en `main`, creá y revisá un pull request.
+El commit registra los archivos preparados en la rama actual. La publicación se realiza en la rama de trabajo acordada; antes de integrar en `main`, revisar los cambios mediante un pull request.
 
 `.gitignore` evita agregar archivos nuevos, pero no elimina secretos subidos en commits anteriores. Si alguna clave real ya se publicó, hay que revocarla y reemplazarla; borrar el archivo en un commit nuevo no borra el historial.

@@ -196,5 +196,5 @@ const index = (t.enlaces || []).findIndex((l: any) => l.id === linkId);
     save();
     return { ok: true };
   }
-  error('Esta operación está pendiente de integrar con la API de Roberto.');
+  error('Esta operación no está disponible en el modo de demostración.');
 }

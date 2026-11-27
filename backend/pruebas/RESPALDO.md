@@ -1,6 +1,6 @@
 # Respaldo y restauración de prueba
 
-Haz la copia con una pausa de escritura de la API para que coincidan los datos y los PDF. Coordina la restauración con Oscar y usa una instancia aislada.
+El respaldo se realiza con las escrituras de la API detenidas para mantener la coherencia entre los datos y los PDF. La restauración se comprueba en una instancia aislada.
 
 ## Copia
 

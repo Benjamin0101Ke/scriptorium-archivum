@@ -1,310 +1,121 @@
 RESPALDO Y RESTAURACION
 
-1. QUE SE GUARDA
-
-El respaldo permite recuperar los datos si se pierde o se dana una instalacion
-Se guardan tres partes que deben corresponder al mismo momento:
-
-- scriptorium.dump: tablas, datos, secuencias, restricciones y rutinas de PostgreSQL
-- trabajos: PDF y anexos que estan en storage/trabajos
-- claves: claves internas de proteccion de sesiones y codigos protegidos
-
-Las fotos de perfil estan en PostgreSQL y se incluyen en el dump
-El dump no incluye los PDF ni los anexos guardados fuera de la base
-La carpeta de claves tampoco esta dentro del dump
-.dump es la extension del archivo binario de respaldo, no un usuario ni una cuenta
-
-El respaldo y cualquier configuracion privada se conservan fuera de GitHub
-No se necesita crear un controller para respaldar o restaurar la base
-Primero se practica la restauracion en una instalacion independiente
-
-2. PREPARAR EL RESPALDO
-
-Abrir PowerShell en backend, donde esta compose.yaml
-Los comandos siguientes usan el proyecto Docker scriptorium-archivum
-Si la instalacion tiene otro nombre, reemplazarlo en todos los comandos
-Una variable como $destino guarda un valor para reutilizarlo en esa PowerShell
-Usar la misma ventana hasta terminar el respaldo
-
-Consultar los servicios:
-
-    docker compose -p scriptorium-archivum ps
-
-Iniciar PostgreSQL si esta detenido:
-
-    docker compose -p scriptorium-archivum up -d postgres
-
-Comprobar que ya acepta conexiones:
-
-    docker compose -p scriptorium-archivum exec -T postgres pg_isready -h 127.0.0.1 -U postgres -d scriptorium_archivum
-
-Repetir la comprobacion hasta que diga accepting connections
-exec ejecuta dentro del servicio y -T evita una terminal interactiva
--h consulta al servidor del propio contenedor, -U indica usuario y -d la base
-Esto no copia datos ni modifica tablas
-
-Crear una carpeta nueva en Descargas:
-
-    $descargas = (New-Object -ComObject Shell.Application).NameSpace('shell:Downloads').Self.Path
-    $destino = Join-Path $descargas ('Respaldo-Scriptorium-' + (Get-Date -Format 'yyyy-MM-dd_HHmmss'))
-    New-Item -ItemType Directory -Path $destino -ErrorAction Stop
-
-La primera linea consulta a Windows la ubicacion real de Descargas
-Join-Path une esa ubicacion con el nombre de la carpeta
-Get-Date agrega fecha y hora para no mezclar el respaldo con uno anterior
-New-Item crea la carpeta; ErrorAction Stop detiene el bloque si falla
-No reutilizar una carpeta de respaldo anterior
-
-3. COPIAR LA BASE, LOS ARCHIVOS Y LAS CLAVES
-
-Durante esta parte la pagina no podra escribir mediante la API
-PostgreSQL debe permanecer encendido para que pg_dump pueda leer la base
-No permitir escrituras desde otros clientes mientras se toman estas copias
-
-Ejecutar completo este bloque, incluidas sus llaves:
-
-    $apiEncendida = @(docker compose -p scriptorium-archivum ps --status running --services) -contains 'api'
-    if ($LASTEXITCODE -ne 0) {
-        throw 'No se pudo consultar el estado de Docker'
-    }
-    docker compose -p scriptorium-archivum stop api
-    if ($LASTEXITCODE -ne 0) {
-        throw 'No se pudo detener la API'
-    }
-    try {
-        docker compose -p scriptorium-archivum exec -T postgres pg_dump -U postgres -Fc -f /tmp/scriptorium.dump scriptorium_archivum
-        if ($LASTEXITCODE -ne 0) {
-            throw 'Fallo la creacion del respaldo de PostgreSQL'
-        }
-        docker compose -p scriptorium-archivum cp postgres:/tmp/scriptorium.dump "$destino/scriptorium.dump"
-        if ($LASTEXITCODE -ne 0) {
-            throw 'Fallo la copia del dump a Windows'
-        }
-        Copy-Item -LiteralPath './storage/trabajos' -Destination (Join-Path $destino 'trabajos') -Recurse -ErrorAction Stop
-        docker compose -p scriptorium-archivum cp api:/home/app/.aspnet/DataProtection-Keys "$destino/claves"
-        if ($LASTEXITCODE -ne 0) {
-            throw 'Fallo la copia de las claves de proteccion'
-        }
-        Get-FileHash -LiteralPath (Join-Path $destino 'scriptorium.dump') -Algorithm SHA256 -ErrorAction Stop |
-            Format-List | Out-File (Join-Path $destino 'comprobacion-dump.txt') -Encoding utf8 -ErrorAction Stop
-        Get-ChildItem -LiteralPath (Join-Path $destino 'trabajos') -File -Recurse -ErrorAction Stop |
-            Get-FileHash -Algorithm SHA256 -ErrorAction Stop |
-            Export-Csv (Join-Path $destino 'inventario-archivos.csv') -NoTypeInformation -Encoding UTF8 -ErrorAction Stop
-        docker compose -p scriptorium-archivum exec -T postgres rm -f /tmp/scriptorium.dump
-        if ($LASTEXITCODE -ne 0) {
-            throw 'La copia esta guardada pero no se pudo retirar el temporal del contenedor'
-        }
-    }
-    finally {
-        if ($apiEncendida) {
-            docker compose -p scriptorium-archivum start api
-            if ($LASTEXITCODE -ne 0) {
-                Write-Warning 'Revisar Docker porque la API no pudo reiniciarse'
-            }
-        }
-    }
-
-Explicacion del bloque:
-
-$apiEncendida recuerda si la API estaba funcionando antes del respaldo
---status running --services lista solamente los servicios encendidos
--contains 'api' comprueba si la API aparece en esa lista y guarda true o false
-stop api detiene la API y mantiene PostgreSQL encendido
-try contiene los pasos de copia
-finally se ejecuta aunque falle la copia y devuelve la API a su estado anterior
-Si estaba detenida antes de empezar, permanece detenida
-
-pg_dump crea la copia logica de PostgreSQL
--Fc utiliza el formato de respaldo que despues puede leer pg_restore
--f guarda el archivo dentro del contenedor, en /tmp/scriptorium.dump
-docker compose cp copia ese archivo binario a Windows sin convertir su contenido
-No utilizar > para guardar el dump desde la salida de PowerShell
-
-Copy-Item copia la carpeta de archivos y -Recurse incluye su contenido
-La otra operacion cp copia las claves internas desde el contenedor de la API
-El contenedor de API debe existir previamente, aunque este detenido
-Las claves se conservan privadas porque protegen sesiones y codigos
-
-Get-FileHash calcula una huella SHA256 para comprobar la integridad del archivo
-Export-Csv guarda las huellas de los PDF y anexos para compararlos despues
-LASTEXITCODE contiene el resultado del ultimo comando externo: cero indica exito
-if revisa ese resultado y throw detiene la copia si encuentra un fallo
-rm -f retira solamente el dump temporal del contenedor, no la copia de Windows
-
-Al terminar debe existir en Descargas una carpeta con:
-
-    Respaldo-Scriptorium-fecha_hora
-        scriptorium.dump
-        trabajos
-        claves
-        comprobacion-dump.txt
-        inventario-archivos.csv
-
-Un bloque que termino con error no se considera un respaldo completo
-Conservar tambien la configuracion privada necesaria para reconstruir el entorno
-Si se guarda .env junto al respaldo, no compartirlo ni subirlo al repositorio
-
-4. PREPARAR UNA RESTAURACION SEPARADA
-
-Descargar otra copia del proyecto en una carpeta nueva
-Trabajar en backend de esa copia, nunca en la carpeta de la instalacion principal
-Copiar .env.example a .env y completar las claves locales
-Dejar API_PROJECT_PATH vacio para utilizar la API incluida en esa copia
-Usar puertos libres diferentes, por ejemplo:
-
-    POSTGRES_PORT=5443
-    API_PORT=3010
-    PGADMIN_PORT=5060
-    MAILPIT_PORT=8030
-
-Utilizar Mailpit en la restauracion para no enviar correos reales por accidente
-Conservar SMTP_HOST=mailpit, SMTP_PORT=1025 y SMTP_TLS=false
-Dejar SMTP_USER y SMTP_PASSWORD vacios en esta copia de practica
-
-El nombre del proyecto de restauracion sera scriptorium-restore
-Ese nombre hace que Docker cree otros contenedores y otros volumenes
-No cambiarlo por scriptorium-archivum en los comandos siguientes
-La carpeta storage/trabajos de esta copia tambien debe estar vacia
-
-Crear en ese backend un archivo compose.restauracion.yaml con este contenido:
-
-    services:
-      api:
-        environment:
-          ConnectionStrings__Scriptorium: Host=postgres;Port=5432;Database=scriptorium_restaurada;Username=postgres
-
-Este archivo cambia solamente la base utilizada por la API de la copia
-Database=scriptorium_restaurada apunta a la base que vamos a restaurar
-Los dos -f de los comandos siguientes combinan el Compose original y este ajuste
-Usarlos juntos tambien al iniciar, detener o consultar esta instalacion de prueba
-
-5. RESTAURAR EL DUMP
-
-Abrir PowerShell en backend de la copia y seleccionar la carpeta del respaldo:
-
-    $respaldo = 'C:\ruta\a\Respaldo-Scriptorium-fecha_hora'
-
-Reemplazar el ejemplo por la carpeta real que contiene scriptorium.dump
-No escribir aqui la ruta de la carpeta de la base principal
-
-Iniciar solamente PostgreSQL de la restauracion:
-
-    docker compose -p scriptorium-restore -f compose.yaml -f compose.restauracion.yaml up -d postgres
-
-Esperar a que su servidor acepte conexiones:
-
-    docker compose -p scriptorium-restore -f compose.yaml -f compose.restauracion.yaml exec -T postgres pg_isready -h 127.0.0.1 -U postgres -d postgres
-
-Repetir esa comprobacion si todavia no acepta conexiones
-Compose inicializa su base configurada, pero restauraremos en otra base nueva
-
-Crear la base vacia de destino:
-
-    docker compose -p scriptorium-restore -f compose.yaml -f compose.restauracion.yaml exec -T postgres createdb -U postgres -T template0 -E UTF8 scriptorium_restaurada
-    if ($LASTEXITCODE -ne 0) {
-        throw 'No continuar: la base de destino no se pudo crear o ya existe'
-    }
-
-createdb crea la base, -T template0 utiliza una plantilla limpia y -E UTF8 fija su codificacion
-La base debe ser nueva: no reutilizar una restauracion anterior ni borrar otra base
-
-Copiar el dump al contenedor y restaurarlo:
-
-    docker compose -p scriptorium-restore -f compose.yaml -f compose.restauracion.yaml cp "$respaldo/scriptorium.dump" postgres:/tmp/scriptorium.dump
-    if ($LASTEXITCODE -ne 0) {
-        throw 'Fallo la copia del dump al contenedor de restauracion'
-    }
-    docker compose -p scriptorium-restore -f compose.yaml -f compose.restauracion.yaml exec -T postgres pg_restore -U postgres --exit-on-error --no-owner -d scriptorium_restaurada /tmp/scriptorium.dump
-    if ($LASTEXITCODE -ne 0) {
-        throw 'La restauracion no termino correctamente; revisar antes de continuar'
-    }
-    docker compose -p scriptorium-restore -f compose.yaml -f compose.restauracion.yaml exec -T postgres psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -c "ALTER DATABASE scriptorium_restaurada SET TimeZone TO 'America/El_Salvador';"
-    if ($LASTEXITCODE -ne 0) {
-        throw 'Fallo la configuracion de la zona horaria'
-    }
-
-pg_restore reconstruye los objetos y datos guardados por pg_dump
---exit-on-error detiene la restauracion al encontrar un error
---no-owner evita intentar asignar objetos a propietarios de otra instalacion
--d indica la base nueva que recibira el contenido del dump
-El ultimo comando establece la zona horaria de la base restaurada
-Estos comandos no modifican la base de la instalacion principal
-
-6. RESTAURAR LOS ARCHIVOS Y LAS CLAVES
-
-Comprobar que la carpeta de archivos de la copia esta vacia
-Despues ejecutar:
-
-    New-Item -ItemType Directory -Path './storage/trabajos' -Force -ErrorAction Stop
-    Get-ChildItem -LiteralPath (Join-Path $respaldo 'trabajos') -Force |
-        Copy-Item -Destination './storage/trabajos' -Recurse -ErrorAction Stop
-
-Se copia el contenido de trabajos dentro de storage/trabajos
-Los archivos deben quedar directamente alli, sin otra carpeta trabajos anidada
-No mezclar los archivos restaurados con los de una instalacion anterior
-
-Construir y crear el contenedor de API de la copia, sin iniciarlo:
-
-    docker compose -p scriptorium-restore -f compose.yaml -f compose.restauracion.yaml build api
-    if ($LASTEXITCODE -ne 0) {
-        throw 'Fallo la construccion de la API de prueba'
-    }
-    docker compose -p scriptorium-restore -f compose.yaml -f compose.restauracion.yaml create --no-deps api
-    if ($LASTEXITCODE -ne 0) {
-        throw 'No se pudo crear el contenedor de API de prueba'
-    }
-    docker compose -p scriptorium-restore -f compose.yaml -f compose.restauracion.yaml cp "$respaldo/claves/." api:/home/app/.aspnet/DataProtection-Keys/
-    if ($LASTEXITCODE -ne 0) {
-        throw 'No se pudieron restaurar las claves'
-    }
-    docker compose -p scriptorium-restore -f compose.yaml -f compose.restauracion.yaml run --rm --no-deps --user 0 --entrypoint sh api -c 'chown -R "$APP_UID:$APP_UID" /home/app/.aspnet/DataProtection-Keys && chmod -R go-rwx /home/app/.aspnet/DataProtection-Keys'
-    if ($LASTEXITCODE -ne 0) {
-        throw 'No se pudieron ajustar los permisos de las claves'
-    }
-
-build prepara la imagen y create prepara el contenedor sin ejecutar la API
-cp con claves/. copia el contenido de claves en el volumen de esta restauracion
-run ejecuta un contenedor auxiliar para dar acceso a las claves al usuario de .NET
---user 0 se usa solamente para ajustar esos permisos en la copia
-chown asigna el propietario y chmod quita el acceso de otros usuarios
---rm elimina ese contenedor auxiliar al terminar, sin borrar el volumen
-Nunca copiar estas claves encima de las de la instalacion principal
-
-Iniciar la API y el buzon de correo de prueba:
-
-    docker compose -p scriptorium-restore -f compose.yaml -f compose.restauracion.yaml up -d api mailpit
-
-La API restaurada estara en http://127.0.0.1:3010 si se conservaron los puertos anteriores
-El buzon de prueba estara en http://127.0.0.1:8030
-
-7. COMPROBAR QUE EL RESPALDO SIRVE
-
-Consultar /api/carreras y entrar con una cuenta que existia en la base respaldada
-Comparar los conteos de usuarios y fichas con los de la copia original
-Abrir diez fichas, si la base dispone de ellas, y comprobar sus PDF y anexos
-Revisar autores, controles, permisos, favoritos y bitacora
-Calcular SHA256 de los archivos restaurados y comparar cada nombre y huella
-con inventario-archivos.csv; las rutas de carpeta pueden ser diferentes
-Verificar que una cuenta sin permiso siga sin poder acceder a gestion de Biblioteca
-
-Un dump creado sin errores no demuestra por si solo que la recuperacion este probada
-La prueba termina cuando se verifica tambien la informacion y sus archivos
-Para la aceptacion de RNF-06 se requieren dos copias consecutivas separadas por
-hasta siete dias y el cotejo de diez fichas con sus archivos y controles
-Si hay menos de diez fichas, documentar esa limitacion sin dar ese requisito por cumplido
-
-Retirar el dump temporal de la restauracion despues de verificarla:
-
-    docker compose -p scriptorium-restore -f compose.yaml -f compose.restauracion.yaml exec -T postgres rm -f /tmp/scriptorium.dump
-
-Para detener esta prueba sin borrar los datos restaurados:
-
-    docker compose -p scriptorium-restore -f compose.yaml -f compose.restauracion.yaml stop
-
-Para retomarla despues:
-
-    docker compose -p scriptorium-restore -f compose.yaml -f compose.restauracion.yaml start
-
-Conservar siempre una copia privada del respaldo fuera de los contenedores
-No ejecutar down -v sobre una instalacion que se quiera conservar
-La recuperacion de contrasenas de usuarios se explica por separado en PRUEBA-GUIADA.txt
+1. ANTES DE COPIAR
+
+La API se ejecuta en Visual Studio y PostgreSQL permanece en Docker
+Detener la API con Detener depuracion o Ctrl C si se ejecuto desde una terminal
+Cerrar tambien otras herramientas que puedan modificar datos durante la copia
+No detener PostgreSQL porque pg_dump necesita conectarse a el
+Detener Compose no detiene la API de Visual Studio
+Los respaldos son privados y no se suben a GitHub
+
+2. COPIAR LA BASE Y LOS DOCUMENTOS
+
+Abrir PowerShell en backend donde esta docker-compose.yml
+Elegir una carpeta nueva para cada respaldo y sustituir la ruta de ejemplo
+La carpeta de trabajos debe coincidir con Storage:Ruta de la API
+En esta instalacion corresponde a storage/trabajos de esta carpeta
+
+$ErrorActionPreference = 'Stop'
+$destino = 'C:\ruta\privada\respaldo-nuevo'
+New-Item -ItemType Directory -Path $destino -ErrorAction Stop
+
+docker compose -p scriptorium-archivum exec -T postgres pg_dump -U postgres -d scriptorium_archivum -Fc -f /tmp/scriptorium.dump
+if ($LASTEXITCODE -ne 0) { throw 'Fallo pg_dump' }
+docker compose -p scriptorium-archivum cp postgres:/tmp/scriptorium.dump "$destino/scriptorium.dump"
+if ($LASTEXITCODE -ne 0) { throw 'Fallo la copia del dump' }
+Copy-Item -LiteralPath './storage/trabajos' -Destination (Join-Path $destino 'trabajos') -Recurse -ErrorAction Stop
+
+pg_dump lee la base y guarda sus objetos y datos en el archivo custom
+La opcion -Fc elige ese formato y -f indica donde escribir el archivo
+Compose cp copia el dump sin transformar sus bytes
+Copy-Item copia los PDF y anexos que no estan dentro del dump
+Las fotos guardadas en usuarios.foto_perfil quedan dentro del respaldo SQL
+Si aparece un error no considerar completa la copia ni sobrescribir otra
+Registrar fecha y conteos de usuarios y fichas y un inventario SHA256 de archivos
+Conservar el .env privado por separado con acceso controlado
+
+3. CLAVES DE PROTECCION
+
+La API usa las claves de ASP.NET Core del usuario de Windows
+Normalmente se encuentran en la siguiente carpeta
+
+Join-Path $env:LOCALAPPDATA 'ASP.NET\DataProtection-Keys'
+
+Confirmar su ubicacion en el registro de arranque de la API
+Si se necesita preservar datos protegidos guardar tambien esa carpeta de forma privada
+No se utiliza un volumen de claves de la API en Compose
+Las claves pueden estar protegidas mediante DPAPI del usuario de Windows
+Copiarlas a otro usuario o equipo no garantiza que puedan descifrarse
+Una ruta de aplicacion diferente tambien puede cambiar el aislamiento de proteccion
+En una restauracion aislada asumir sesiones y codigos pendientes invalidos
+Volver a iniciar sesion y solicitar codigos nuevos cuando sea necesario
+Nunca reemplazar las claves de la instalacion principal por las de una prueba
+
+4. RETOMAR LA INSTALACION PRINCIPAL
+
+Una vez terminada la copia volver a ejecutar la API desde Visual Studio
+Si se inicio con dotnet run volver a ejecutar ese comando en su carpeta
+No utilizar Compose para iniciar o detener la API
+
+5. RESTAURAR EN UNA INSTALACION AISLADA
+
+Preparar otra carpeta con una copia del proyecto y de docker-compose.yml y sql-init
+Usar su propio .env con POSTGRES_PORT=5443 y PGADMIN_PORT=5060
+Mantener la contrasena de esa instancia y configurar SMTP_HABILITADO=false
+La carpeta de archivos de la copia debe estar vacia antes de restaurar
+Abrir PowerShell donde esta el docker-compose.yml de esa copia
+El nombre de proyecto siguiente crea otros contenedores y volumenes
+No cambiarlo por el de la instalacion principal
+
+docker compose -p scriptorium-restore up -d postgres pgadmin
+docker compose -p scriptorium-restore exec -T postgres pg_isready -h 127.0.0.1 -U postgres -d postgres
+
+Repetir pg_isready hasta que acepte conexiones antes de continuar
+Se crea una base nueva sin ejecutar en ella los SQL de creacion
+El dump ya contiene los objetos de la base respaldada
+
+$respaldo = 'C:\ruta\privada\respaldo-nuevo'
+docker compose -p scriptorium-restore exec -T postgres createdb -U postgres -T template0 -E UTF8 scriptorium_restaurada
+if ($LASTEXITCODE -ne 0) { throw 'La base nueva no se pudo crear' }
+docker compose -p scriptorium-restore cp "$respaldo/scriptorium.dump" postgres:/tmp/scriptorium.dump
+if ($LASTEXITCODE -ne 0) { throw 'Fallo copiar el dump' }
+docker compose -p scriptorium-restore exec -T postgres pg_restore -U postgres --exit-on-error --no-owner -d scriptorium_restaurada /tmp/scriptorium.dump
+if ($LASTEXITCODE -ne 0) { throw 'Fallo restaurar la base' }
+docker compose -p scriptorium-restore exec -T postgres psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -c "ALTER DATABASE scriptorium_restaurada SET TimeZone TO 'America/El_Salvador';"
+if ($LASTEXITCODE -ne 0) { throw 'Fallo configurar la zona horaria' }
+Copy-Item -LiteralPath (Join-Path $respaldo 'trabajos') -Destination './storage/trabajos' -Recurse -ErrorAction Stop
+
+6. CONECTAR LA API DE LA COPIA
+
+Editar solo el appsettings.Development.json del proyecto copiado
+Agregar o ajustar esta seccion en su objeto principal sin quitar otras opciones
+
+"ConnectionStrings": {
+  "Scriptorium": "Host=localhost;Port=5443;Database=scriptorium_restaurada;Username=postgres"
+}
+
+No escribir la contrasena en ese archivo
+El lector completa la clave y el puerto desde el .env de la copia
+En el proyecto copiado abrir PowerShell y ejecutar lo siguiente
+Sustituir las dos rutas por las rutas absolutas de la instalacion aislada
+
+dotnet run --no-launch-profile -- --environment Development --urls http://localhost:3010 --ArchivoEntorno "C:\ruta\copia\.env" --Storage:Ruta "C:\ruta\copia\storage\trabajos" --Correo:Habilitado=false --RedireccionHttps=false
+
+Los argumentos seleccionan archivo privado y almacenamiento y URL de la copia
+No modifican los secretos ni la base ni el almacenamiento de la principal
+La API restaurada se consulta en http://localhost:3010/api/carreras
+Mantener esta terminal abierta durante la comprobacion
+Ctrl C detiene solamente esa API
+Con los correos desactivados no se prueba entrega ni recuperacion por correo
+
+7. COMPROBAR LA RESTAURACION
+
+Comparar los conteos de usuarios y fichas con el inventario del respaldo
+Abrir las fichas y comprobar autores y permisos y archivos
+Comparar las huellas SHA256 de PDF y anexos con el inventario inicial
+Comprobar acceso permitido y denegado con las cuentas de prueba
+La aceptacion de RNF-06 requiere dos copias separadas por hasta siete dias
+Tambien requiere el cotejo completo de diez fichas con archivos y datos de control
+Si faltan datos o alguna comprobacion registrarlo como pendiente
+Un pg_restore sin errores no demuestra por si solo que se recupero todo

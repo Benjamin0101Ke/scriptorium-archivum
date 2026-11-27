@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Threading.Channels;
 
 namespace APIScriptoriumArchivum.Datos;
@@ -7,6 +7,10 @@ public sealed class CorreoRecuperacion(IConfiguration config, ILogger<CorreoRecu
     private Channel<Mensaje> cola = Channel.CreateBounded<Mensaje>(new BoundedChannelOptions(64) { SingleReader = true });
     public void Encolar(int usuario, string destino, string codigo, int minutos)
     {
+        if (!config.GetValue("Correo:Habilitado", true))
+        {
+            return;
+        }
         if (!cola.Writer.TryWrite(new(usuario, destino, codigo, minutos, DateTimeOffset.UtcNow.AddMinutes(minutos))))
         {
             log.LogWarning("No hay espacio para más mensajes de recuperación.");
@@ -15,6 +19,12 @@ public sealed class CorreoRecuperacion(IConfiguration config, ILogger<CorreoRecu
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Permite revisar una restauracion sin enviar correos reales
+        if (!config.GetValue("Correo:Habilitado", true))
+        {
+            return;
+        }
+
         await foreach (Mensaje item in cola.Reader.ReadAllAsync(stoppingToken))
         {
             for (int intento = 1; intento <= 5 && item.Vence > DateTimeOffset.UtcNow; intento++)

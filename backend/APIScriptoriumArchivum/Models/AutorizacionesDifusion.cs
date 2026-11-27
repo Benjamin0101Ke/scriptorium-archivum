@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -18,7 +18,9 @@ public partial class AutorizacionesDifusion
     public bool DifundirFichaConcedido { get; set; }
     public bool LeerPdfConcedido { get; set; }
     public bool DescargarPdfConcedido { get; set; }
-    public virtual Entregas IdEntregaNavigation { get; set; } = null!;
-    public virtual Usuarios IdUsuarioRegistraNavigation { get; set; } = null!;
-    public virtual ICollection<PersonasAutorizaciones> PersonasAutorizaciones { get; set; } = new List<PersonasAutorizaciones>();
+    public Entregas IdEntregaNavigation { get; set; } = null!;
+    public Usuarios IdUsuarioRegistraNavigation { get; set; } = null!;
+    // Una autorizacion puede tener cero o muchos registros de otorgantes
+    // PersonasAutorizaciones relaciona muchas personas con muchas autorizaciones
+    public ICollection<PersonasAutorizaciones> PersonasAutorizaciones { get; set; } = new List<PersonasAutorizaciones>();
 }

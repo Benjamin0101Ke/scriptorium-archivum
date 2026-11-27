@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -14,6 +14,6 @@ public partial class Observaciones
     public int? IdUsuarioResponde { get; set; }
     public DateTime FechaObservacion { get; set; }
     public DateTime? FechaRespuesta { get; set; }
-    public virtual Revisiones IdRevisionNavigation { get; set; } = null!;
-    public virtual Usuarios? IdUsuarioRespondeNavigation { get; set; }
+    public Revisiones IdRevisionNavigation { get; set; } = null!;
+    public Usuarios? IdUsuarioRespondeNavigation { get; set; }
 }

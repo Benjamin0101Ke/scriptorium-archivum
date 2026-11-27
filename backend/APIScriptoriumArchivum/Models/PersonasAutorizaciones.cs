@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -9,6 +9,6 @@ public partial class PersonasAutorizaciones
     public int IdOtorgante { get; set; }
     public int IdPersona { get; set; }
     public int IdAutorizacion { get; set; }
-    public virtual AutorizacionesDifusion IdAutorizacionNavigation { get; set; } = null!;
-    public virtual Personas IdPersonaNavigation { get; set; } = null!;
+    public AutorizacionesDifusion IdAutorizacionNavigation { get; set; } = null!;
+    public Personas IdPersonaNavigation { get; set; } = null!;
 }

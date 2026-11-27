@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -29,35 +29,58 @@ public partial class Usuarios
     public int? IdDocente { get; set; }
     // ICollection agrupa registros relacionados y no corresponde a una columna
     // La lista empieza vacia y los datos se cargan mediante consultas
-    // virtual permite sobrescribir la propiedad, no activa por si solo la carga automatica
-    // Anexos que esta cuenta adjunto a trabajos
-    public virtual ICollection<ArchivosComplementarios> ArchivosComplementarios { get; set; } = new List<ArchivosComplementarios>();
-    public virtual ICollection<AutorizacionesDifusion> AutorizacionesDifusion { get; set; } = new List<AutorizacionesDifusion>();
-    public virtual ICollection<Bitacora> Bitacora { get; set; } = new List<Bitacora>();
-    public virtual ICollection<CorreosIntentos> CorreosIntentos { get; set; } = new List<CorreosIntentos>();
-    public virtual ICollection<DistincionesDestacado> DistincionesDestacado { get; set; } = new List<DistincionesDestacado>();
-    public virtual ICollection<Entregas> EntregasIdUsuarioEnviaNavigation { get; set; } = new List<Entregas>();
-    public virtual ICollection<Entregas> EntregasVerificadoPorNavigation { get; set; } = new List<Entregas>();
-    public virtual ICollection<EvidenciasAcademicas> EvidenciasAcademicas { get; set; } = new List<EvidenciasAcademicas>();
-    public virtual ICollection<Favoritos> Favoritos { get; set; } = new List<Favoritos>();
-    public virtual ICollection<HistorialEstados> HistorialEstados { get; set; } = new List<HistorialEstados>();
-    public virtual Carreras? IdCarreraNavigation { get; set; }
+
+    // Un usuario puede adjuntar cero o muchos archivos complementarios
+    public ICollection<ArchivosComplementarios> ArchivosComplementarios { get; set; } = new List<ArchivosComplementarios>();
+    // Un usuario puede registrar cero o muchas autorizaciones de difusion
+    // Esta relacion identifica quien las registra y no a sus otorgantes
+    public ICollection<AutorizacionesDifusion> AutorizacionesDifusion { get; set; } = new List<AutorizacionesDifusion>();
+    // Un usuario puede ser el actor de cero o muchos eventos de bitacora
+    public ICollection<Bitacora> Bitacora { get; set; } = new List<Bitacora>();
+    // Un usuario puede estar asociado con cero o muchos intentos de correo de recuperacion
+    public ICollection<CorreosIntentos> CorreosIntentos { get; set; } = new List<CorreosIntentos>();
+    // Un usuario puede seleccionar cero o muchas distinciones de trabajos
+    public ICollection<DistincionesDestacado> DistincionesDestacado { get; set; } = new List<DistincionesDestacado>();
+    // Un usuario puede enviar cero o muchas entregas de trabajos
+    public ICollection<Entregas> EntregasIdUsuarioEnviaNavigation { get; set; } = new List<Entregas>();
+    // Un usuario puede verificar cero o muchas entregas de trabajos
+    public ICollection<Entregas> EntregasVerificadoPorNavigation { get; set; } = new List<Entregas>();
+    // Un usuario puede registrar cero o muchas evidencias academicas
+    public ICollection<EvidenciasAcademicas> EvidenciasAcademicas { get; set; } = new List<EvidenciasAcademicas>();
+    // Un usuario puede mantener cero o muchos registros de favoritos
+    // Favoritos relaciona muchos usuarios con muchos trabajos
+    public ICollection<Favoritos> Favoritos { get; set; } = new List<Favoritos>();
+    // Un usuario puede ser el actor de cero o muchos cambios de estado
+    public ICollection<HistorialEstados> HistorialEstados { get; set; } = new List<HistorialEstados>();
+    public Carreras? IdCarreraNavigation { get; set; }
     // Cuenta del docente asignado a este estudiante
-    public virtual Usuarios? IdDocenteNavigation { get; set; }
-    public virtual Personas IdPersonaNavigation { get; set; } = null!;
-    public virtual PlanesEstudio? IdPlanNavigation { get; set; }
-    public virtual Roles IdRolNavigation { get; set; } = null!;
-    // Estudiantes que tienen a esta cuenta asignada como docente
-    public virtual ICollection<Usuarios> InverseIdDocenteNavigation { get; set; } = new List<Usuarios>();
-    public virtual ICollection<Notificaciones> Notificaciones { get; set; } = new List<Notificaciones>();
-    public virtual ICollection<Observaciones> Observaciones { get; set; } = new List<Observaciones>();
-    public virtual ICollection<PermisosTrabajo> PermisosTrabajo { get; set; } = new List<PermisosTrabajo>();
-    public virtual ICollection<PresenciaSesiones> PresenciaSesiones { get; set; } = new List<PresenciaSesiones>();
-    public virtual RecuperacionesContrasena? RecuperacionesContrasena { get; set; }
-    public virtual ICollection<Revisiones> Revisiones { get; set; } = new List<Revisiones>();
-    public virtual ICollection<RevisionesDocentes> RevisionesDocentes { get; set; } = new List<RevisionesDocentes>();
-    public virtual ICollection<Solicitudes> Solicitudes { get; set; } = new List<Solicitudes>();
-    public virtual ICollection<Trabajos> TrabajosDepositoVerificadoPorNavigation { get; set; } = new List<Trabajos>();
-    public virtual ICollection<Trabajos> TrabajosIdUsuarioEnvioNavigation { get; set; } = new List<Trabajos>();
-    public virtual ICollection<Trabajos> TrabajosIdUsuarioRetiraNavigation { get; set; } = new List<Trabajos>();
+    public Usuarios? IdDocenteNavigation { get; set; }
+    public Personas IdPersonaNavigation { get; set; } = null!;
+    public PlanesEstudio? IdPlanNavigation { get; set; }
+    public Roles IdRolNavigation { get; set; } = null!;
+    // Una cuenta docente puede tener cero o muchos estudiantes asignados
+    // Es una relacion de Usuarios consigo misma mediante IdDocente
+    public ICollection<Usuarios> InverseIdDocenteNavigation { get; set; } = new List<Usuarios>();
+    // Un usuario puede recibir cero o muchas notificaciones
+    public ICollection<Notificaciones> Notificaciones { get; set; } = new List<Notificaciones>();
+    // Un usuario puede responder cero o muchas observaciones
+    public ICollection<Observaciones> Observaciones { get; set; } = new List<Observaciones>();
+    // Un usuario puede tener cero o muchos permisos sobre trabajos
+    // PermisosTrabajo relaciona muchos usuarios con muchos trabajos
+    public ICollection<PermisosTrabajo> PermisosTrabajo { get; set; } = new List<PermisosTrabajo>();
+    // Un usuario puede tener cero o muchos registros de presencia de sesiones
+    public ICollection<PresenciaSesiones> PresenciaSesiones { get; set; } = new List<PresenciaSesiones>();
+    public RecuperacionesContrasena? RecuperacionesContrasena { get; set; }
+    // Un usuario revisor puede realizar cero o muchas revisiones de entregas
+    public ICollection<Revisiones> Revisiones { get; set; } = new List<Revisiones>();
+    // Una cuenta docente puede tener cero o muchos registros del historial docente separado
+    public ICollection<RevisionesDocentes> RevisionesDocentes { get; set; } = new List<RevisionesDocentes>();
+    // Un usuario puede presentar cero o muchas solicitudes
+    public ICollection<Solicitudes> Solicitudes { get; set; } = new List<Solicitudes>();
+    // Un usuario puede verificar el deposito de cero o muchos trabajos
+    public ICollection<Trabajos> TrabajosDepositoVerificadoPorNavigation { get; set; } = new List<Trabajos>();
+    // Un usuario puede ser el remitente de cero o muchos trabajos
+    public ICollection<Trabajos> TrabajosIdUsuarioEnvioNavigation { get; set; } = new List<Trabajos>();
+    // Un usuario puede retirar de la consulta publica cero o muchos trabajos
+    public ICollection<Trabajos> TrabajosIdUsuarioRetiraNavigation { get; set; } = new List<Trabajos>();
 }

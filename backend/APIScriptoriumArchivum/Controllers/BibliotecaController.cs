@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using System.Text.Json;
 using APIScriptoriumArchivum.Datos;
 using APIScriptoriumArchivum.Dtos;
@@ -92,12 +92,13 @@ namespace APIScriptoriumArchivum.Controllers
             return Ok(new { ejemplar_id = ejemplar.ToString() });
         }
 
-        // Valida y guarda el PDF como una nueva entrega del trabajo
+        // Recibe el PDF enviado por Angular y lo asocia como una nueva entrega del trabajo
         [HttpPost("trabajos/{id:int}/pdf")]
         [RequestSizeLimit(CargasArchivos.MaximoBytes + 1024 * 1024)]
         [RequestFormLimits(MultipartBodyLengthLimit = CargasArchivos.MaximoBytes)]
         public async Task<IActionResult> SubirPdf(int id, [FromForm] IFormFile? archivo, [FromForm(Name = "carga_id")] string? cargaId, CancellationToken ct)
         {
+            // Obtiene el archivo de la peticion o de una carga por partes ya preparada
             await using var recibido = await cargas.Resolver(archivo, cargaId, Actor(), ct);
             archivo = recibido.Archivo;
             if (archivo is null || archivo.Length < 5 || !archivo.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
@@ -108,6 +109,7 @@ namespace APIScriptoriumArchivum.Controllers
             string clave;
             try
             {
+                // ArchivoPdf escribe el contenido en disco y devuelve la clave del archivo
                 clave = await archivos.Guardar(archivo, ct);
             }
             catch (InvalidDataException)
@@ -124,10 +126,12 @@ namespace APIScriptoriumArchivum.Controllers
             int ejemplar;
             try
             {
+                // Registra el ejemplar y la referencia al archivo en la base de datos
                 ejemplar = await ejemplares.Registrar(id, Actor(), "PDF", clave, nombre, archivo.Length, ct);
             }
             catch
             {
+                // Evita dejar un archivo sin referencia si no se pudo registrar el ejemplar
                 archivos.QuitarTemporal(clave);
                 throw;
             }

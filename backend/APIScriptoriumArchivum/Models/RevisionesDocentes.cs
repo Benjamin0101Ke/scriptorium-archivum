@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -13,7 +13,7 @@ public partial class RevisionesDocentes
     public string Resultado { get; set; } = null!;
     public string Observaciones { get; set; } = null!;
     public DateTime CreadoEn { get; set; }
-    public virtual Entregas Entregas { get; set; } = null!;
-    public virtual Usuarios IdDocenteNavigation { get; set; } = null!;
-    public virtual Trabajos IdTrabajoNavigation { get; set; } = null!;
+    public Entregas Entregas { get; set; } = null!;
+    public Usuarios IdDocenteNavigation { get; set; } = null!;
+    public Trabajos IdTrabajoNavigation { get; set; } = null!;
 }

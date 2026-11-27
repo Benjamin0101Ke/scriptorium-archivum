@@ -1,4 +1,4 @@
-﻿using APIScriptoriumArchivum.Data;
+using APIScriptoriumArchivum.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
@@ -8,6 +8,12 @@ public sealed class CorreoEventos(IDbContextFactory<AppDbContext> db, IConfigura
 {
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
+        // Permite revisar una restauracion sin enviar correos reales
+        if (!config.GetValue("Correo:Habilitado", true))
+        {
+            return;
+        }
+
         while (!ct.IsCancellationRequested)
         {
             try

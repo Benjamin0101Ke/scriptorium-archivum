@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -11,5 +11,6 @@ public partial class ProcedimientosDeposito
     public DateOnly FechaAprobacion { get; set; }
     public DateOnly VigenteDesde { get; set; }
     public DateOnly? VigenteHasta { get; set; }
-    public virtual ICollection<Revisiones> Revisiones { get; set; } = new List<Revisiones>();
+    // Un procedimiento de deposito puede ser referencia de cero o muchas revisiones
+    public ICollection<Revisiones> Revisiones { get; set; } = new List<Revisiones>();
 }

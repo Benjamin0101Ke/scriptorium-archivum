@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -19,7 +19,7 @@ public partial class ArchivosComplementarios
     // Indica si Biblioteca habilito este anexo para su difusion
     public bool Habilitado { get; set; }
     public DateTime FechaRegistro { get; set; }
-    public virtual Entregas? IdEntregaNavigation { get; set; }
-    public virtual Trabajos IdTrabajoNavigation { get; set; } = null!;
-    public virtual Usuarios IdUsuarioNavigation { get; set; } = null!;
+    public Entregas? IdEntregaNavigation { get; set; }
+    public Trabajos IdTrabajoNavigation { get; set; } = null!;
+    public Usuarios IdUsuarioNavigation { get; set; } = null!;
 }

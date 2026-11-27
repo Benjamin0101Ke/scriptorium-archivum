@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -11,6 +11,7 @@ public partial class PlanesEstudio
     public string Nombre { get; set; } = null!;
     public string? DocumentoUrl { get; set; }
     public bool Activa { get; set; }
-    public virtual Carreras IdCarreraNavigation { get; set; } = null!;
-    public virtual ICollection<Usuarios> Usuarios { get; set; } = new List<Usuarios>();
+    public Carreras IdCarreraNavigation { get; set; } = null!;
+    // Un plan de estudio puede estar asociado con cero o muchas cuentas de usuarios
+    public ICollection<Usuarios> Usuarios { get; set; } = new List<Usuarios>();
 }

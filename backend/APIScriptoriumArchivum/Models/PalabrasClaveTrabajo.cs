@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -8,5 +8,5 @@ public partial class PalabrasClaveTrabajo
     public int IdPalabraTrabajo { get; set; }
     public int IdTrabajo { get; set; }
     public string Termino { get; set; } = null!;
-    public virtual Trabajos IdTrabajoNavigation { get; set; } = null!;
+    public Trabajos IdTrabajoNavigation { get; set; } = null!;
 }

@@ -1,7 +1,8 @@
 CONSUMIR LA API
 
 Recomiendo iniciar con la prueba de catalogos y sesion. Las rutas de ejemplo
-usan el puerto 3000. Si se cambia en .env, ajustar el proxy del frontend.
+usan el puerto 3000 del perfil http de la API en Visual Studio
+Si se cambia en Properties/launchSettings.json ajustar tambien el proxy del frontend
 No es necesario crear otra API ni copiar controllers al proyecto Angular.
 
 CONEXION DE ANGULAR CON LA API
@@ -19,7 +20,7 @@ Los comandos npm se ejecutan en la carpeta frontend, donde esta ese archivo
    Su configuracion actual envia /api/** a http://127.0.0.1:3000
    El proxy recibe las peticiones /api de la pagina y las reenvia a la API
    Por ejemplo, /api/carreras termina consultando el backend en el puerto 3000
-   Si API_PORT cambia en .env, cambiar tambien el puerto de target en ese JSON
+   Si se cambia el puerto en launchSettings.json cambiar tambien el puerto de target en ese JSON
    Esto mantiene el proxy apuntando al puerto donde realmente escucha la API
    proxy.conf.example.json es solo una plantilla de referencia, si se necesita
    El archivo que utiliza este proyecto es frontend/proxy.conf.json
@@ -35,19 +36,20 @@ Los comandos npm se ejecutan en la carpeta frontend, donde esta ese archivo
 
 4. Desde esa misma carpeta ejecutar:
 
-   npm start
+   npm start -- --configuration integration --host 127.0.0.1 --port 4301
 
    Ejecuta el comando start definido en package.json
    En este proyecto es ng serve --proxy-config proxy.conf.json
    ng serve inicia el servidor de desarrollo de Angular
    --proxy-config le indica que utilice el archivo de proxy mencionado
-   La terminal muestra una direccion local, normalmente http://localhost:4200
+   integration utiliza la API real y el puerto 4301 corresponde a Angular
+   La terminal muestra la direccion http://127.0.0.1:4301
    Abrir la direccion que realmente aparezca y dejar esa terminal abierta
    Para detener ese servidor se utiliza Ctrl+C en su terminal
 
 5. Si se modifica proxy.conf.json, detener Angular y ejecutar npm start otra vez
    El servidor necesita cargar la nueva configuracion del proxy
-   La API puede seguir funcionando en su contenedor durante ese cambio
+   La API puede seguir ejecutandose en Visual Studio durante ese cambio
 
 6. Revisar en las herramientas del navegador la pestana Red o Network
    Las solicitudes deben ir a la direccion de la pagina y empezar por /api

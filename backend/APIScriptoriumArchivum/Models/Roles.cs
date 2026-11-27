@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -9,5 +9,6 @@ public partial class Roles
     public string Nombre { get; set; } = null!;
     public string? Descripcion { get; set; }
     public bool Activo { get; set; }
-    public virtual ICollection<Usuarios> Usuarios { get; set; } = new List<Usuarios>();
+    // Un rol puede estar asignado a cero o muchas cuentas de usuarios
+    public ICollection<Usuarios> Usuarios { get; set; } = new List<Usuarios>();
 }

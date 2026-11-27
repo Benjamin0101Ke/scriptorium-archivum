@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -9,6 +9,6 @@ public partial class TrabajosAreas
     public int IdTrabajoArea { get; set; }
     public int IdTrabajo { get; set; }
     public int IdArea { get; set; }
-    public virtual AreasTematicas IdAreaNavigation { get; set; } = null!;
-    public virtual Trabajos IdTrabajoNavigation { get; set; } = null!;
+    public AreasTematicas IdAreaNavigation { get; set; } = null!;
+    public Trabajos IdTrabajoNavigation { get; set; } = null!;
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -10,6 +10,8 @@ public partial class TiposTrabajo
     public string? Descripcion { get; set; }
     public bool RequiereAprobacionAcademica { get; set; }
     public bool Activa { get; set; }
-    public virtual ICollection<Solicitudes> Solicitudes { get; set; } = new List<Solicitudes>();
-    public virtual ICollection<Trabajos> Trabajos { get; set; } = new List<Trabajos>();
+    // Un tipo de trabajo puede clasificar cero o muchas solicitudes
+    public ICollection<Solicitudes> Solicitudes { get; set; } = new List<Solicitudes>();
+    // Un tipo de trabajo puede clasificar cero o muchos trabajos
+    public ICollection<Trabajos> Trabajos { get; set; } = new List<Trabajos>();
 }

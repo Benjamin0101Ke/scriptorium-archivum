@@ -4,7 +4,7 @@
 
 Repositorio digital de proyectos y trabajos de grado de la **Universidad de El Salvador · Facultad Multidisciplinaria Oriental**. Reúne consulta pública, recepción de trabajos, revisión docente y publicación controlada por Biblioteca.
 
-La interfaz utiliza Angular y se conecta a una API ASP.NET Core con Entity Framework Core y PostgreSQL. El [registro de integración](docs/PUBLICACION-20261124.md) y los informes de pruebas describen los cambios y las comprobaciones realizadas.
+La interfaz utiliza Angular y se conecta a una API ASP.NET Core con Entity Framework Core y PostgreSQL. PostgreSQL y pgAdmin se ejecutan con Docker Compose; la API se inicia desde Visual Studio o con la terminal de .NET.
 
 ![Catálogo académico](docs/imagenes/catalogo.png)
 
@@ -103,25 +103,22 @@ El [diccionario de datos](backend/documentacion/Diccionario%20de%20datos%20actua
 
 ## Ejecutar en desarrollo
 
-Necesitas Git, Docker Desktop y Node.js compatible con `frontend/package.json`. La guía de base de datos, API, correo de prueba y usuarios ficticios está en [backend/README.md](backend/README.md).
+Se necesita Docker Desktop, .NET 10, Visual Studio con soporte ASP.NET Core o la terminal de .NET, y Node.js compatible con `frontend/package.json`.
 
-1. Copia `backend/.env.example` como `backend/.env` y define contraseñas **locales**. Conserva el correo de desarrollo en Mailpit.
-2. Desde `backend/`, inicia los servicios:
-
-   ```powershell
-   docker compose -p scriptorium-integracion up -d --build
-   ```
-
-3. Desde `frontend/`, instala e inicia la interfaz:
+1. Copiar `backend/.env.example` como `backend/.env` si no existe un archivo privado. Completar las contrasenas y los datos de correo siguiendo los comentarios de la plantilla.
+2. En `backend`, ejecutar `docker compose -p scriptorium-archivum up -d postgres pgadmin`. Esto inicia PostgreSQL y pgAdmin.
+3. Seguir [la guia del backend](backend/README.md) para indicar el archivo privado y la carpeta de documentos. Ejecutar la API con el perfil `http` desde Visual Studio o con `dotnet run --launch-profile http` desde su carpeta de proyecto.
+4. Comprobar `http://localhost:3000/api/carreras`.
+5. Desde `frontend`, iniciar Angular:
 
    ```powershell
    npm ci
    npm start -- --configuration integration --host 127.0.0.1 --port 4301
    ```
 
-4. Abre [la aplicación local](http://127.0.0.1:4301/). Su proxy envía las solicitudes `/api` a la API local.
+Abrir [la aplicacion local](http://127.0.0.1:4301/). `npm ci` instala las dependencias y `npm start` inicia Angular. El proxy reenvia `/api` al puerto 3000 de la API.
 
-Las migraciones de `backend/sql-init/` se ejecutan al crear una base vacía. Una base existente requiere revisar y aplicar las pendientes con un respaldo previo; reiniciar contenedores no ejecuta por sí solo los archivos nuevos. La integración docente conserva el historial anterior mediante `19_integracion_repositorio.sql`.
+Los SQL de `backend/sql-init` se ejecutan al inicializar un volumen vacio. Una base con datos requiere respaldo y aplicar solamente los SQL pendientes. Los PDF y anexos se guardan en la carpeta configurada en la API; las fotos de perfil se guardan en PostgreSQL. El correo utiliza SMTP y sus credenciales se mantienen en el archivo privado.
 
 ## Estructura
 
@@ -146,14 +143,13 @@ La compilación y las pruebas automatizadas se documentan en [el informe de veri
 
 Un resultado local no acredita por sí solo disponibilidad de una instalación real ni usabilidad con estudiantes. Los requisitos diferidos conservan ese estado hasta ampliar formalmente su alcance.
 
-## Material de defensa y cambios recientes
+## Documentacion
 
-- [Integración de Entity Framework y constancias](docs/INTEGRACION-ENTITY-FRAMEWORK-20261126.md): actualización del backend, scripts SQL pendientes y validación de correcciones, correos y favoritos.
-
-- [Guía de estudio de la defensa (PDF, 16 páginas)](docs/defensa/Guia-defensa-Scriptorium-Archivum.pdf): guion, preguntas por asignatura, demostración y diferencias pendientes frente a la rúbrica. Incluye la diferencia entre el consumo actual con `fetch` y el criterio que solicita `HttpClient`.
-- [Versiones corregidas](docs/VERSIONES-CORREGIDAS-20261126.md): nueva entrega con historial, comprobación de propiedad y sin heredar autorización ni permisos.
-- [Aviso explícito de revocación](docs/AVISO-REVOCACION-20261126.md): notificación a responsables, copia institucional y siete comprobaciones de integración aisladas.
-- [Comparación histórica del backend, 18/11/2026](docs/historico/CAMBIOS-BACKEND-20261118.md): se conserva como referencia del modelo en esa fecha; no sustituye las migraciones ni la documentación actual.
+- [Instrucciones del backend](backend/README.md)
+- [Contrato de la API](backend/integracion/CONSUMIR-API.txt)
+- [Respaldo y restauracion](backend/pruebas/RESPALDO.txt)
+- [Diccionario y diagramas](backend/documentacion/)
+- [Guia de defensa](docs/defensa/Guia-defensa-Scriptorium-Archivum.pdf)
 
 ## Configuración y datos privados
 

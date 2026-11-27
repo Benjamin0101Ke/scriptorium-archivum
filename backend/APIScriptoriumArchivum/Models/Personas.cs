@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -9,7 +9,11 @@ public partial class Personas
     public string Nombres { get; set; } = null!;
     public string Apellidos { get; set; } = null!;
     public string? IdentificadorInstitucional { get; set; }
-    public virtual ICollection<Participaciones> Participaciones { get; set; } = new List<Participaciones>();
-    public virtual ICollection<PersonasAutorizaciones> PersonasAutorizaciones { get; set; } = new List<PersonasAutorizaciones>();
-    public virtual Usuarios? Usuarios { get; set; }
+    // Una persona puede tener cero o muchas participaciones en trabajos
+    // Participaciones relaciona muchas personas con muchos trabajos
+    public ICollection<Participaciones> Participaciones { get; set; } = new List<Participaciones>();
+    // Una persona puede figurar en cero o muchos registros de otorgamiento
+    // PersonasAutorizaciones relaciona muchas personas con muchas autorizaciones
+    public ICollection<PersonasAutorizaciones> PersonasAutorizaciones { get; set; } = new List<PersonasAutorizaciones>();
+    public Usuarios? Usuarios { get; set; }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -12,6 +12,6 @@ public partial class DistincionesDestacado
     public string Motivo { get; set; } = null!;
     public DateOnly VigenteDesde { get; set; }
     public DateOnly? VigenteHasta { get; set; }
-    public virtual Trabajos IdTrabajoNavigation { get; set; } = null!;
-    public virtual Usuarios IdUsuarioSeleccionaNavigation { get; set; } = null!;
+    public Trabajos IdTrabajoNavigation { get; set; } = null!;
+    public Usuarios IdUsuarioSeleccionaNavigation { get; set; } = null!;
 }

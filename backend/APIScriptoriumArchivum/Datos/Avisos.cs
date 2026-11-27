@@ -101,9 +101,16 @@ public sealed class Avisos(IDbContextFactory<AppDbContext> db, IConfiguration co
             WHERE t.id_trabajo=@id
             """, ct, ("id", id));
         var ficha = fichas[0];
-        string contextoConstancia = ficha.GetProperty("constancia_estado").GetString() == "Sin registro"
-            ? "Constancia de autorización: pendiente de registro."
-            : $"Otorgantes de la constancia: {ficha.GetProperty("otorgantes").GetString()}\nReferencia de la constancia: {ficha.GetProperty("constancia_referencia").GetString()}\nEstado de la constancia: {ficha.GetProperty("constancia_estado").GetString()}";
+        // Agrega la constancia del ejemplar actual al contenido del aviso
+        string contextoConstancia;
+        if (ficha.GetProperty("constancia_estado").GetString() == "Sin registro")
+        {
+            contextoConstancia = "Constancia de autorización: pendiente de registro.";
+        }
+        else
+        {
+            contextoConstancia = $"Otorgantes de la constancia: {ficha.GetProperty("otorgantes").GetString()}\nReferencia de la constancia: {ficha.GetProperty("constancia_referencia").GetString()}\nEstado de la constancia: {ficha.GetProperty("constancia_estado").GetString()}";
+        }
         string texto = $"Trabajo: {ficha.GetProperty("titulo").GetString()}\nTipo: {ficha.GetProperty("tipo").GetString()}\nAutor de la cuenta: {ficha.GetProperty("alumno").GetString()}\nEstado: {ficha.GetProperty("estado").GetString()}\n{contextoConstancia}\n\n{cambio}\n\nFecha: {FechaLocal()}";
         int evento = await Evento(c, tr, actor, tipo, "trabajos", id, texto, ct);
         var destinos = await Comandos.FilasJson(c, tr, """

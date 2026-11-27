@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using APIScriptoriumArchivum.Models;
 using Microsoft.EntityFrameworkCore;
@@ -48,7 +48,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Trabajos> Trabajos { get; set; }
     public virtual DbSet<TrabajosAreas> TrabajosAreas { get; set; }
     public virtual DbSet<Usuarios> Usuarios { get; set; }
-    // Esta propiedad consulta una vista, no agrega una tabla numero 34
+    // Esta propiedad consulta la vista de estrellas y no crea una tabla adicional
     public virtual DbSet<VwEstrellasPorTrabajo> VwEstrellasPorTrabajo { get; set; }
 
     // Define nombres SQL, claves, limites, valores iniciales y relaciones de los modelos

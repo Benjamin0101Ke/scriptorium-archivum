@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -9,5 +9,7 @@ public partial class AreasTematicas
     public string Nombre { get; set; } = null!;
     public string? Descripcion { get; set; }
     public bool Activa { get; set; }
-    public virtual ICollection<TrabajosAreas> TrabajosAreas { get; set; } = new List<TrabajosAreas>();
+    // Un area puede tener cero o muchas asociaciones con trabajos
+    // TrabajosAreas une trabajos y areas en una relacion de muchos a muchos
+    public ICollection<TrabajosAreas> TrabajosAreas { get; set; } = new List<TrabajosAreas>();
 }

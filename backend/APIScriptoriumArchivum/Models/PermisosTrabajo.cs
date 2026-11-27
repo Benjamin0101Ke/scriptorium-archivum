@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -12,6 +12,6 @@ public partial class PermisosTrabajo
     public string NivelPermiso { get; set; } = null!;
     public bool Activo { get; set; }
     public DateTime FechaAsignacion { get; set; }
-    public virtual Trabajos IdTrabajoNavigation { get; set; } = null!;
-    public virtual Usuarios IdUsuarioNavigation { get; set; } = null!;
+    public Trabajos IdTrabajoNavigation { get; set; } = null!;
+    public Usuarios IdUsuarioNavigation { get; set; } = null!;
 }

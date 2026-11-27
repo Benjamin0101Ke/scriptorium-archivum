@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -11,6 +11,6 @@ public partial class Favoritos
     public int IdTrabajo { get; set; }
     // False conserva la pareja usuario y trabajo, pero la excluye del conteo de estrellas
     public bool Activo { get; set; }
-    public virtual Trabajos IdTrabajoNavigation { get; set; } = null!;
-    public virtual Usuarios IdUsuarioNavigation { get; set; } = null!;
+    public Trabajos IdTrabajoNavigation { get; set; } = null!;
+    public Usuarios IdUsuarioNavigation { get; set; } = null!;
 }

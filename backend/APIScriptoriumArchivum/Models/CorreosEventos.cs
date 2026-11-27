@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -23,6 +23,7 @@ public partial class CorreosEventos
     public int Ciclo { get; set; }
     // Identifica al trabajador que reservo temporalmente este aviso
     public Guid? Reserva { get; set; }
-    public virtual ICollection<CorreosIntentos> CorreosIntentos { get; set; } = new List<CorreosIntentos>();
-    public virtual Bitacora IdEventoNavigation { get; set; } = null!;
+    // Un aviso de correo puede tener cero o muchos intentos de envio
+    public ICollection<CorreosIntentos> CorreosIntentos { get; set; } = new List<CorreosIntentos>();
+    public Bitacora IdEventoNavigation { get; set; } = null!;
 }

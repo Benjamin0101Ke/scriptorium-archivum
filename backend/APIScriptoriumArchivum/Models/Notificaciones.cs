@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -14,8 +14,8 @@ public partial class Notificaciones
     public DateTime FechaCreacion { get; set; }
     public int IdUsuario { get; set; }
     public DateTime? FechaLectura { get; set; }
-    public virtual Entregas? IdEntregaNavigation { get; set; }
-    public virtual Solicitudes? IdSolicitudNavigation { get; set; }
-    public virtual Trabajos? IdTrabajoNavigation { get; set; }
-    public virtual Usuarios IdUsuarioNavigation { get; set; } = null!;
+    public Entregas? IdEntregaNavigation { get; set; }
+    public Solicitudes? IdSolicitudNavigation { get; set; }
+    public Trabajos? IdTrabajoNavigation { get; set; }
+    public Usuarios IdUsuarioNavigation { get; set; } = null!;
 }

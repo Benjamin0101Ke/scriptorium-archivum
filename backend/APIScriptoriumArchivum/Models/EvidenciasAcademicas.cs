@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -12,6 +12,6 @@ public partial class EvidenciasAcademicas
     public DateOnly FechaEmision { get; set; }
     public string Emisor { get; set; } = null!;
     public string ReferenciaRespaldo { get; set; } = null!;
-    public virtual Trabajos IdTrabajoNavigation { get; set; } = null!;
-    public virtual Usuarios IdUsuarioRegistraNavigation { get; set; } = null!;
+    public Trabajos IdTrabajoNavigation { get; set; } = null!;
+    public Usuarios IdUsuarioRegistraNavigation { get; set; } = null!;
 }

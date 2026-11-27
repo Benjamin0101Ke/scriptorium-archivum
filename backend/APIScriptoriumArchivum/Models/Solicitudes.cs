@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -15,10 +15,12 @@ public partial class Solicitudes
     public DateTime FechaPresentacion { get; set; }
     public string Estado { get; set; } = null!;
     public DateTime? PlazoCorreccion { get; set; }
-    public virtual ICollection<HistorialEstados> HistorialEstados { get; set; } = new List<HistorialEstados>();
-    public virtual Carreras IdCarreraNavigation { get; set; } = null!;
-    public virtual TiposTrabajo IdTipoTrabajoNavigation { get; set; } = null!;
-    public virtual Usuarios IdUsuarioSolicitanteNavigation { get; set; } = null!;
-    public virtual ICollection<Notificaciones> Notificaciones { get; set; } = new List<Notificaciones>();
-    public virtual Trabajos? Trabajos { get; set; }
+    // Una solicitud puede tener cero o muchos registros de cambios de estado
+    public ICollection<HistorialEstados> HistorialEstados { get; set; } = new List<HistorialEstados>();
+    public Carreras IdCarreraNavigation { get; set; } = null!;
+    public TiposTrabajo IdTipoTrabajoNavigation { get; set; } = null!;
+    public Usuarios IdUsuarioSolicitanteNavigation { get; set; } = null!;
+    // Una solicitud puede estar asociada con cero o muchas notificaciones
+    public ICollection<Notificaciones> Notificaciones { get; set; } = new List<Notificaciones>();
+    public Trabajos? Trabajos { get; set; }
 }

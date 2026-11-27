@@ -1,133 +1,99 @@
-﻿INSTRUCCIONES DEL BACKEND
+INSTRUCCIONES DEL BACKEND
 
-La carpeta contiene el proyecto de la API y los archivos para iniciar sus servicios.
-La prueba de /api/carreras permite comprobar la respuesta antes de conectar
-la interfaz. Los controladores ya estan incluidos.
+1. PREPARAR
 
-1. ARCHIVOS QUE SE UTILIZAN
+Docker Desktop debe estar iniciado y el equipo debe tener .NET 10
+Copiar .env.example como .env solo si no existe un archivo privado
+Completar las contrasenas de PostgreSQL y pgAdmin
+Los comentarios de la plantilla explican cada campo
 
-APIScriptoriumArchivum contiene el proyecto de C#
-compose.yaml inicia PostgreSQL, la API, pgAdmin y Mailpit
-sql-init contiene los scripts 01 a 21, ordenados por numero y nombre
-storage/trabajos guarda los PDF y archivos complementarios
-pruebas contiene un PDF ficticio, la coleccion de Postman y las pruebas
-integracion/CONSUMIR-API.txt explica las rutas y el uso de la sesion
-documentacion conserva los diagramas y el diccionario
+2. INICIAR LA BASE
 
-Las estrellas se cuentan desde los favoritos activos de cada trabajo
+Abrir PowerShell en backend donde esta docker-compose.yml
 
-2. INICIAR EN UNA INSTALACION NUEVA
+docker compose -p scriptorium-archivum up -d postgres pgadmin
+docker compose -p scriptorium-archivum ps
+docker compose -p scriptorium-archivum exec -T postgres pg_isready -h 127.0.0.1 -U postgres -d scriptorium_archivum
 
-Abrir Docker Desktop y esperar que inicie. Abrir PowerShell en backend.
-Los comandos de esta instalacion nueva usan el proyecto scriptorium-integracion.
-En una instalacion existente se conserva el nombre usado al crearla.
-Copiar la plantilla solo si no existe un .env propio:
+El primer comando inicia PostgreSQL y pgAdmin
+El segundo muestra sus estados y el tercero comprueba si la base acepta conexiones
+-p selecciona la instalacion y debe conservar el nombre con que fue creada
+-h indica el servidor dentro del contenedor y -U el usuario y -d la base
+La comprobacion no revisa todas las tablas ni la API
 
-if (!(Test-Path -LiteralPath '.env')) {
-    Copy-Item -LiteralPath '.env.example' -Destination '.env'
-}
-notepad .env
+pgAdmin se abre en http://localhost:5052 con su correo y contrasena del .env
+Dentro de pgAdmin registrar host postgres y puerto 5432 y usuario postgres
+La base es scriptorium_archivum y su clave es POSTGRES_PASSWORD
+Desde Windows PostgreSQL se consulta en localhost:5433
 
-Completar POSTGRES_PASSWORD y PGADMIN_DEFAULT_PASSWORD con las claves locales.
-API_PROJECT_PATH se deja vacio para compilar APIScriptoriumArchivum de esta carpeta.
-La plantilla no incluye credenciales privadas. El .env no se sube a GitHub.
+3. INICIAR LA API
 
-docker compose -p scriptorium-integracion up -d --build
-docker compose -p scriptorium-integracion ps
-docker compose -p scriptorium-integracion exec -T postgres pg_isready -h 127.0.0.1 -U postgres -d scriptorium_archivum
-Este comando consulta si PostgreSQL ya acepta conexiones
--p scriptorium-integracion selecciona el proyecto de Docker
-exec -T postgres ejecuta la comprobacion dentro del servicio PostgreSQL
-pg_isready comprueba la disponibilidad del servidor
--h 127.0.0.1 se refiere al propio contenedor en esta comprobacion
--U postgres indica el usuario y -d indica la base de datos
-No comprueba que esten todas las tablas ni que funcione la API
+Abrir el proyecto C# de APIScriptoriumArchivum en Visual Studio
+La API se ejecuta en Windows y Docker inicia PostgreSQL y pgAdmin
+En una terminal situada donde esta el archivo .csproj ejecutar estos comandos
+Sustituir la ruta de almacenamiento por la ruta absoluta de ese equipo
 
-Repetir pg_isready hasta que indique que acepta conexiones. Si hay un error de
-inicializacion, revisar el primer error antes de continuar.
+dotnet user-secrets set "ArchivoEntorno" "../.env"
+dotnet user-secrets set "Storage:Ruta" "C:\ruta\scriptorium-archivum\backend\storage\trabajos"
 
-Direcciones de ejemplo, si no se cambiaron los puertos en .env:
-API: http://127.0.0.1:3000
-PostgreSQL desde Windows: 127.0.0.1:5433
-pgAdmin: http://127.0.0.1:5052
-Mailpit: http://127.0.0.1:8025
+ArchivoEntorno selecciona el archivo privado del backend
+Storage:Ruta selecciona la carpeta donde guardar los PDF y anexos
+Cada copia debe utilizar sus propias rutas de configuracion y almacenamiento
+Seleccionar el perfil http en Visual Studio y ejecutar con F5 o Ctrl F5
+Tambien se puede iniciar desde la terminal del proyecto
 
-Para registrar PostgreSQL desde pgAdmin:
-Host: postgres
-Puerto: 5432
-Base: scriptorium_archivum
-Usuario: postgres
-Contrasena: POSTGRES_PASSWORD del .env local
+dotnet run --launch-profile http
 
-3. AGREGAR DATOS DE PRUEBA, OPCIONAL
+Consultar http://localhost:3000/api/carreras para comprobar la respuesta
+Un 404 en la raiz no significa que fallen las rutas /api
+EntornoPrivado completa la cadena de appsettings.json con la clave y el puerto del .env
+Program configura Npgsql y Entity Framework con esa cadena de conexion
+Reiniciar la API si se cambian sus datos privados
 
-Hacerlo una sola vez y unicamente en una base de practica sin usuarios ni fichas:
+4. CONECTAR LA INTERFAZ
 
-$OutputEncoding = [Text.UTF8Encoding]::new($false)
-Get-Content -LiteralPath './datos-prueba.sql' -Raw -Encoding utf8 |
-    docker compose -p scriptorium-integracion exec -T postgres psql -X -v ON_ERROR_STOP=1 -U postgres -d scriptorium_archivum
-if ($LASTEXITCODE -ne 0) {
-    throw 'Revisar el error antes de continuar'
-}
+Abrir PowerShell en frontend
 
-Consultar http://127.0.0.1:3000/api/carreras. Un 404 en la raiz / no significa
-que falle la API. El catalogo de trabajos queda vacio hasta publicar una ficha.
-Las cuentas ficticias se explican en pruebas/PRUEBA-GUIADA.txt.
+npm ci
+npm start -- --configuration integration --host 127.0.0.1 --port 4301
 
-4. UTILIZAR UNA BASE QUE YA TIENE DATOS
+npm ci instala las dependencias y npm start inicia Angular
+Abrir http://127.0.0.1:4301 y dejar la terminal abierta
+El proxy envia /api al puerto 3000 de la API
+Si se cambia el puerto en launchSettings.json ajustar tambien el proxy y reiniciar Angular
+integracion/CONSUMIR-API.txt explica las rutas y la sesion
 
-Usar el mismo nombre de proyecto Docker, volumen y carpeta de archivos.
-Se conserva un respaldo privado y se detienen las escrituras antes.
-No usar down -v y no repetir datos-prueba.sql en una base utilizada.
+5. BASE Y ARCHIVOS
 
-Docker ejecuta sql-init automaticamente solo cuando crea un volumen vacio.
-En una base existente se aplican las migraciones pendientes con psql, en orden.
-No repetir el script 02 sobre tablas existentes
-Aplicar solamente los scripts pendientes y conservar un respaldo antes de cambiarlos
+El esquema contiene 34 tablas y 260 campos y 64 claves foraneas y una vista
+sql-init se ejecuta automaticamente al crear un volumen vacio
+Una base existente requiere respaldo y aplicar solamente los SQL pendientes
+No repetir la creacion de tablas ni ejecutar down -v sobre datos que se necesitan
+Los PDF y anexos van a Storage:Ruta y las fotos de perfil se guardan en PostgreSQL
+Las estrellas cuentan favoritos activos y no son calificaciones
+El catalogo muestra trabajos despues de su publicacion por Biblioteca
+Agregar datos de prueba es opcional y se realiza en una base aislada
 
-Los scripts no forman una unica transaccion. Algunos tambien cargan catalogos.
-Si algo falla, revisar lo aplicado antes de repetir. Algunos incluyen \connect,
-que es un comando de psql; no se pega tal cual en Query Tool de pgAdmin.
+6. CORREO
 
-5. CORREOS Y REENVIO
+Completar SMTP_FROM y SMTP_USER con la cuenta de envio de la aplicacion
+SMTP_PASSWORD contiene la contrasena de aplicacion privada del correo
+Para Gmail se utiliza smtp.gmail.com y puerto 587 con SMTP_TLS=true
+Cambiar SMTP_HABILITADO a true para permitir el envio
+SMTP_AVISOS indica el buzon de avisos y vacio utiliza el remitente
+SMTP_AVISOS_ACCESO permite activar o desactivar los avisos de acceso
+Los avisos y sus intentos se registran en PostgreSQL
+Enviado significa aceptado por SMTP y no confirma lectura
+Con SMTP_HABILITADO=false no se envian avisos ni codigos de recuperacion
 
-Mailpit es un buzon de pruebas que captura los correos enviados por la API
-Se pueden ver en http://127.0.0.1:8025, por ejemplo un codigo de recuperacion
-No entrega estos mensajes a Gmail ni a otros destinatarios reales
-Permite probar los correos sin utilizar una cuenta de correo externa
-Para correo externo se configuran
-SMTP_HOST, SMTP_PORT, SMTP_TLS, SMTP_FROM, SMTP_USER y SMTP_PASSWORD en el .env.
-Con usuario SMTP se requiere TLS. Consultar los requisitos del proveedor.
-SMTP_AVISOS indica el buzon para registros y accesos; vacio usa el remitente.
-SMTP_AVISOS_ACCESO permite activar o desactivar los avisos de inicio de sesion.
+7. RESPALDO Y CIERRE
 
-Los avisos quedan en PostgreSQL y tienen hasta cinco intentos por ciclo.
-Las esperas son de 1, 2, 4 y 8 minutos. Administracion puede reenviar un aviso
-Fallido y consultar todos sus intentos, conservando los ciclos anteriores.
-La respuesta 202 indica que quedo en cola, no que ya se entrego.
+pruebas/RESPALDO.txt explica la copia de PostgreSQL y los archivos
+Pausar escrituras durante ambas copias y comprobarlas en una instalacion aislada
+Detener la API en Visual Studio o con Ctrl C en su terminal
+Compose solo detiene o inicia PostgreSQL y pgAdmin
 
-Los codigos de recuperacion duran diez minutos y se usan una sola vez.
-Su correo tiene hasta cinco intentos, con esperas de 2, 4, 8 y 16 segundos.
-Esta cola es temporal: un reinicio puede perder un pendiente. En ese caso
-se solicita otro codigo cuando lo permitan los limites de reenvio.
-El historial tecnico nunca guarda el codigo ni la contrasena.
+docker compose -p scriptorium-archivum stop
+docker compose -p scriptorium-archivum start
 
-Enviado significa que SMTP acepto el mensaje, no que se haya leido.
-Si SMTP acepta y el proceso se interrumpe antes de confirmar, puede haber
-un duplicado al reintentar. No se promete entrega exactamente una vez.
-
-6. ARCHIVOS AUXILIARES NECESARIOS
-
-.gitignore evita subir .env, PDF reales, compilaciones y respaldos
-.dockerignore evita copiar archivos innecesarios al construir la imagen
-.env.example es la plantilla publica; .env es la configuracion privada
-
-Estos archivos ya estan incluidos en la carpeta del backend.
-Las instrucciones para consumir la API estan en integracion/CONSUMIR-API.txt.
-Para respaldar la base y los PDF y restaurarlos en otra instalacion, seguir
-pruebas/RESPALDO.txt. Alli se explica cada comando y como comprobar la copia
-
-Para detener y retomar sin borrar datos:
-
-docker compose -p scriptorium-integracion stop
-docker compose -p scriptorium-integracion start
+No publicar .env ni claves ni archivos reales ni respaldos

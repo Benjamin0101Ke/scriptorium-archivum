@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -30,26 +30,43 @@ public partial class Trabajos
     public DateTime? DepositoVerificadoEn { get; set; }
     public int? IdUsuarioRetira { get; set; }
     public int? IdUsuarioEnvio { get; set; }
-    public virtual ICollection<ArchivosComplementarios> ArchivosComplementarios { get; set; } = new List<ArchivosComplementarios>();
-    public virtual Usuarios? DepositoVerificadoPorNavigation { get; set; }
-    public virtual ICollection<DistincionesDestacado> DistincionesDestacado { get; set; } = new List<DistincionesDestacado>();
-    // Versiones del ejemplar que pertenecen a este trabajo
-    public virtual ICollection<Entregas> Entregas { get; set; } = new List<Entregas>();
+    // Un trabajo puede tener cero o muchos archivos complementarios
+    public ICollection<ArchivosComplementarios> ArchivosComplementarios { get; set; } = new List<ArchivosComplementarios>();
+    public Usuarios? DepositoVerificadoPorNavigation { get; set; }
+    // Un trabajo puede recibir cero o muchas distinciones registradas
+    public ICollection<DistincionesDestacado> DistincionesDestacado { get; set; } = new List<DistincionesDestacado>();
+    // Un trabajo puede tener cero o muchas versiones de su ejemplar
+    // Cada entrega de esta coleccion pertenece a ese trabajo
+    public ICollection<Entregas> Entregas { get; set; } = new List<Entregas>();
     // Ejemplar final asociado a la ficha, no la lista completa de sus versiones
-    public virtual Entregas? EntregasNavigation { get; set; }
-    public virtual ICollection<EvidenciasAcademicas> EvidenciasAcademicas { get; set; } = new List<EvidenciasAcademicas>();
-    public virtual ICollection<Favoritos> Favoritos { get; set; } = new List<Favoritos>();
-    public virtual ICollection<HistorialEstados> HistorialEstados { get; set; } = new List<HistorialEstados>();
-    public virtual Carreras IdCarreraNavigation { get; set; } = null!;
-    public virtual Solicitudes? IdSolicitudNavigation { get; set; }
-    public virtual TiposTrabajo IdTipoTrabajoNavigation { get; set; } = null!;
-    public virtual Usuarios? IdUsuarioEnvioNavigation { get; set; }
-    public virtual Usuarios? IdUsuarioRetiraNavigation { get; set; }
-    public virtual ICollection<Notificaciones> Notificaciones { get; set; } = new List<Notificaciones>();
-    public virtual ICollection<PalabrasClaveTrabajo> PalabrasClaveTrabajo { get; set; } = new List<PalabrasClaveTrabajo>();
-    public virtual ICollection<Participaciones> Participaciones { get; set; } = new List<Participaciones>();
-    public virtual ICollection<PermisosTrabajo> PermisosTrabajo { get; set; } = new List<PermisosTrabajo>();
-    public virtual ICollection<RecursosDigitales> RecursosDigitales { get; set; } = new List<RecursosDigitales>();
-    public virtual ICollection<RevisionesDocentes> RevisionesDocentes { get; set; } = new List<RevisionesDocentes>();
-    public virtual ICollection<TrabajosAreas> TrabajosAreas { get; set; } = new List<TrabajosAreas>();
+    public Entregas? EntregasNavigation { get; set; }
+    // Un trabajo puede tener cero o muchas evidencias academicas registradas
+    public ICollection<EvidenciasAcademicas> EvidenciasAcademicas { get; set; } = new List<EvidenciasAcademicas>();
+    // Un trabajo puede aparecer en cero o muchos registros de favoritos
+    // Favoritos relaciona muchos usuarios con muchos trabajos
+    public ICollection<Favoritos> Favoritos { get; set; } = new List<Favoritos>();
+    // Un trabajo puede tener cero o muchos registros de cambios de estado
+    public ICollection<HistorialEstados> HistorialEstados { get; set; } = new List<HistorialEstados>();
+    public Carreras IdCarreraNavigation { get; set; } = null!;
+    public Solicitudes? IdSolicitudNavigation { get; set; }
+    public TiposTrabajo IdTipoTrabajoNavigation { get; set; } = null!;
+    public Usuarios? IdUsuarioEnvioNavigation { get; set; }
+    public Usuarios? IdUsuarioRetiraNavigation { get; set; }
+    // Un trabajo puede estar asociado con cero o muchas notificaciones
+    public ICollection<Notificaciones> Notificaciones { get; set; } = new List<Notificaciones>();
+    // Un trabajo puede tener cero o muchas palabras clave asociadas
+    public ICollection<PalabrasClaveTrabajo> PalabrasClaveTrabajo { get; set; } = new List<PalabrasClaveTrabajo>();
+    // Un trabajo puede tener cero o muchas participaciones de personas
+    // Participaciones relaciona muchos trabajos con muchas personas
+    public ICollection<Participaciones> Participaciones { get; set; } = new List<Participaciones>();
+    // Un trabajo puede tener cero o muchos permisos asignados a usuarios
+    // PermisosTrabajo relaciona muchos usuarios con muchos trabajos
+    public ICollection<PermisosTrabajo> PermisosTrabajo { get; set; } = new List<PermisosTrabajo>();
+    // Un trabajo puede tener cero o muchos recursos digitales asociados
+    public ICollection<RecursosDigitales> RecursosDigitales { get; set; } = new List<RecursosDigitales>();
+    // Un trabajo puede tener cero o muchos registros del historial docente separado
+    public ICollection<RevisionesDocentes> RevisionesDocentes { get; set; } = new List<RevisionesDocentes>();
+    // Un trabajo puede tener cero o muchas asociaciones con areas tematicas
+    // TrabajosAreas une trabajos y areas en una relacion de muchos a muchos
+    public ICollection<TrabajosAreas> TrabajosAreas { get; set; } = new List<TrabajosAreas>();
 }

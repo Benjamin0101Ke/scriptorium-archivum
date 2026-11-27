@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Mail;
 
 namespace APIScriptoriumArchivum.Datos;
@@ -6,14 +6,19 @@ public static class TransporteCorreo
 {
     public static bool DestinoDePrueba(IConfiguration config, string destino)
     {
-        return (destino.EndsWith(".test", StringComparison.OrdinalIgnoreCase) || destino.EndsWith(".invalid", StringComparison.OrdinalIgnoreCase)) && (config["Correo:Host"] ?? "mailpit").ToLowerInvariant()is not ("mailpit" or "localhost" or "127.0.0.1");
+        return (destino.EndsWith(".test", StringComparison.OrdinalIgnoreCase) || destino.EndsWith(".invalid", StringComparison.OrdinalIgnoreCase)) && (config["Correo:Host"] ?? "").ToLowerInvariant()is not ("localhost" or "127.0.0.1");
     }
 
     public static async Task Enviar(IConfiguration config, MailMessage mensaje, CancellationToken ct)
     {
-        using var smtp = new SmtpClient(config["Correo:Host"] ?? "mailpit", config.GetValue("Correo:Puerto", 1025))
+        string? host = config["Correo:Host"];
+        if (string.IsNullOrWhiteSpace(host))
         {
-            EnableSsl = config.GetValue("Correo:Tls", false)
+            throw new InvalidOperationException("Falta configurar el servidor SMTP");
+        }
+        using var smtp = new SmtpClient(host, config.GetValue("Correo:Puerto", 587))
+        {
+            EnableSsl = config.GetValue("Correo:Tls", true)
         };
         string? usuario = config["Correo:Usuario"];
         if (!string.IsNullOrEmpty(usuario))

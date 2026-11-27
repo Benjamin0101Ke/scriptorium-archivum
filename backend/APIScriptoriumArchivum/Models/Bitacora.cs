@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -13,6 +13,7 @@ public partial class Bitacora
     public string RegistroAfectado { get; set; } = null!;
     public DateTime FechaHora { get; set; }
     public string? Detalle { get; set; }
-    public virtual ICollection<CorreosEventos> CorreosEventos { get; set; } = new List<CorreosEventos>();
-    public virtual Usuarios? IdUsuarioActorNavigation { get; set; }
+    // Un evento de bitacora puede originar cero o muchos avisos de correo
+    public ICollection<CorreosEventos> CorreosEventos { get; set; } = new List<CorreosEventos>();
+    public Usuarios? IdUsuarioActorNavigation { get; set; }
 }

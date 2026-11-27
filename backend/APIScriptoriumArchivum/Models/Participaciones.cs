@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -12,6 +12,6 @@ public partial class Participaciones
     // Indica el tipo de participacion, por ejemplo Autor
     public string CalidadParticipacion { get; set; } = null!;
     public short? OrdenAutoria { get; set; }
-    public virtual Personas IdPersonaNavigation { get; set; } = null!;
-    public virtual Trabajos IdTrabajoNavigation { get; set; } = null!;
+    public Personas IdPersonaNavigation { get; set; } = null!;
+    public Trabajos IdTrabajoNavigation { get; set; } = null!;
 }

@@ -1,4 +1,4 @@
-﻿using APIScriptoriumArchivum.Data;
+using APIScriptoriumArchivum.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using System.Security.Claims;
@@ -55,12 +55,13 @@ public class EnviosController(IDbContextFactory<AppDbContext> baseDeDatos, Ficha
             """, ct, ("actor", Actor())));
     }
 
-    // Registra el trabajo y su PDF o enlace con la carrera del perfil del usuario
+    // Recibe el formulario de Angular y registra el trabajo con la carrera del usuario
     [HttpPost]
     [RequestSizeLimit(CargasArchivos.MaximoBytes + 1024 * 1024)]
     [RequestFormLimits(MultipartBodyLengthLimit = CargasArchivos.MaximoBytes)]
     public async Task<IActionResult> Enviar([FromForm] EnvioLector datos, CancellationToken ct)
     {
+        // Recupera el archivo enviado directamente o mediante una carga por partes
         await using var recibido = await cargas.Resolver(datos.Archivo, datos.CargaId, Actor(), ct);
         IFormFile? archivo = recibido.Archivo;
         string? tipo;
@@ -106,6 +107,7 @@ public class EnviosController(IDbContextFactory<AppDbContext> baseDeDatos, Ficha
         {
             try
             {
+                // Guarda el PDF en la carpeta configurada antes de registrar su referencia
                 clave = await archivos.Guardar(archivo, ct);
             }
             catch (InvalidDataException)

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -10,5 +10,5 @@ public partial class PresenciaSesiones
     public int IdUsuario { get; set; }
     public string VersionSesion { get; set; } = null!;
     public DateTime UltimaActividad { get; set; }
-    public virtual Usuarios IdUsuarioNavigation { get; set; } = null!;
+    public Usuarios IdUsuarioNavigation { get; set; } = null!;
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -17,6 +17,6 @@ public partial class CorreosIntentos
     public string Resultado { get; set; } = null!;
     public DateTime Fecha { get; set; }
     public string? ErrorTipo { get; set; }
-    public virtual CorreosEventos? IdCorreoNavigation { get; set; }
-    public virtual Usuarios? IdUsuarioNavigation { get; set; }
+    public CorreosEventos? IdCorreoNavigation { get; set; }
+    public Usuarios? IdUsuarioNavigation { get; set; }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -14,5 +14,5 @@ public partial class RecuperacionesContrasena
     public DateTime InicioVentana { get; set; }
     public int EnviosVentana { get; set; }
     public int Intentos { get; set; }
-    public virtual Usuarios IdUsuarioNavigation { get; set; } = null!;
+    public Usuarios IdUsuarioNavigation { get; set; } = null!;
 }

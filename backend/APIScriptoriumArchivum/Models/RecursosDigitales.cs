@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace APIScriptoriumArchivum.Models;
@@ -18,6 +18,6 @@ public partial class RecursosDigitales
     public int IdTrabajo { get; set; }
     public string? Descripcion { get; set; }
     public bool DifusionHabilitada { get; set; }
-    public virtual Entregas? Entregas { get; set; }
-    public virtual Trabajos IdTrabajoNavigation { get; set; } = null!;
+    public Entregas? Entregas { get; set; }
+    public Trabajos IdTrabajoNavigation { get; set; } = null!;
 }

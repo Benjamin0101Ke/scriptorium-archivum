@@ -4,6 +4,8 @@ La API ASP.NET Core utiliza Entity Framework Core y PostgreSQL. Docker Compose i
 
 ## Archivos
 
+Consultar el [análisis de uso de las 34 tablas](documentacion/USO-DEL-ESQUEMA.md) para distinguir operaciones actuales, módulos por comprobar y estructuras de fase futura.
+
 | Archivo o carpeta | Uso |
 | --- | --- |
 | `APIScriptoriumArchivum/` | API, modelos, contexto, permisos y servicios |

@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Api, puedeEnviar } from '../core/api';
 import { espaciosPorRol } from '../core/roles';
 import { CarreraSelector } from '../shared/carrera-selector';
+import { evaluarPassword } from '../core/password';
 
 @Component({
   selector: 'app-login',
@@ -19,6 +20,8 @@ export class Login {
   apellidos = '';
   correo = '';
   password = '';
+  confirmacionPassword = '';
+  fortalezaPassword() { return evaluarPassword(this.password); }
   guardarAcceso = true;
   carrera: number | null = null;
   plan: number | null = null;
@@ -36,6 +39,8 @@ export class Login {
   toggleRegistration() {
     this.registering.update((value) => !value);
     this.password = '';
+    this.confirmacionPassword = '';
+    this.showPassword.set(false);
     this.error.set('');
   }
 
@@ -59,6 +64,16 @@ export class Login {
       invalid.reportValidity();
       return;
     }
+    if (this.registering()) {
+      if (!this.fortalezaPassword().longitud) {
+        this.error.set('La contraseña debe tener entre 8 y 512 caracteres.');
+        return;
+      }
+      if (this.password !== this.confirmacionPassword) {
+        this.error.set('Las contraseñas no coinciden.');
+        return;
+      }
+    }
     this.busy.set(true);
     this.error.set('');
     try {
@@ -72,8 +87,6 @@ export class Login {
           this.plan,
         );
       else await this.api.login(this.correo, this.password);
-      if (!this.registering() && this.carrera && puedeEnviar(this.api.user()?.rol))
-        await this.api.updateProfile({ id_carrera: this.carrera, id_plan: this.plan });
       if (!this.registering() && !this.api.demo && this.guardarAcceso) void this.ofrecerGuardarAcceso();
       const rol = this.api.user()?.rol;
       if (this.forSubmissions() && puedeEnviar(rol)) {

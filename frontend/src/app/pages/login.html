@@ -64,6 +64,8 @@
           [type]="showPassword() ? 'text' : 'password'"
           [attr.autocomplete]="registering() ? 'new-password' : 'current-password'"
           [attr.minlength]="registering() ? 8 : null"
+          [attr.maxlength]="registering() ? 512 : null"
+          [attr.aria-describedby]="registering() ? 'password-strength' : null"
           required
           [(ngModel)]="password"
         />
@@ -99,10 +101,27 @@
       </div>
     </label>
 
+    @if (registering()) {
+      <div id="password-strength" class="password-strength" aria-live="polite">
+        <p>Fortaleza orientativa: <strong>{{ fortalezaPassword().etiqueta }}</strong> ({{ fortalezaPassword().puntos }}/3)</p>
+        <meter min="0" max="3" [value]="fortalezaPassword().puntos" aria-label="Fortaleza de la contraseña"></meter>
+        <ul>
+          <li>{{ fortalezaPassword().longitud ? '✓' : '○' }} Entre 8 y 512 caracteres (obligatorio).</li>
+          <li>{{ fortalezaPassword().simbolos ? '✓' : '○' }} Incluye símbolos (recomendado).</li>
+          <li>{{ fortalezaPassword().mayusculasONumeros ? '✓' : '○' }} Incluye mayúsculas o números (recomendado).</li>
+        </ul>
+        <p>Este indicador es una orientación; usa una contraseña larga y exclusiva.</p>
+      </div>
+      <label>Confirmar contraseña
+        <input id="scriptorium-password-confirm" name="confirmacionPassword"
+          [type]="showPassword() ? 'text' : 'password'" autocomplete="new-password"
+          required maxlength="512" [(ngModel)]="confirmacionPassword" />
+      </label>
+    }
     @if (error()) {
       <p class="notice error" role="alert">{{ error() }}</p>
     }
-    @if (!api.demo) {
+    @if (registering() && !api.demo) {
       <app-carrera-selector [(seleccion)]="carrera" [(plan)]="plan" />
     }
     <button [attr.data-icon]="registering() ? 'user-plus' : 'log-in'" [disabled]="busy()">

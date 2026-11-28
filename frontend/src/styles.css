@@ -284,6 +284,10 @@ dd { margin: 8px 0 0; font-weight: 600; }
 .login-layout form .text-button { width: 100%; }
 .login-layout form > p { margin: 18px 0 0; font-weight: 600; }
 .login-layout form .password-container { position: relative; width: 100%; }
+.password-strength { margin-block: 16px; font-size: 0.9rem; }
+.password-strength p { margin-block: 8px; }
+.password-strength meter { width: 100%; }
+.password-strength ul { padding-left: 20px; }
 .login-layout form .password-container input { width: 100%; padding-right: 50px; }
 .login-layout form .password-container button.password-toggle {
   position: absolute; top: 50%; right: 8px; transform: translateY(-50%);

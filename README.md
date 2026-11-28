@@ -85,6 +85,8 @@ Las tarjetas mantienen la presentación del catálogo y permiten abrir la ficha 
 
 ## Diseño de la base de datos
 
+El [análisis de uso del esquema](backend/documentacion/USO-DEL-ESQUEMA.md) detalla las operaciones que utilizan cada tabla, las dependencias SQL y los módulos pendientes o reservados.
+
 El total de la base de datos es **34 tablas: 33 para las entidades y operaciones del sistema, mas `configuracion_correo_bitacora` para configurar las copias institucionales de la bitacora por correo**. Esta ultima es una tabla fisica y forma parte del diseno. Guarda una unica fila con `unica`, el correo `destino` y el interruptor `habilitado`; no almacena claves SMTP ni mensajes. Se utiliza para que las funciones y el trigger de PostgreSQL consulten directamente si deben generar la copia y a que direccion enviarla. El destino y la habilitacion pueden cambiarse mediante SQL sin reiniciar la API para esos ajustes. La conexion y las credenciales SMTP se mantienen en el `.env` privado. La primera lamina de los diagramas muestra las 33 tablas del sistema y la segunda muestra esta configuracion independiente, sin claves foraneas.
 
 ### Diagrama entidad-relación (DER)

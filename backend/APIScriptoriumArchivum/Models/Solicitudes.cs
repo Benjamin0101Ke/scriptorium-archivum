@@ -15,8 +15,6 @@ public partial class Solicitudes
     public DateTime FechaPresentacion { get; set; }
     public string Estado { get; set; } = null!;
     public DateTime? PlazoCorreccion { get; set; }
-    // Una solicitud puede tener cero o muchos registros de cambios de estado
-    public ICollection<HistorialEstados> HistorialEstados { get; set; } = new List<HistorialEstados>();
     public Carreras IdCarreraNavigation { get; set; } = null!;
     public TiposTrabajo IdTipoTrabajoNavigation { get; set; } = null!;
     public Usuarios IdUsuarioSolicitanteNavigation { get; set; } = null!;

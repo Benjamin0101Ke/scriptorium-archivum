@@ -25,14 +25,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Departamentos> Departamentos { get; set; }
     public virtual DbSet<DistincionesDestacado> DistincionesDestacado { get; set; }
     public virtual DbSet<Entregas> Entregas { get; set; }
-    public virtual DbSet<EvidenciasAcademicas> EvidenciasAcademicas { get; set; }
     public virtual DbSet<Favoritos> Favoritos { get; set; }
-    public virtual DbSet<HistorialEstados> HistorialEstados { get; set; }
     public virtual DbSet<Notificaciones> Notificaciones { get; set; }
     public virtual DbSet<Observaciones> Observaciones { get; set; }
-    public virtual DbSet<PalabrasClaveTrabajo> PalabrasClaveTrabajo { get; set; }
     public virtual DbSet<Participaciones> Participaciones { get; set; }
-    public virtual DbSet<PermisosTrabajo> PermisosTrabajo { get; set; }
     public virtual DbSet<Personas> Personas { get; set; }
     public virtual DbSet<PersonasAutorizaciones> PersonasAutorizaciones { get; set; }
     public virtual DbSet<PlanesEstudio> PlanesEstudio { get; set; }
@@ -94,7 +90,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.IdArea).HasColumnName("id_area");
             // HasDefaultValue indica un valor inicial literal, en este caso true
             entity.Property(e => e.Activa).HasDefaultValue(true).HasColumnName("activa");
-            entity.Property(e => e.Descripcion).HasColumnName("descripcion");
             entity.Property(e => e.Nombre).HasMaxLength(100).HasColumnName("nombre");
         });
         // Constancias por ejemplar con una sola autorizacion Activa a la vez
@@ -228,11 +223,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.DifundirFichaHabilitado).HasColumnName("difundir_ficha_habilitado");
             entity.Property(e => e.Estado).HasMaxLength(30).HasDefaultValueSql("'Pendiente'::character varying").HasColumnName("estado");
             entity.Property(e => e.FechaDeposito).HasColumnName("fecha_deposito");
-            entity.Property(e => e.FechaEnvio).HasColumnName("fecha_envio");
             entity.Property(e => e.IdTrabajo).HasColumnName("id_trabajo");
             entity.Property(e => e.IdUsuarioEnvia).HasColumnName("id_usuario_envia");
             entity.Property(e => e.LeerPdfHabilitado).HasColumnName("leer_pdf_habilitado");
-            entity.Property(e => e.NotaCambios).HasColumnName("nota_cambios");
             entity.Property(e => e.NumeroVersion).HasColumnName("numero_version");
             entity.Property(e => e.ReferenciaConformidad).HasColumnName("referencia_conformidad");
             entity.Property(e => e.VerificadoEn).HasColumnName("verificado_en");
@@ -240,21 +233,6 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.IdTrabajoNavigation).WithMany(p => p.Entregas).HasForeignKey(d => d.IdTrabajo).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("fk_entregas_trabajo");
             entity.HasOne(d => d.IdUsuarioEnviaNavigation).WithMany(p => p.EntregasIdUsuarioEnviaNavigation).HasForeignKey(d => d.IdUsuarioEnvia).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("fk_entregas_usuario_envia");
             entity.HasOne(d => d.VerificadoPorNavigation).WithMany(p => p.EntregasVerificadoPorNavigation).HasForeignKey(d => d.VerificadoPor).HasConstraintName("fk_entregas_verificado_por");
-        });
-        // Referencias de respaldos academicos vinculadas al trabajo
-        modelBuilder.Entity<EvidenciasAcademicas>(entity =>
-        {
-            entity.HasKey(e => e.IdEvidencia).HasName("pk_evidencias_academicas");
-            entity.ToTable("evidencias_academicas");
-            entity.Property(e => e.IdEvidencia).HasColumnName("id_evidencia");
-            entity.Property(e => e.Emisor).HasMaxLength(150).HasColumnName("emisor");
-            entity.Property(e => e.FechaEmision).HasColumnName("fecha_emision");
-            entity.Property(e => e.IdTrabajo).HasColumnName("id_trabajo");
-            entity.Property(e => e.IdUsuarioRegistra).HasColumnName("id_usuario_registra");
-            entity.Property(e => e.ReferenciaRespaldo).HasColumnName("referencia_respaldo");
-            entity.Property(e => e.Resultado).HasMaxLength(30).HasColumnName("resultado");
-            entity.HasOne(d => d.IdTrabajoNavigation).WithMany(p => p.EvidenciasAcademicas).HasForeignKey(d => d.IdTrabajo).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("fk_evidencias_academicas_trabajo");
-            entity.HasOne(d => d.IdUsuarioRegistraNavigation).WithMany(p => p.EvidenciasAcademicas).HasForeignKey(d => d.IdUsuarioRegistra).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("fk_evidencias_academicas_usuario_registra");
         });
         // Una sola pareja usuario y trabajo, con estado activo o inactivo
         modelBuilder.Entity<Favoritos>(entity =>
@@ -269,27 +247,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.IdUsuario).HasColumnName("id_usuario");
             entity.HasOne(d => d.IdTrabajoNavigation).WithMany(p => p.Favoritos).HasForeignKey(d => d.IdTrabajo).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("fk_favoritos_trabajo");
             entity.HasOne(d => d.IdUsuarioNavigation).WithMany(p => p.Favoritos).HasForeignKey(d => d.IdUsuario).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("fk_favoritos_usuario");
-        });
-        // Cambios de estado y sus relaciones opcionales con el tramite
-        modelBuilder.Entity<HistorialEstados>(entity =>
-        {
-            entity.HasKey(e => e.IdHistorial).HasName("pk_historial_estados");
-            entity.ToTable("historial_estados");
-            entity.Property(e => e.IdHistorial).HasColumnName("id_historial");
-            entity.Property(e => e.Ambito).HasMaxLength(20).HasColumnName("ambito");
-            entity.Property(e => e.Decision).HasMaxLength(30).HasColumnName("decision");
-            entity.Property(e => e.EstadoAnterior).HasMaxLength(30).HasColumnName("estado_anterior");
-            entity.Property(e => e.EstadoNuevo).HasMaxLength(30).HasColumnName("estado_nuevo");
-            entity.Property(e => e.FechaHora).HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("fecha_hora");
-            entity.Property(e => e.IdEntrega).HasColumnName("id_entrega");
-            entity.Property(e => e.IdSolicitud).HasColumnName("id_solicitud");
-            entity.Property(e => e.IdTrabajo).HasColumnName("id_trabajo");
-            entity.Property(e => e.IdUsuarioActor).HasColumnName("id_usuario_actor");
-            entity.Property(e => e.Motivo).HasColumnName("motivo");
-            entity.HasOne(d => d.IdEntregaNavigation).WithMany(p => p.HistorialEstados).HasForeignKey(d => d.IdEntrega).HasConstraintName("fk_historial_estados_entrega");
-            entity.HasOne(d => d.IdSolicitudNavigation).WithMany(p => p.HistorialEstados).HasForeignKey(d => d.IdSolicitud).HasConstraintName("fk_historial_estados_solicitud");
-            entity.HasOne(d => d.IdTrabajoNavigation).WithMany(p => p.HistorialEstados).HasForeignKey(d => d.IdTrabajo).HasConstraintName("fk_historial_estados_trabajo");
-            entity.HasOne(d => d.IdUsuarioActorNavigation).WithMany(p => p.HistorialEstados).HasForeignKey(d => d.IdUsuarioActor).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("fk_historial_estados_usuario_actor");
         });
         // Avisos internos asociados a un destinatario
         modelBuilder.Entity<Notificaciones>(entity =>
@@ -326,17 +283,6 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.IdRevisionNavigation).WithMany(p => p.Observaciones).HasForeignKey(d => d.IdRevision).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("fk_observaciones_revision");
             entity.HasOne(d => d.IdUsuarioRespondeNavigation).WithMany(p => p.Observaciones).HasForeignKey(d => d.IdUsuarioResponde).HasConstraintName("fk_observaciones_usuario_responde");
         });
-        // Terminos de busqueda asociados a cada trabajo
-        modelBuilder.Entity<PalabrasClaveTrabajo>(entity =>
-        {
-            entity.HasKey(e => e.IdPalabraTrabajo).HasName("pk_palabras_clave_trabajo");
-            entity.ToTable("palabras_clave_trabajo");
-            entity.HasIndex(e => new { e.IdTrabajo, e.Termino }, "uq_palabras_clave_trabajo_trabajo_termino").IsUnique();
-            entity.Property(e => e.IdPalabraTrabajo).HasColumnName("id_palabra_trabajo");
-            entity.Property(e => e.IdTrabajo).HasColumnName("id_trabajo");
-            entity.Property(e => e.Termino).HasMaxLength(80).HasColumnName("termino");
-            entity.HasOne(d => d.IdTrabajoNavigation).WithMany(p => p.PalabrasClaveTrabajo).HasForeignKey(d => d.IdTrabajo).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("fk_palabras_clave_trabajo_trabajo");
-        });
         // Personas vinculadas a trabajos, con calidad y orden de autoria
         modelBuilder.Entity<Participaciones>(entity =>
         {
@@ -350,21 +296,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.OrdenAutoria).HasColumnName("orden_autoria");
             entity.HasOne(d => d.IdPersonaNavigation).WithMany(p => p.Participaciones).HasForeignKey(d => d.IdPersona).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("fk_participaciones_persona");
             entity.HasOne(d => d.IdTrabajoNavigation).WithMany(p => p.Participaciones).HasForeignKey(d => d.IdTrabajo).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("fk_participaciones_trabajo");
-        });
-        // Permisos individuales asociados a una cuenta y un trabajo
-        modelBuilder.Entity<PermisosTrabajo>(entity =>
-        {
-            entity.HasKey(e => e.IdPermiso).HasName("pk_permisos_trabajo");
-            entity.ToTable("permisos_trabajo");
-            entity.HasIndex(e => new { e.IdUsuario, e.IdTrabajo }, "uq_permisos_trabajo_usuario_trabajo").IsUnique();
-            entity.Property(e => e.IdPermiso).HasColumnName("id_permiso");
-            entity.Property(e => e.Activo).HasDefaultValue(true).HasColumnName("activo");
-            entity.Property(e => e.FechaAsignacion).HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("fecha_asignacion");
-            entity.Property(e => e.IdTrabajo).HasColumnName("id_trabajo");
-            entity.Property(e => e.IdUsuario).HasColumnName("id_usuario");
-            entity.Property(e => e.NivelPermiso).HasMaxLength(30).HasColumnName("nivel_permiso");
-            entity.HasOne(d => d.IdTrabajoNavigation).WithMany(p => p.PermisosTrabajo).HasForeignKey(d => d.IdTrabajo).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("fk_permisos_trabajo_trabajo");
-            entity.HasOne(d => d.IdUsuarioNavigation).WithMany(p => p.PermisosTrabajo).HasForeignKey(d => d.IdUsuario).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("fk_permisos_trabajo_usuario");
         });
         // Datos de personas que pueden participar sin tener una cuenta
         modelBuilder.Entity<Personas>(entity =>
@@ -506,7 +437,6 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.Nombre, "uq_roles_nombre").IsUnique();
             entity.Property(e => e.IdRol).HasColumnName("id_rol");
             entity.Property(e => e.Activo).HasDefaultValue(true).HasColumnName("activo");
-            entity.Property(e => e.Descripcion).HasColumnName("descripcion");
             entity.Property(e => e.Nombre).HasMaxLength(50).HasColumnName("nombre");
         });
         // Solicitudes conservadas para el tramite academico previsto
@@ -537,7 +467,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Activa).HasDefaultValue(true).HasColumnName("activa");
             entity.Property(e => e.Descripcion).HasColumnName("descripcion");
             entity.Property(e => e.Nombre).HasMaxLength(60).HasColumnName("nombre");
-            entity.Property(e => e.RequiereAprobacionAcademica).HasColumnName("requiere_aprobacion_academica");
+
         });
         // Ficha academica y referencia compuesta a su ejemplar final
         modelBuilder.Entity<Trabajos>(entity =>
@@ -554,7 +484,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.DepositoVerificadoEn).HasColumnName("deposito_verificado_en");
             entity.Property(e => e.DepositoVerificadoPor).HasColumnName("deposito_verificado_por");
             entity.Property(e => e.EstadoPublicacion).HasMaxLength(20).HasDefaultValueSql("'Borrador'::character varying").HasColumnName("estado_publicacion");
-            entity.Property(e => e.FechaHabilitacion).HasColumnName("fecha_habilitacion");
             entity.Property(e => e.FechaPublicacion).HasColumnName("fecha_publicacion");
             entity.Property(e => e.FechaRegistro).HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("fecha_registro");
             entity.Property(e => e.FechaRetiro).HasColumnName("fecha_retiro");
@@ -565,10 +494,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.IdUsuarioEnvio).HasColumnName("id_usuario_envio");
             entity.Property(e => e.IdUsuarioRetira).HasColumnName("id_usuario_retira");
             entity.Property(e => e.MotivoRetiro).HasColumnName("motivo_retiro");
-            entity.Property(e => e.NivelAcceso).HasMaxLength(20).HasColumnName("nivel_acceso");
-            entity.Property(e => e.Objetivos).HasColumnName("objetivos");
             entity.Property(e => e.ReferenciaDepositoUes).HasColumnName("referencia_deposito_ues");
-            entity.Property(e => e.Resultados).HasColumnName("resultados");
             entity.Property(e => e.Resumen).HasColumnName("resumen");
             entity.Property(e => e.Titulo).HasMaxLength(250).HasColumnName("titulo");
             entity.HasOne(d => d.DepositoVerificadoPorNavigation).WithMany(p => p.TrabajosDepositoVerificadoPorNavigation).HasForeignKey(d => d.DepositoVerificadoPor).HasConstraintName("fk_trabajos_deposito_verificado_por");

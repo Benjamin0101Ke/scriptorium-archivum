@@ -10,10 +10,8 @@ public partial class Entregas
     public int IdTrabajo { get; set; }
     public int NumeroVersion { get; set; }
     public int IdUsuarioEnvia { get; set; }
-    public DateTime? FechaEnvio { get; set; }
     public DateOnly? FechaDeposito { get; set; }
     public string Estado { get; set; } = null!;
-    public string? NotaCambios { get; set; }
     public string? ReferenciaConformidad { get; set; }
     public int? VerificadoPor { get; set; }
     public DateTime? VerificadoEn { get; set; }
@@ -26,8 +24,6 @@ public partial class Entregas
     // Una entrega puede conservar cero o muchas autorizaciones en su historial
     // La restriccion de la base permite solo una autorizacion activa por entrega
     public ICollection<AutorizacionesDifusion> AutorizacionesDifusion { get; set; } = new List<AutorizacionesDifusion>();
-    // Una entrega puede tener cero o muchos registros de cambios de estado
-    public ICollection<HistorialEstados> HistorialEstados { get; set; } = new List<HistorialEstados>();
     public Trabajos IdTrabajoNavigation { get; set; } = null!;
     public Usuarios IdUsuarioEnviaNavigation { get; set; } = null!;
     // Una entrega puede estar asociada con cero o muchas notificaciones

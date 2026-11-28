@@ -45,13 +45,10 @@ public partial class Usuarios
     public ICollection<Entregas> EntregasIdUsuarioEnviaNavigation { get; set; } = new List<Entregas>();
     // Un usuario puede verificar cero o muchas entregas de trabajos
     public ICollection<Entregas> EntregasVerificadoPorNavigation { get; set; } = new List<Entregas>();
-    // Un usuario puede registrar cero o muchas evidencias academicas
-    public ICollection<EvidenciasAcademicas> EvidenciasAcademicas { get; set; } = new List<EvidenciasAcademicas>();
     // Un usuario puede mantener cero o muchos registros de favoritos
     // Favoritos relaciona muchos usuarios con muchos trabajos
     public ICollection<Favoritos> Favoritos { get; set; } = new List<Favoritos>();
     // Un usuario puede ser el actor de cero o muchos cambios de estado
-    public ICollection<HistorialEstados> HistorialEstados { get; set; } = new List<HistorialEstados>();
     public Carreras? IdCarreraNavigation { get; set; }
     // Cuenta del docente asignado a este estudiante
     public Usuarios? IdDocenteNavigation { get; set; }
@@ -66,8 +63,6 @@ public partial class Usuarios
     // Un usuario puede responder cero o muchas observaciones
     public ICollection<Observaciones> Observaciones { get; set; } = new List<Observaciones>();
     // Un usuario puede tener cero o muchos permisos sobre trabajos
-    // PermisosTrabajo relaciona muchos usuarios con muchos trabajos
-    public ICollection<PermisosTrabajo> PermisosTrabajo { get; set; } = new List<PermisosTrabajo>();
     // Un usuario puede tener cero o muchos registros de presencia de sesiones
     public ICollection<PresenciaSesiones> PresenciaSesiones { get; set; } = new List<PresenciaSesiones>();
     public RecuperacionesContrasena? RecuperacionesContrasena { get; set; }

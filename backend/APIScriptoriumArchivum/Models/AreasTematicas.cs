@@ -7,7 +7,6 @@ public partial class AreasTematicas
 {
     public int IdArea { get; set; }
     public string Nombre { get; set; } = null!;
-    public string? Descripcion { get; set; }
     public bool Activa { get; set; }
     // Un area puede tener cero o muchas asociaciones con trabajos
     // TrabajosAreas une trabajos y areas en una relacion de muchos a muchos

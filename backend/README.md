@@ -4,7 +4,7 @@ La API ASP.NET Core utiliza Entity Framework Core y PostgreSQL. Docker Compose i
 
 ## Archivos
 
-Consultar el [análisis de uso de las 34 tablas](documentacion/USO-DEL-ESQUEMA.md) para distinguir operaciones actuales, módulos por comprobar y estructuras de fase futura.
+Consultar el [análisis de uso y depuración del esquema](documentacion/USO-DEL-ESQUEMA.md) para distinguir operaciones actuales, módulos por comprobar y estructuras de fase futura.
 
 | Archivo o carpeta | Uso |
 | --- | --- |
@@ -86,7 +86,7 @@ El proxy `frontend/proxy.conf.json` reenvia `/api` a `http://127.0.0.1:3000`. Si
 
 ## 5. Datos y archivos
 
-El esquema contiene **34 tablas en total**: 33 para las entidades y operaciones del sistema y una tabla adicional de configuracion, `configuracion_correo_bitacora`. Las 34 forman parte de la base de datos. El conjunto tiene 260 campos, 64 claves foraneas y una vista. La vista `vw_estrellas_por_trabajo` cuenta favoritos activos y no es una tabla adicional.
+El esquema contiene **30 tablas en el esquema activo `public`**: 29 para las entidades y operaciones del sistema y una tabla adicional de configuracion, `configuracion_correo_bitacora`. El SQL 22 retira cuatro tablas y nueve columnas sin uso; conserva sus valores en `respaldo_depuracion`, fuera del esquema operativo. El conjunto activo tiene 224 campos de tablas, 55 claves foraneas y una vista. La vista `vw_estrellas_por_trabajo` cuenta favoritos activos y no es una tabla adicional.
 
 Los PDF y anexos se guardan en la carpeta indicada por `Storage:Ruta`. PostgreSQL conserva sus referencias. Las fotos de perfil se guardan en `usuarios.foto_perfil` y forman parte del respaldo de la base.
 
@@ -128,3 +128,7 @@ docker compose -p scriptorium-archivum start
 ```
 
 La API se vuelve a iniciar desde Visual Studio o con `dotnet run`. No publicar `.env`, claves, archivos de usuarios, fotos, sesiones ni respaldos.
+
+## Depurar una instalación existente
+
+Consultar [aplicación y respaldo de la depuración](documentacion/DEPURACION.md). Aplicar solamente `sql-init/22_depurar_estructuras_sin_uso.sql` a la base respaldada, con la API detenida y la versión compatible lista. No repetir los SQL anteriores ni recrear el volumen.

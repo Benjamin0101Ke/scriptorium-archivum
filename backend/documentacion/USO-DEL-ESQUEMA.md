@@ -1,21 +1,21 @@
 # Uso del esquema de PostgreSQL
 
-Revisión del código y los SQL del repositorio al 28/11/2026. Se distingue una operación implementada de una prueba ejecutada: disponer de un modelo de Entity Framework, o de registros en una tabla, no demuestra por sí solo su uso funcional. Este análisis no autoriza eliminar datos ni estructuras.
+Revisión del código y los SQL del repositorio al 28/11/2026. Se distingue una operación implementada de una prueba ejecutada: disponer de un modelo de Entity Framework, o de registros en una tabla, no demuestra por sí solo su uso funcional. La depuración autorizada se aplica mediante el SQL 22 y conserva los valores retirados en un respaldo privado.
 
-El esquema declara 34 tablas públicas (33 del sistema y la configuración técnica independiente del correo), 260 columnas, 64 claves foráneas, una vista, cinco funciones, tres procedimientos y dos triggers. Para evaluar funciones redefinidas debe leerse su última definición en el orden de los SQL.
+Después del SQL 22, el esquema activo `public` contiene 30 tablas (29 del sistema y la configuración técnica independiente del correo), 224 columnas de tablas, 55 claves foráneas, una vista, cinco funciones, tres procedimientos y dos triggers. El esquema privado `respaldo_depuracion` conserva valores retirados y queda fuera del modelo operativo. Para evaluar funciones redefinidas debe leerse su última definición en el orden de los SQL.
 
-## 1. Prioridad: estructuras sin consumidor actual
+## 1. Estructuras retiradas del esquema activo
 
-No se ha confirmado ninguna tabla que reúna **ambas** condiciones: ausencia de uso actual y ausencia de necesidad prevista. Los siguientes casos requieren confirmar el alcance antes de proponer una migración de eliminación. Sus claves foráneas y modelos no constituyen consumidores funcionales.
+Se retiran las cuatro estructuras sin consumidor funcional que el propietario del proyecto autorizó depurar. No se retiran las reservas expresas de fase futura. El motivo histórico de su abandono no se atribuye a sus autores: la decisión actual es reducir el esquema al alcance conservado.
 
 | Tabla | Finalidad del diseño y evidencia actual | Recomendación |
 | --- | --- | --- |
-| `palabras_clave_trabajo` | Términos asociados a trabajos. No se identificó lectura ni escritura funcional en la API; la búsqueda de `ConsultaPublica` utiliza título, resumen y áreas. | Confirmar si se requiere un vocabulario de palabras clave. El motivo histórico de su abandono no está documentado. |
-| `permisos_trabajo` | Permisos individuales por usuario y trabajo. Las operaciones actuales de `Fichas`, `Ejemplares` y controladores autorizan mediante rol, propiedad y permisos de entrega/autorización. | Confirmar si se descarta el acceso individual; sus reglas no son equivalentes a los permisos actuales. |
-| `historial_estados` | Historial de transiciones de solicitudes, entregas y trabajos. No se identificó escritura funcional. El trigger de publicación escribe en `bitacora`. | Evaluar si la bitácora cubre el historial requerido, incluidas futuras solicitudes. No asumir duplicación completa. |
-| `evidencias_academicas` | Evidencias académicas del trabajo. La verificación actual de `Ejemplares` guarda referencia, responsable y fecha en `entregas`, sin consumir esta tabla. | Confirmar el alcance de evidencias y tribunal antes de decidir si sobra. |
+| `palabras_clave_trabajo` | Términos asociados a trabajos. No se identificó lectura ni escritura funcional en la API; la búsqueda de `ConsultaPublica` utiliza título, resumen y áreas. | Retirada del alcance actual; la búsqueda conserva título, resumen y áreas. |
+| `permisos_trabajo` | Permisos individuales por usuario y trabajo. Las operaciones actuales de `Fichas`, `Ejemplares` y controladores autorizan mediante rol, propiedad y permisos de entrega/autorización. | Se descarta este mecanismo individual; se conservan las reglas de rol, propiedad y entrega. |
+| `historial_estados` | Historial de transiciones de solicitudes, entregas y trabajos. No se identificó escritura funcional. El trigger de publicación escribe en `bitacora`. | Se conserva la bitácora operativa; cualquier historial estructurado futuro requerirá un diseño explícito. |
+| `evidencias_academicas` | Evidencias académicas del trabajo. La verificación actual de `Ejemplares` guarda referencia, responsable y fecha en `entregas`, sin consumir esta tabla. | Se conserva la verificación por entrega; este módulo separado se retira del alcance actual. |
 
-La finalidad anterior se desprende del esquema. No existe evidencia suficiente para atribuir una decisión concreta a sus autores ni afirmar que nunca se utilizarán.
+También se retiran nueve columnas sin lectura, escritura ni regla funcional actual: `areas_tematicas.descripcion`, `roles.descripcion`, `tipos_trabajo.requiere_aprobacion_academica`, `entregas.fecha_envio`, `entregas.nota_cambios`, `trabajos.objetivos`, `trabajos.resultados`, `trabajos.nivel_acceso` y `trabajos.fecha_habilitacion`. El SQL 14 es un antecedente de inicialización que poblaba la descripción del rol; no gobierna sus permisos. Los scripts históricos se conservan en orden y el SQL 22 realiza la depuración al final. No se deben volver a ejecutar scripts anteriores sobre una base ya migrada.
 
 ## 2. Módulos implementados con comprobación funcional pendiente
 
@@ -86,4 +86,6 @@ El bloque inicial del SQL 19 inserta desde `revisiones_docentes` y evita duplica
 
 ## Recomendaciones
 
-Conservar las 34 tablas mientras se confirma el alcance de las cuatro candidatas. Completar las pruebas de módulos implementados con datos aislados y sin enviar correos reales. Si se aprueba retirar alguna estructura, preparar primero una migración conservadora, revisar claves foráneas y rutinas, respaldar los datos y probar restauración. No ejecutar scripts de creación desde cero sobre una base existente.
+Aplicar solamente el SQL 22 a una base existente después de guardar y validar un respaldo completo. La eliminación no se ejecuta automáticamente al iniciar la API. Completar las pruebas de módulos implementados con datos aislados y sin enviar correos reales. Si se aprueba retirar alguna estructura, preparar primero una migración conservadora, revisar claves foráneas y rutinas, respaldar los datos y probar restauración. No ejecutar scripts de creación desde cero sobre una base existente.
+
+Los diagramas y el diccionario PDF provistos describen el esquema previo de 34 tablas. Su sustitución permanece pendiente de los editables/exportaciones corregidos; no son una representación exacta del esquema después del SQL 22.

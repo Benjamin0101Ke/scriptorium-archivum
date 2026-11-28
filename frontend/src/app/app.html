@@ -80,10 +80,30 @@
 <main id="contenido"><router-outlet /></main>
 <footer class="site-footer">
   <div class="footer-content">
+
     <div class="brand-text">
-      Scriptorium Archivum<span>Repositorio digital de proyectos y trabajos de grado</span>
+      Scriptorium Archivum
+      <span>Repositorio digital de proyectos y trabajos de grado</span>
     </div>
-    <p>Universidad de El Salvador<br />Facultad Multidisciplinaria Oriental</p>
-    <a routerLink="/">Volver al catálogo ↑</a>
+
+    <div class="footer-institution">
+      <p>
+        Universidad de El Salvador<br />
+        Facultad Multidisciplinaria Oriental
+      </p>
+
+      <img
+        src="/ues.png"
+        alt="Escudo de la Universidad de El Salvador"
+        width="60"
+        height="60"
+      />
+    </div>
+
+    <div class="footer-links">
+      <a routerLink="/desarrolladores">Desarrolladores</a>
+      <a routerLink="/">Volver al catálogo ↑</a>
+    </div>
+
   </div>
 </footer>

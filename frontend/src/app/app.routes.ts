@@ -2,6 +2,7 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router, Routes } from '@angular/router';
 import { Api, puedeEnviar, type Rol } from './core/api';
 import { espaciosPorRol } from './core/roles';
+import { Desarrolladores } from './pages/desarrolladores';
 const personal: CanActivateFn = async () => {
   const api = inject(Api),
     router = inject(Router);
@@ -79,5 +80,9 @@ export const routes: Routes = [
     canActivate: [paraRol('Docente revisor')],
     loadComponent: () => import('./pages/docente').then((m) => m.Docente),
   },
+    {
+  path: 'desarrolladores',
+  component: Desarrolladores,
+},
   { path: '**', redirectTo: '' },
 ];
